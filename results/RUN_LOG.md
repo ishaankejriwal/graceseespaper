@@ -1023,3 +1023,63 @@ the control-phase chain (surrogates/phase5/hybrid/basin-analysis).
 - Stale pre-audit analyses/audits (12 docs incl. phase6_analysis.md, which the external audit
   missed) + smoke files → `archive/superseded_preaudit_docs/`; results/README.md documents
   the provenance rules.
+
+---
+
+## 2026-08-15 evening — repository cleanup for handoff (no results touched)
+
+Purely structural: made the repo legible to a teammate opening it cold. **No result CSV, no
+figure, and no manuscript number changed.** The corrected-pipeline chain was mid-flight
+(phase6_era5) throughout, so nothing it imports or writes was moved.
+
+- **Root decluttered.** Working notes and reference material moved out of the repository root
+  into `docs/`: `code_structure.md` → `docs/CODE_MAP.md`, `context_global_study.md` →
+  `docs/STUDY_CONTEXT.md`, `AUDIT_REPORT.md` → `docs/AUDIT_2026-08-13.md`, the four `Li_2026_*`
+  files → `docs/reference/li_kusche_2026_*`, and the two Africa pilot context files →
+  `docs/history/`. The manuscript drafting record (`DECISIONS`, `FIGURE_PLAN`,
+  `REWRITE_LEDGER`, `REWRITE_NOTES`) moved to `paper/notes/`, leaving `paper/` holding only
+  what LaTeX compiles. All moves were `git mv`, so history follows the files; every live
+  cross-reference in docs, `main.tex` comments, `figures/BUILD_NOTES.md` and
+  `scripts/make_figures.py` was rewritten to the new paths. RUN_LOG entries above were left
+  alone — this journal is append-only and records what was true when written.
+- **Docs rewritten for a reader with no background**, at Ishaan's request — teammates joining
+  cold should not need hydrology or forecasting vocabulary to follow the repo. `README.md` is
+  now a full front door: what GRACE and TWSA actually are, why we deseasonalize, the three
+  findings in plain terms, a repository map, setup and data acquisition, a from-scratch
+  explanation of the Kalman filter and how the neural arms sit on top of it, the issue-date
+  fold protocol (the convention that caused P0-2) spelled out, the placebo/surrogate logic,
+  and a 19-term glossary. `docs/CODE_MAP.md` rewritten the same way, organised around
+  "`src/` thinks, `scripts/` runs, `results/` remembers", with files split into "need to
+  understand" vs "only if you go deeper".
+- **Module docstrings rewritten in plain language** for the eight files a newcomer actually
+  opens: `kalman.py` (the two-line model, the gain, why it beats damped persistence, the r
+  caveat), `evaluate.py` (the issue/target-date split, spelled out with the reason), `graphs.py`
+  (what the placebo graphs are for), `decompose.py` (why we remove trend and season),
+  `stats.py` (what each of the three tests answers), `basins.py`, `experiment_kalman.py` and
+  `experiment_lstm_combined.py` (both now open with a plain-terms paragraph, technical detail
+  retained below it). Docstrings only — no code paths touched; all 22 modules import and
+  15/15 tests pass after each edit.
+- **Dead code removed**, after a reference sweep across `src/`, `scripts/`, `tests/` and
+  `notebooks/`. Scripts: `regression_check.py` (phase-0 Africa reproduction gate, built on the
+  retired 70/10/20 chronological split — it would now emit wrong-protocol numbers if anyone
+  ran it) and `run_phase3_neighbors.py` (ridge-backbone phase 3, superseded by 3b; its outputs
+  no longer exist anywhere in `results/`). Functions: `basins.decode_csr_time` (superseded by
+  `assign_solution_months`), `decompose.restore` (never called; `run_phase6_li_comparison.py`
+  hand-rolls the remove-restore inline), and `models.damped_persistence_forecast` (duplicate of
+  the `mode="regression"` branch of `evaluate.damped_persistence_pred`, and orphaned by the
+  `regression_check.py` deletion). Verified after: all 22 modules import, 15/15 tests pass.
+  Several scripts that looked disposable are NOT — `download_indices.py`,
+  `build_li_basin_series.py`, `run_phase2_baselines.py` and `run_phase6_hybrid.py` all feed
+  declared chain inputs or a live manuscript todo, and were kept.
+- **Known duplication left in place, deliberately:** `experiment_gnn._era5_node_tensor` vs
+  `experiment_lstm._era5_state_tensor`, the Units-parsing preamble in
+  `basins.assign_solution_months`, and the byte-identical `emit_rows` in the phase-5 coupled
+  and fusion runners. All three are safe merges, but the chain was importing those modules;
+  refactoring mid-run risked failing a multi-hour step for no scientific gain.
+- **New:** `scripts/make_manifest.py` writes and verifies `results/SHA256_MANIFEST_LIVE.csv`
+  over the result files git does not carry (`--check` re-verifies). Run it once the chain lands.
+- **Housekeeping:** `.claude/settings.local.json` untracked (machine-local permissions with
+  absolute scratchpad paths); `results/chain_*.log` untracked (transient per-run, superseded by
+  this journal); `.pytest_cache/` ignored; notebook outputs cleared so pre-audit numbers in
+  stored cells cannot be mistaken for current results.
+- **Remote:** repository published to `https://github.com/ishaankejriwal/graceseespaper.git`.

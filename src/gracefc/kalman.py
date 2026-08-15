@@ -1,4 +1,30 @@
-"""Per-basin AR(1) state + observation-noise Kalman baseline: filtering vs dynamics attribution."""
+"""The Kalman filter — the heart of the study.
+
+The problem in one paragraph: the satellite measurement is the real water level plus
+measurement noise. The field's usual baseline ("damped persistence") forecasts by
+shrinking the last *measurement* toward zero, which faithfully carries the noise forward
+along with the signal. This module estimates the underlying level first, then shrinks
+that instead.
+
+The model per basin is two lines:
+
+    real level next month  =  rho * real level this month  +  random shock (size q)
+    what we observe        =  real level                   +  noise       (size r)
+
+Each month the filter predicts where the level should be, compares that to the new
+measurement, and splits the difference by the "Kalman gain" = p / (p + r). Gain near 1
+means trust the measurement; near 0 means trust the model. Forecasting h months ahead is
+then just rho**h times the current clean estimate.
+
+rho, q and r are fitted per basin by maximum likelihood on training months only.
+
+Setting fixed_r=0 forces the gain to 1, which collapses this into damped persistence with
+an MLE decay rate — that is the ablation in scripts/run_r0_ablation.py, and it isolates
+how much of the win comes from noise removal rather than from a better decay rate.
+
+Caveat worth keeping in mind: we call r "measurement noise", but it is really whatever
+part of the signal the model cannot carry forward. 259 of 1170 basin-fits land at r ~ 0.
+"""
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize

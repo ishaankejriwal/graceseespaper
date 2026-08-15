@@ -3,22 +3,29 @@
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+.pytest_cache/
+
+# Machine-local Claude Code permissions (per-developer, not shared)
+.claude/settings.local.json
 
 # Raw and archived data: not in git.
 # - data/ holds source datasets (CSR mascons, ERA5, Li 2026, indices) that are
-#   re-downloadable and documented in README/RUN_LOG.
+#   re-downloadable; see README "Getting the data".
 # - archive/ is the frozen pre-audit snapshot, integrity-pinned by its own
 #   SHA256_MANIFEST.csv.
 data/
 archive/
 *.nc
-Li_2026_figures_only.pdf
+docs/reference/li_kusche_2026_figures.pdf
 
 # Large derived outputs (>5 MB): integrity-pinned via results/SHA256_MANIFEST_LIVE.csv,
 # regenerable from the committed code + raw data.
 results/*_predictions.csv
 results/*_placebo_basin.csv
 results/phase3b_placebo_monthly.csv
+
+# Chain runner per-step logs: transient, superseded by results/RUN_LOG.md
+results/chain_*.log
 
 # LaTeX build artifacts
 paper/*.aux

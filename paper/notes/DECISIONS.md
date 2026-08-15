@@ -1,7 +1,7 @@
 # DECISIONS.md — judgment calls, provenance, and open items
 
 Manuscript drafted 2026-08-13. Files: `paper/main.tex`, `paper/references.bib`,
-`paper/FIGURE_PLAN.md`, plus Copernicus class files (`copernicus.cls`, `.bst`,
+`paper/notes/FIGURE_PLAN.md`, plus Copernicus class files (`copernicus.cls`, `.bst`,
 `.cfg`) copied from the official package (downloaded from
 publications.copernicus.org on 2026-08-13; documentclass `[hess, manuscript]`).
 
@@ -28,7 +28,7 @@ publications.copernicus.org on 2026-08-13; documentclass `[hess, manuscript]`).
    forecast* depends only on ρ and the ratio q/r, which is stated in Methods.
    (Correction 2026-08-13: this entry originally claimed the project context
    file already said "three-parameter" — it said "2-parameter" until the
-   post-audit rewrite of `context_global_study.md` fixed it.)
+   post-audit rewrite of `docs/STUDY_CONTEXT.md` fixed it.)
 5. **LSTM-ERA5 gain quoted as the 2-seed ensemble (+1.95/+1.99/+1.43%)**, not
    the seed-0 values (+2.05/+2.24/+1.60%) that the task brief quoted. This is
    the audited phrasing constraint in `results/phase7_analysis.md` ("report as

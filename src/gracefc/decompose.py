@@ -1,4 +1,16 @@
-"""Train-window-only signal decomposition: trend + annual/semiannual harmonics + residual."""
+"""Removes the boring, already-predictable parts of a water-storage series.
+
+Raw water storage is dominated by two patterns anyone can predict: a long-term drying or
+wetting trend, and the annual wet/dry cycle. Leaving them in would make any model look
+excellent while predicting nothing of interest. So we fit and subtract both, and forecast
+only the leftover — the genuinely hard part.
+
+The fit is a straight line (the trend) plus two sine/cosine pairs (the yearly cycle and
+its half-year overtone), estimated by least squares.
+
+Crucially the fit uses TRAINING months only and is then applied forward. Fitting it on
+the whole record would leak future information into the test period.
+"""
 from dataclasses import dataclass
 
 import numpy as np
@@ -45,8 +57,3 @@ def fit_climatology(series: pd.Series) -> DecompositionFit:
 def deseasonalize(series: pd.Series, fit: DecompositionFit) -> pd.Series:
     """Remove a previously fitted trend+seasonal model. Safe to apply to any window."""
     return series - fit.predict(series.index)
-
-
-def restore(residual_forecast: pd.Series, fit: DecompositionFit) -> pd.Series:
-    """Add the extrapolated trend+seasonal back to a residual forecast (remove-restore)."""
-    return residual_forecast + fit.predict(residual_forecast.index)

@@ -2,7 +2,7 @@
 
 Built by `scripts/make_figures.py` (run with `.venv\Scripts\python.exe scripts\make_figures.py`).
 Reads only `results/*.csv`. Every headline value below is hard-asserted in the script
-against `paper/REWRITE_LEDGER.md` (tolerance ±0.005 on 2-dp values); the script refuses
+against `paper/notes/REWRITE_LEDGER.md` (tolerance ±0.005 on 2-dp values); the script refuses
 to build if any value drifts. F3/F4/F6/F7 were NOT built (inputs stale until the
 control-phase reruns land, per FIGURE_PLAN.md addendum).
 

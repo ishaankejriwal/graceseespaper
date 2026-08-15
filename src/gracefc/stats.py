@@ -1,4 +1,23 @@
-"""Forecast-comparison inference: Diebold-Mariano, block bootstrap, and FDR across basins."""
+"""Answers the question "is this improvement real, or luck?"
+
+Three tools, used together throughout the study:
+
+- Diebold-Mariano test: the standard test for whether forecast A genuinely beats forecast
+  B. Overlapping multi-month forecasts are correlated with each other, which would
+  otherwise make results look more certain than they are, so the variance is HAC-corrected
+  (Newey-West) and the small-sample Harvey correction is applied.
+
+- Block bootstrap: resample the data many times in contiguous chunks (not single months,
+  which would destroy the autocorrelation) and see how much the answer moves. Gives the
+  confidence intervals.
+
+- Benjamini-Hochberg FDR: when testing 234 basins separately, some will look significant
+  by pure chance. This corrects for that.
+
+All pairing goes through _paired_losses, which asserts the two models are being compared
+on identical rows with identical targets rather than silently intersecting whatever
+happens to overlap.
+"""
 import numpy as np
 import pandas as pd
 from scipy import stats as sps

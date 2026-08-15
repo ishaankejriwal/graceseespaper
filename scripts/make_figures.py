@@ -1,10 +1,10 @@
 """Publication figures for the GRACE TWSA forecasting paper (HESS, copernicus.cls).
 
-Builds the four figures marked "Buildable NOW" in paper/FIGURE_PLAN.md
+Builds the four figures marked "Buildable NOW" in paper/notes/FIGURE_PLAN.md
 (ADDENDUM 2026-08-15): F1, F2, F5, F8. F3/F4/F6/F7 are blocked on reruns.
 
 Reads ONLY results/*.csv. Every headline number plotted is asserted against
-paper/REWRITE_LEDGER.md values to the printed precision; if an assert fires,
+paper/notes/REWRITE_LEDGER.md values to the printed precision; if an assert fires,
 the source data no longer matches the ledger and the figure must NOT be used.
 
 Outputs (vector PDF + 150 dpi PNG preview each) into figures/:
