@@ -9,8 +9,10 @@ a shared encoder is the honest capacity for 234 basins. Months before the record
 pad with zeros, which is the state prior mean, so padding is principled rather than
 arbitrary. Early stopping holds out the LAST 15% of train issue months (time-ordered,
 so the stopping rule never sees the future). Placebos swap the neighbor channel for a
-degree-matched random basin's history and retrain; ERA5 channels stay aboard in _era5
-placebos, mirroring experiment_era5.
+degree-matched random basin's history and retrain with the SAME torch seed as the real
+arm they null (audit 2026-08-15: the old 1000+draw seed changed net init and batch
+order alongside the graph); ERA5 channels stay aboard in _era5 placebos, mirroring
+experiment_era5. Placebo draws are seeded per (fold, horizon) cell.
 """
 import copy
 import zlib
@@ -131,7 +133,6 @@ def run_lstm_experiment(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
     out, placebo_monthly = [], []
-    base = zlib.crc32(b"phase7_lstm") % 1_000_000
     for fold in folds:
         setup = fold_setup(wide, fold, params_cache)
         names, name_pos, F = setup["names"], setup["name_pos"], setup["F"]
@@ -210,16 +211,20 @@ def run_lstm_experiment(
                 for s in lstm_seeds:
                     emit(f"lstm_{arm}_s{s}", kal_te + fit_lstm(Xtr, ytr, val_mask, Xte, s))
 
+            # Placebo nets reuse the real arms' torch seeds so each (arm, s) null varies
+            # only the graph; labels carry _s{s} so the summary matches seed to seed.
+            cell_base = zlib.crc32(f"phase7_lstm:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
-                g_rand = random_degree_matched(graph, base + seed)
+                g_rand = random_degree_matched(graph, cell_base + seed)
                 p_idx = neighbor_rank_matrix(g_rand, names, name_pos, 1)
                 pb_tr, pb_te = nbr_channel(p_idx)
-                Xtr, Xte = stack([own_tr, pb_tr], [own_te, pb_te])
-                emit_placebo(f"lstm_corr_top1_rand{seed}",
-                             kal_te + fit_lstm(Xtr, ytr, val_mask, Xte, 1000 + seed))
-                Xtr, Xte = stack([own_tr, pb_tr, era_tr], [own_te, pb_te, era_te])
-                emit_placebo(f"lstm_corr_top1_era5_rand{seed}",
-                             kal_te + fit_lstm(Xtr, ytr, val_mask, Xte, 1000 + seed))
+                for s in lstm_seeds:
+                    Xtr, Xte = stack([own_tr, pb_tr], [own_te, pb_te])
+                    emit_placebo(f"lstm_corr_top1_s{s}_rand{seed}",
+                                 kal_te + fit_lstm(Xtr, ytr, val_mask, Xte, s))
+                    Xtr, Xte = stack([own_tr, pb_tr, era_tr], [own_te, pb_te, era_te])
+                    emit_placebo(f"lstm_corr_top1_era5_s{s}_rand{seed}",
+                                 kal_te + fit_lstm(Xtr, ytr, val_mask, Xte, s))
             print(f"{fold.name} h{h} done", flush=True)
     return (pd.concat(out, ignore_index=True),
             pd.concat(placebo_monthly, ignore_index=True) if placebo_monthly else pd.DataFrame())

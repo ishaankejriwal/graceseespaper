@@ -4,9 +4,12 @@ Ridge fits the Kalman residual from own_state; an MLP then fits the RIDGE residu
 neighbor propagated states alone (plus ERA5 lags in the _era5 arms, ERA5-only in the
 own_era5 control). Final prediction = kalman + ridge + MLP. Information sets match the
 Phase 5/6 one-stage twins exactly, so resmlp vs ridge_corr_top1 isolates the two-stage
-architecture rather than the features. Placebos randomize the neighbor(s) and retrain the
-MLP stage (the ridge stage is neighbor-free and shared); ERA5 stays aboard in _era5
-placebos, mirroring experiment_era5's "neighbor beyond shared meteorology" test.
+architecture rather than the features. Placebos randomize ONLY the neighbor graph and
+retrain the MLP stage with the SAME seed as the real arm they null (audit 2026-08-15:
+the old 1000+draw seed changed MLP init/shuffle/early-stop split alongside the graph);
+the ridge stage is neighbor-free and shared. ERA5 stays aboard in _era5 placebos,
+mirroring experiment_era5's "neighbor beyond shared meteorology" test. Placebo draws are
+seeded per (fold, horizon) cell, so cells are independent draws rather than one reused set.
 """
 import zlib
 
@@ -34,7 +37,6 @@ def run_resmlp_experiment(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
     out, placebo_monthly = [], []
-    base = zlib.crc32(b"phase7_resmlp") % 1_000_000
     for fold in folds:
         setup = fold_setup(wide, fold, params_cache)
         names, name_pos = setup["names"], setup["name_pos"]
@@ -104,8 +106,11 @@ def run_resmlp_experiment(
                     emit(f"resmlp_{arm}_s{s}",
                          kal_te + r_te + _fit_head("mlp", Ctr, resid2, Cte, s))
 
+            # Placebo MLPs reuse the real arms' seeds so each (arm, s) null varies only
+            # the graph; labels carry _s{s} so the summary matches seed to seed.
+            cell_base = zlib.crc32(f"phase7_resmlp:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
-                g_rand = random_degree_matched(graph, base + seed)
+                g_rand = random_degree_matched(graph, cell_base + seed)
                 p_idx = neighbor_rank_matrix(g_rand, names, name_pos, 2)
                 pb_tr = propagated_neighbor_features(frame, p_idx, "tr")
                 pb_te = propagated_neighbor_features(frame, p_idx, "te")
@@ -118,8 +123,9 @@ def run_resmlp_experiment(
                                        np.column_stack([pb_te, era_te])),
                 }
                 for arm, (Ctr, Cte) in plac_arms.items():
-                    emit_placebo(f"resmlp_{arm}_rand{seed}",
-                                 kal_te + r_te + _fit_head("mlp", Ctr, resid2, Cte, 1000 + seed))
+                    for s in mlp_seeds:
+                        emit_placebo(f"resmlp_{arm}_s{s}_rand{seed}",
+                                     kal_te + r_te + _fit_head("mlp", Ctr, resid2, Cte, s))
             print(f"{fold.name} h{h} done", flush=True)
     return (pd.concat(out, ignore_index=True),
             pd.concat(placebo_monthly, ignore_index=True) if placebo_monthly else pd.DataFrame())

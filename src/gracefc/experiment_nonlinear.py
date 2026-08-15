@@ -88,7 +88,6 @@ def run_nonlinear_experiment(
         train_src = resid_wide[resid_wide.index < fold.test_start]
         graph = corr_topk(train_src[names], 1)
         hop2 = two_hop_map(graph)
-        base = zlib.crc32(b"nonlinear_corr_top1") % 1_000_000
 
         F = filt.values
         R = rho[names].values
@@ -152,17 +151,21 @@ def run_nonlinear_experiment(
                     for s in mlp_seeds:
                         emit(f"mlp_{arm}_s{s}", te["kalman"].values + _fit_head("mlp", Xtr, ytr, Xte, s))
 
+            # Placebo heads reuse the real arms' seeds (GBM already did; the MLP now does
+            # too) so each null varies only the graph. Draws seeded per (fold, horizon).
+            cell_base = zlib.crc32(f"nonlinear_corr_top1:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
-                g_rand = random_degree_matched(graph, base + seed)
+                g_rand = random_degree_matched(graph, cell_base + seed)
                 r1 = {n: (g_rand.get(n, [None]) + [None])[0] for n in names}
                 p1_tr, p1_te = node_feat(r1, t_idx, tr_pos), node_feat(r1, e_idx, te_pos)
                 Xtr1 = np.column_stack([own_tr, p1_tr])
                 Xte1 = np.column_stack([own_te, p1_te])
                 emit_placebo(f"gbm_corr_top1_rand{seed}",
                              te["kalman"].values + _fit_head("gbm", Xtr1, ytr, Xte1, 0))
-                emit_placebo(f"mlp_corr_top1_rand{seed}",
-                             te["kalman"].values + _fit_head("mlp", Xtr1, ytr, Xte1, 1000 + seed))
-                r2 = randomized_two_hop(hop2, names, base + 500 + seed)
+                for s in mlp_seeds:
+                    emit_placebo(f"mlp_corr_top1_s{s}_rand{seed}",
+                                 te["kalman"].values + _fit_head("mlp", Xtr1, ytr, Xte1, s))
+                r2 = randomized_two_hop(hop2, names, cell_base + 500 + seed)
                 p2_tr, p2_te = node_feat(r2, t_idx, tr_pos), node_feat(r2, e_idx, te_pos)
                 emit_placebo(f"gbm_corr_top1_2hop_rand{seed}",
                              te["kalman"].values + _fit_head(

@@ -5,9 +5,13 @@ own state plus the 11 ERA5 anomaly channels (and, in the _nbrin arms, the corr_t
 neighbor's filtered-state history as a further channel — the literal Phase 7
 lstm_corr_top1_era5). Stage 2 is the Phase 7 resMLP correction: an sklearn MLP fits the
 STAGE-1 residual (target - kalman - lstm) from the propagated top-1 neighbor state alone,
-so final prediction = kalman + lstm + mlp. Placebos randomize only the stage-2 neighbor
-and retrain the MLP; the stage-1 nets (seed 0) are neighbor-free in the lstmres family and
-shared across draws, mirroring experiment_resmlp where the ridge stage was shared.
+so final prediction = kalman + lstm + mlp. Placebos randomize ONLY the stage-2 neighbor
+graph and retrain the MLP with the SAME model seed as the real arm they null (audit
+2026-08-15: the old 1000+draw MLP seed changed init, shuffle, and early-stop split
+alongside the graph, so the null was not graph-identity-only); the stage-1 nets are
+shared per (arm, seed) across draws, mirroring experiment_resmlp's shared ridge stage.
+Placebo graph draws are seeded per (fold, horizon) cell, so the 6 leads x 5 folds are
+independent draws rather than one reused set.
 
 Caveat by construction: stage-2 residuals are computed on train rows the LSTM itself
 trained on (~85%) or early-stopped on (~15%), so they are in-sample and smaller than
@@ -45,7 +49,6 @@ def run_lstm_combined_experiment(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
     out, placebo_monthly = [], []
-    base = zlib.crc32(b"phase8_lstm_combined") % 1_000_000
     for fold in folds:
         setup = fold_setup(wide, fold, params_cache)
         names, name_pos, F = setup["names"], setup["name_pos"], setup["F"]
@@ -141,9 +144,12 @@ def run_lstm_combined_experiment(
                              kal_te + lstm_te + _fit_head("mlp", fs_tr, resid2, fs_te, s))
                     resid_by[(arm, s)], lstm_te_by[(arm, s)] = resid2, lstm_te
 
-            # Placebos randomize the stage-2 neighbor only, once per (arm, seed)
+            # Placebos randomize the stage-2 neighbor graph ONLY: the MLP seed equals the
+            # real arm's seed s, so within each (arm, s) comparison everything but graph
+            # identity is held fixed. Draws are per (fold, horizon) cell.
+            cell_base = zlib.crc32(f"phase8_lstm_combined:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
-                g_rand = random_degree_matched(graph, base + seed)
+                g_rand = random_degree_matched(graph, cell_base + seed)
                 p_idx = neighbor_rank_matrix(g_rand, names, name_pos, 1)
                 pb_tr = propagated_neighbor_features(frame, p_idx, "tr")
                 pb_te = propagated_neighbor_features(frame, p_idx, "te")
@@ -151,8 +157,7 @@ def run_lstm_combined_experiment(
                     for s in seeds:
                         emit_placebo(f"{stacked_of[arm]}_s{s}_rand{seed}",
                                      kal_te + lstm_te_by[(arm, s)]
-                                     + _fit_head("mlp", pb_tr, resid_by[(arm, s)], pb_te,
-                                                 1000 + seed))
+                                     + _fit_head("mlp", pb_tr, resid_by[(arm, s)], pb_te, s))
             print(f"{fold.name} h{h} done", flush=True)
     return (pd.concat(out, ignore_index=True),
             pd.concat(placebo_monthly, ignore_index=True) if placebo_monthly else pd.DataFrame())

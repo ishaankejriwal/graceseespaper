@@ -77,6 +77,15 @@ def build_era5_basin_table(era5_dir: Path, mask_path: Path) -> tuple[pd.DataFram
     files = sorted(era5_dir.glob("era5_land_monthly_*.nc"))
     if not files:
         raise FileNotFoundError(f"no ERA5 files under {era5_dir}")
+    # A missing interior year is caught by the month-continuity guard below, but a
+    # missing FIRST or LAST year silently shrinks the span (the guard builds its
+    # expectation from the surviving data). Contiguous filename years close the
+    # interior hole at file granularity and make the span visible in the log.
+    years = sorted(int(f.stem.rsplit("_", 1)[1]) for f in files)
+    gaps = [y for y in range(years[0], years[-1] + 1) if y not in years]
+    if gaps:
+        raise ValueError(f"ERA5 year files missing from {era5_dir}: {gaps}")
+    print(f"ERA5 ingestion span: {years[0]}-{years[-1]} ({len(files)} files)", flush=True)
 
     W = None
     frames = []

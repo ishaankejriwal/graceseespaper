@@ -6,7 +6,9 @@ own+neighbor, own+neighbor+ERA5. ERA5 features are deseasonalized and standardiz
 train window per fold (identical treatment to the target), and every arm real or placebo is
 fit on the identical row set, so gains isolate added information rather than sample changes.
 Placebos randomize ONLY the neighbor while keeping ERA5 aboard: the graph test becomes
-"does the neighbor still beat chance once shared meteorology is conditioned on?"
+"does the neighbor still beat chance once shared meteorology is conditioned on?" Placebo
+heads reuse the real arms' seeds (ridge/GBM always did; the MLP now does too — audit
+2026-08-15), and draws are seeded per (fold, horizon) cell.
 """
 import zlib
 
@@ -48,7 +50,6 @@ def run_era5_experiment(
 
         train_src = resid_wide[resid_wide.index < fold.test_start]
         graph = corr_topk(train_src[names], 1)
-        base = zlib.crc32(b"era5_corr_top1") % 1_000_000
 
         # Fold-safe ERA5 features: climatology and std fit strictly before test_start
         era5_feats, era5_cols = era5_fold_features(era5_wide, fold.test_start, names, era5_lags)
@@ -120,8 +121,9 @@ def run_era5_experiment(
                 for s in mlp_seeds:
                     emit(f"mlp_{arm}_s{s}", te["kalman"].values + _fit_head("mlp", Xtr, ytr, Xte, s))
 
+            cell_base = zlib.crc32(f"era5_corr_top1:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
-                g_rand = random_degree_matched(graph, base + seed)
+                g_rand = random_degree_matched(graph, cell_base + seed)
                 r1 = {n: (g_rand.get(n, [None]) + [None])[0] for n in names}
                 p1_tr, p1_te = node_feat(r1, t_idx, tr_pos), node_feat(r1, e_idx, te_pos)
                 Xtr_p = np.column_stack([own_tr, p1_tr, era_tr])
@@ -130,8 +132,9 @@ def run_era5_experiment(
                              te["kalman"].values + _fit_head("ridge", Xtr_p, ytr, Xte_p, 0))
                 emit_placebo(f"gbm_corr_top1_era5_rand{seed}",
                              te["kalman"].values + _fit_head("gbm", Xtr_p, ytr, Xte_p, 0))
-                emit_placebo(f"mlp_corr_top1_era5_rand{seed}",
-                             te["kalman"].values + _fit_head("mlp", Xtr_p, ytr, Xte_p, 1000 + seed))
+                for s in mlp_seeds:
+                    emit_placebo(f"mlp_corr_top1_era5_s{s}_rand{seed}",
+                                 te["kalman"].values + _fit_head("mlp", Xtr_p, ytr, Xte_p, s))
                 # No-ERA5 ridge placebo on the same rows: re-anchors the Phase 3b null here
                 emit_placebo(f"ridge_corr_top1_rand{seed}",
                              te["kalman"].values + _fit_head(

@@ -72,10 +72,17 @@ def pooled_monthly_dm(
 
 def block_bootstrap_skill_ci(
     pred_rows: pd.DataFrame, model_a: str, model_b: str, horizon: int,
-    n_boot: int = 2000, block: int = 3, seed: int = 0,
+    n_boot: int = 2000, block: int | None = None, seed: int = 0,
     value_cols: tuple[str, str] = ("target", "pred"),
 ) -> tuple[float, float, float]:
-    """Moving-block bootstrap CI on skill = 1 - MSE_a/MSE_b over monthly pooled losses."""
+    """Moving-block bootstrap CI on skill = 1 - MSE_a/MSE_b over monthly pooled losses.
+
+    Block length defaults to max(3, horizon): overlapping h-step forecasts induce
+    loss-differential dependence out to lag h-1, so a fixed 3-month block understates
+    long-lead uncertainty (audit 2026-08-15; the DM path already scales its HAC lag).
+    """
+    if block is None:
+        block = max(3, horizon)
     sub = pred_rows[pred_rows["horizon"] == horizon]
     j = _paired_losses(sub, model_a, model_b, value_cols)
     la = j.groupby("target_date")["loss_a"].mean().sort_index().values

@@ -27,22 +27,40 @@ FINAL_YEAR_MONTHS = list(range(1, 6))
 
 
 def post_process(target: Path) -> None:
-    # Mixed accumulated+instantaneous requests often return a zip despite data_format=netcdf
-    if zipfile.is_zipfile(target):
-        extract_dir = target.with_suffix("")
-        extract_dir.mkdir(exist_ok=True)
-        with zipfile.ZipFile(target) as z:
-            z.extractall(extract_dir)
-        target.unlink()
-        print(f"  (zip detected, extracted {len(list(extract_dir.iterdir()))} members to {extract_dir.name}/)")
+    """Normalize a CDS response to ONE flat .nc at `target`.
+
+    Mixed accumulated+instantaneous requests often return a zip despite
+    data_format=netcdf, sometimes with the variables split across two members
+    (data_0.nc / data_1.nc). Ingestion globs era5_land_monthly_*.nc flat in
+    OUT_DIR and never descends into subdirectories, so anything short of a flat
+    single file per year silently drops that year from the basin table
+    (audit 2026-08-15). Extract to a temp dir and merge members back to `target`.
+    """
+    if not zipfile.is_zipfile(target):
+        return
+    extract_dir = target.with_suffix("")
+    extract_dir.mkdir(exist_ok=True)
+    with zipfile.ZipFile(target) as z:
+        z.extractall(extract_dir)
+    target.unlink()
+    members = sorted(extract_dir.glob("*.nc"))
+    if not members:
+        raise RuntimeError(f"zip for {target.name} contained no .nc members")
+    if len(members) == 1:
+        members[0].replace(target)
+    else:
+        import xarray as xr
+        with xr.open_mfdataset(members, combine="by_coords") as ds:
+            ds.load().to_netcdf(target)
+        for m in members:
+            m.unlink()
+    extract_dir.rmdir()
+    print(f"  (zip detected, merged {max(len(members), 1)} member(s) into {target.name})")
 
 
 def year_done(year: int) -> bool:
-    # A year counts as done if either the flat file or an extracted zip directory exists
+    # Only a flat, non-zip .nc counts: extracted directories are invisible to ingestion
     flat = OUT_DIR / f"era5_land_monthly_{year}.nc"
-    extracted = OUT_DIR / f"era5_land_monthly_{year}"
-    if extracted.is_dir() and any(extracted.iterdir()):
-        return True
     return flat.exists() and flat.stat().st_size > 1_000_000 and not zipfile.is_zipfile(flat)
 
 

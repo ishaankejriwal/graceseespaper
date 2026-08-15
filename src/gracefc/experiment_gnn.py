@@ -8,8 +8,10 @@ anything beyond the top-1 edge. Note the _era5 message also carries the NEIGHBOR
 information the flat ridge twin never sees. The head predicts the residual
 (target - kalman) at every (month, basin); training touches only pre-test months, and
 messages use same-issue-month features only, so causality is untouched. Placebos rewire
-to degree-matched random graphs and retrain. Training is full-batch Adam with early
-stopping on the last 15% of train issue months.
+to degree-matched random graphs and retrain with the SAME torch seed as the real arm
+they null (audit 2026-08-15: the old 1000+draw seed changed net init alongside the
+graph); draws are seeded per (fold, horizon) cell. Training is full-batch Adam with
+early stopping on the last 15% of train issue months.
 """
 import copy
 import zlib
@@ -113,7 +115,6 @@ def run_gnn_experiment(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
     out, placebo_monthly = [], []
-    base = zlib.crc32(b"phase7_gnn") % 1_000_000
     for fold in folds:
         setup = fold_setup(wide, fold, params_cache)
         names, name_pos, F = setup["names"], setup["name_pos"], setup["F"]
@@ -182,8 +183,11 @@ def run_gnn_experiment(
                     emit(f"gnn_{arm}_s{s}",
                          kal_te + fit_gat(X, nidx, tr_entries, ytr, val_mask, te_entries, s))
 
+            # Placebo nets reuse the real arms' torch seeds so each (arm, s) null varies
+            # only the graph; labels carry _s{s} so the summary matches seed to seed.
+            cell_base = zlib.crc32(f"phase7_gnn:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
-                g_rand = random_degree_matched(graph, base + seed)
+                g_rand = random_degree_matched(graph, cell_base + seed)
                 p2 = neighbor_rank_matrix(g_rand, names, name_pos, 2)
                 p1 = p2[:, :1]
                 plac_arms = {
@@ -193,9 +197,10 @@ def run_gnn_experiment(
                     "corr_top2_era5": (X_era5, p2),
                 }
                 for arm, (X, nidx) in plac_arms.items():
-                    emit_placebo(f"gnn_{arm}_rand{seed}",
-                                 kal_te + fit_gat(X, nidx, tr_entries, ytr, val_mask,
-                                                  te_entries, 1000 + seed))
+                    for s in gnn_seeds:
+                        emit_placebo(f"gnn_{arm}_s{s}_rand{seed}",
+                                     kal_te + fit_gat(X, nidx, tr_entries, ytr, val_mask,
+                                                      te_entries, s))
             print(f"{fold.name} h{h} done", flush=True)
     return (pd.concat(out, ignore_index=True),
             pd.concat(placebo_monthly, ignore_index=True) if placebo_monthly else pd.DataFrame())

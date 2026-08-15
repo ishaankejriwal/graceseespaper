@@ -8,6 +8,10 @@ import xarray as xr
 
 # Rough continent boxes on basin centroids, checked in order — first match wins.
 # Arabia carve-out and Europe both precede Africa so Gulf basins and Sicily don't leak in.
+# Maritime Southeast Asia precedes the australia box: the old equator cut dropped the
+# southern-hemisphere Indonesian islands (Java, Nusa Tenggara, Sulawesi, Timor, Maluku)
+# into "australia" (audit 2026-08-15). Lon 132 keeps all of New Guinea with Oceania.
+# The "australia" group is Oceania-inclusive (Melanesia, New Zealand).
 CONTINENT_BOXES = [
     ("antarctica", -90, -60, -180, 180),
     ("greenland", 59, 84, -75, -10),
@@ -16,6 +20,7 @@ CONTINENT_BOXES = [
     ("africa", -35, 38, -18, 52),
     ("asia", 0, 82, 60, 180),
     ("asia", 36, 82, 25, 60),
+    ("asia", -11, 0, 95, 132),
     ("australia", -50, 0, 110, 180),
     ("south_america", -56, 13, -82, -33),
     ("north_america", 7, 84, -170, -50),
@@ -37,7 +42,6 @@ NAME_OVERRIDES = {
     "East_Red_Sea": "asia",
     "Sicily": "europe",
     "Svalbard": "europe",
-    "Sumatra": "asia",
     "Chukchi": "asia",
 }
 
