@@ -196,7 +196,7 @@ ports are not run for it).
 ## ADDENDUM 2026-08-15 — post-audit status per figure (supersedes stale numbers above)
 
 The plan above predates the corrected rerun and the resolution/stratification audits.
-Authoritative numbers live in `paper/REWRITE_LEDGER.md`; where this addendum and the
+Authoritative numbers live in `paper/notes/REWRITE_LEDGER.md`; where this addendum and the
 original spec disagree, the addendum wins.
 
 **Buildable NOW (all inputs final):**

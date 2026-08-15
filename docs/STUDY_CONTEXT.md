@@ -6,14 +6,14 @@ rewritten again for voice (zero internal jargon; compiles, 33 pp). Supporting-ph
 still in flight; 4 of 7 figures built. The "small basins" framing is RETIRED -- footprint
 contamination is the real stratifier (see the corrected findings below).**
 
-> Naming note: `context_africa_jpl.md` and `context_africa_csr.md` are the older Africa-only
+> Naming note: `docs/history/africa_pilot_jpl.md` and `docs/history/africa_pilot_csr.md` are the older Africa-only
 > work (JPL and CSR respectively). This file covers the current global study. For code layout
-> see `code_structure.md`; for per-phase detail see `results/*_analysis.md` and `results/RUN_LOG.md`;
-> for the paper see `paper/`; for the audit see `AUDIT_REPORT.md` (root).
+> see `docs/CODE_MAP.md`; for per-phase detail see `results/*_analysis.md` and `results/RUN_LOG.md`;
+> for the paper see `paper/`; for the audit see `docs/AUDIT_2026-08-13.md`.
 
 ## The 2026-08-13 repository audit — what it changed
 
-An end-to-end audit (`AUDIT_REPORT.md`) was independently verified and triaged. Confirmed
+An end-to-end audit (`docs/AUDIT_2026-08-13.md`) was independently verified and triaged. Confirmed
 real and now **fixed in code**:
 
 1. **CSR month assignment (P0-1).** Midpoint binning collapsed the Nov 2011 and May 2015
@@ -106,7 +106,7 @@ null.
 **Done (as of 2026-08-15):** corrected rerun of every headline phase (2, kalman, 3b, 6-ERA5,
 7, 8, 8b) with audits; resolution/contamination audit (tile recovery, contamination metric,
 2x2) + stacked-correction stratification with formal interaction tests (audited, all spot
-checks exact); manuscript fully rewritten from `paper/REWRITE_LEDGER.md` (the single source
+checks exact); manuscript fully rewritten from `paper/notes/REWRITE_LEDGER.md` (the single source
 of truth for final numbers + framing rules), adversarially audited (GO; two p-bound slips
 fixed, two universal claims scoped), then voice-passed to zero internal jargon (model names
 defined in a Methods table; code identifiers only in the reproducibility appendix; rules in

@@ -1,4 +1,21 @@
-"""Phase 8: stacked LSTM + neighbor-only residual MLP — the two Phase 7 winners combined.
+"""Phase 8: the best-performing system in the study.
+
+In plain terms, the final prediction is three things added together:
+
+    prediction = kalman forecast + LSTM correction + neighbour correction
+
+The Kalman forecast is the clean baseline. The LSTM (stage 1) reads 12 months of the
+basin's own FILTERED history plus 11 weather channels and predicts how wrong the Kalman
+guess will be. Then a small network (stage 2) looks at the single most-connected
+neighbour's propagated state and predicts how wrong the answer STILL is.
+
+The point of the study is in that third term: the same neighbour information, fed to the
+network as an extra input channel instead of as a correction stage, does nothing. Delivery
+decides. The _nbrin arms below exist to make exactly that comparison.
+
+Technical detail follows.
+
+Stage 1 is the Phase 7 shared-encoder LSTM over 12-month windows of the Kalman-filtered
 
 Stage 1 is the Phase 7 shared-encoder LSTM over 12-month windows of the Kalman-filtered
 own state plus the 11 ERA5 anomaly channels (and, in the _nbrin arms, the corr_top1

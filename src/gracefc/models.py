@@ -6,20 +6,6 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 
-def damped_persistence_forecast(train: pd.DataFrame, test: pd.DataFrame, horizon: int) -> np.ndarray:
-    """Per-basin AR(1) rho^h decay applied to lag_0. The honest bar for long-memory signals."""
-    preds = np.empty(len(test))
-    rho_by_basin = {}
-    for name, grp in train.groupby("name"):
-        x, y = grp["lag_0"].values, grp["target"].values
-        # rho is the lag-h autocorrelation estimated by regression through the origin
-        denom = float(np.dot(x, x))
-        rho_by_basin[name] = float(np.dot(x, y) / denom) if denom > 0 else 0.0
-    for i, row in enumerate(test.itertuples()):
-        preds[i] = rho_by_basin.get(row.name, 0.0) * row.lag_0
-    return preds
-
-
 def fit_ridge(train: pd.DataFrame, feat_cols: list[str], alpha: float = 1.0) -> tuple:
     scaler = StandardScaler().fit(train[feat_cols].values)
     model = Ridge(alpha=alpha).fit(scaler.transform(train[feat_cols].values), train["target"].values)

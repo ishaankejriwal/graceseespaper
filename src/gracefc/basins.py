@@ -1,4 +1,18 @@
-"""Build basin-month TWSA series from CSR mascons and the HydroSHEDS+Mascon L3 mask."""
+"""Turns the raw satellite file into the table everything else reads.
+
+Input: the CSR mascon file (a global grid of monthly water-storage values) and a mask
+saying which grid cells belong to which river basin. Output: one row per basin per month,
+with how much water that basin held, plus each basin's centre, area, continent, and
+whether we keep or exclude it.
+
+Two subtleties worth knowing about:
+
+- Solutions are assigned to calendar months using the file's own months_missing attribute
+  rather than by binning on the midpoint date. Midpoint binning silently merged the
+  Nov 2011 and May 2015 solutions into the preceding months, losing two real months.
+- Basins are excluded for documented reasons (ice sheets, too small, too little coverage),
+  and every exclusion is recorded in the exclude_reason column so the sample is auditable.
+"""
 import re
 from pathlib import Path
 
@@ -122,13 +136,6 @@ def load_basin_masks(mask_path: Path) -> dict:
     )
     meta["glaciated"] = meta["name"].apply(lambda n: any(k in n for k in glaciated_keys))
     return {"indices": cell_indices, "weights": cell_weights, "meta": meta}
-
-
-def decode_csr_time(ds: xr.Dataset) -> pd.DatetimeIndex:
-    # CSR stores the units under 'Units' (capital U), which defeats xarray's auto-decoding
-    units = ds["time"].attrs.get("Units", "days since 2002-01-01T00:00:00Z")
-    origin = pd.Timestamp(units.split("since")[1].strip().replace("Z", ""))
-    return origin + pd.to_timedelta(ds["time"].values.astype("float64"), unit="D")
 
 
 def assign_solution_months(ds: xr.Dataset) -> pd.DatetimeIndex:

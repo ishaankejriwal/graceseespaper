@@ -26,7 +26,7 @@ Main interpretation:
 
 Do neighboring-region GRACE/GRACE-FO terrestrial water storage anomaly (TWSA) histories improve regional TWSA forecasting beyond strong own-region lag baselines when the raw GRACE source is CSR instead of JPL?
 
-This file is the CSR companion to `context_africa_jpl.md`. It uses the same mainland Africa Level 3 no-Madagascar mask setup, but uses `data/raw/grace_data.nc` as the GRACE source.
+This file is the CSR companion to `docs/history/africa_pilot_jpl.md`. It uses the same mainland Africa Level 3 no-Madagascar mask setup, but uses `data/raw/grace_data.nc` as the GRACE source.
 
 ## Data Setup
 

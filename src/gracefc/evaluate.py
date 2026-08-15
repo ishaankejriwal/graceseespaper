@@ -1,4 +1,25 @@
-"""Rolling-origin evaluation harness: fold-safe decomposition, baseline ladder, leakage guards."""
+"""Splits data into train/test the honest way, and scores forecasts.
+
+This is where "no peeking at the future" is enforced, so it is worth reading carefully.
+
+Every row has TWO dates: the issue date (when the forecast was made) and the target date
+(the month being predicted). A fold freezes the model at some date T, and then:
+
+    test  = rows whose ISSUE date is at or after T
+            (a model frozen at T is only honest for forecasts issued from T onward)
+    train = rows whose TARGET was already observed strictly before T
+
+Rows in between — issued before T but predicting a month after T — are dropped from BOTH
+sets. That gap is deliberate, not an oversight.
+
+Why this matters: an earlier version split on target dates instead, which let a six-month
+forecast use transforms fitted on measurements from five months AFTER it was issued. It
+made everything look better than it was. See split_fold below, and the regression test
+tests/test_regressions.py::test_split_fold_membership_invariants that pins the behaviour.
+
+Everything fitted — trend, seasonal cycle, standardization, model weights — is fitted
+inside the training window and reused forward, never refitted on the full record.
+"""
 from dataclasses import dataclass
 
 import numpy as np

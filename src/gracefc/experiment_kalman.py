@@ -1,4 +1,16 @@
-"""Phase 3b engine: neighbor filtered states on the Kalman backbone, paired with placebos.
+"""Phase 3b: does knowing your neighbours help, when added as a plain linear term?
+
+The answer this engine produces is "no" (+0.31% at lead 1, not significant) — which is a
+real finding, not a failure. It is the linear half of the study's third contribution; the
+nonlinear half lives in experiment_lstm_combined.py and does work.
+
+The care taken below is the reason the null is trustworthy. Every real arm is paired with
+a placebo arm that gets randomly chosen neighbours in an identically shaped graph, and the
+basin's OWN state is a feature in both arms — so a badly calibrated decay rate can never
+show up looking like neighbour skill.
+
+Technical detail follows.
+
 
 Design (per Phase 3 analysis): residual target = target - rho_i^h x_i(t). Features are each
 neighbor's propagated state rho_j^h x_j(t) plus the target's own state x_i(t) in BOTH the real

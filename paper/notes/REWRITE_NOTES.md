@@ -1,4 +1,4 @@
-# Manuscript rewrite notes — `main.tex` against `REWRITE_LEDGER.md` (2026-08-15)
+# Manuscript rewrite notes — `main.tex` against `paper/notes/REWRITE_LEDGER.md` (2026-08-15)
 
 Companion to the corrected-pipeline rewrite of `paper/main.tex`. Three parts:
 (a) claims whose direction or significance changed, (b) every `\todo{RERUN}` inserted and
@@ -306,7 +306,7 @@ before the phase-6 basin analysis can succeed, which blocks todos 2, 8, 9, 14, 1
 
 9. **Not touched, and still outstanding from before this rewrite:** the author list,
    affiliations, author contributions and acknowledgements are still `TODO` placeholders; the
-   Zenodo DOI is unminted; the six figures are unwritten (specs in `FIGURE_PLAN.md`); and the
+   Zenodo DOI is unminted; the six figures are unwritten (specs in `paper/notes/FIGURE_PLAN.md`); and the
    unverifiable J. Hydrology Gauss–Markov/Kalman citation remains a commented-out note in
    Sect. 5.1 rather than a live `\citep`, since inventing a bibliography key was out of bounds.
 
@@ -361,7 +361,7 @@ ridge" → "ridge on filtered states"; "lstm+corr"/"stacked LSTM" → "the stack
 - `backbone`: 9 → 0.
 - Code identifiers in prose (`kalman`, `kalman+ridge`, `lstm+corr`, `lstmres_own`): 4 → 0.
 - `RUN_LOG` / ledger / fold codenames in rendered text: 0 before, 0 after.
-- Internal file references (`FIGURE_PLAN.md`, `results/*.csv`) in rendered captions and
+- Internal file references (`paper/notes/FIGURE_PLAN.md`, `results/*.csv`) in rendered captions and
   `\belowtable` notes: moved to `%` comments ("figure build note:" lines, which never
   render) or to the appendix source-file table; `\belowtable` notes now carry only
   reader-facing content plus a pointer to Appendix A.

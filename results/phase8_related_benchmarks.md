@@ -10,7 +10,7 @@ baseline ~5 cm pooled basin RMSE at h1 (227 basins with valid data).
 
 ## 1. Forecasting papers inside Li & Kusche's own reference list
 
-From `Li_2026_references.txt`, the references that are themselves TWSA
+From `docs/reference/li_kusche_2026_references.txt`, the references that are themselves TWSA
 forecasting/prediction papers (everything else is reconstruction, DA, drought
 monitoring, or context):
 

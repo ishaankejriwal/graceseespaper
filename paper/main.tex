@@ -304,11 +304,11 @@ Basins are defined by a HydroSHEDS-based Level-3 basin--mascon partition
 \citep{lehner2013hydrosheds}; each basin series is the cosine-latitude
 area-weighted mean of its mask cells, with longitude centroids computed by
 circular mean. From the 284 basins in the partition we exclude 46 ice-sheet
-% source: memory/grace-twsa-project.md; context_global_study.md ("284 -> 46 ice-sheet + 4 water-body -> 234")
+% source: memory/grace-twsa-project.md; docs/STUDY_CONTEXT.md ("284 -> 46 ice-sheet + 4 water-body -> 234")
 basins (Antarctica, Greenland) and 4 water bodies, leaving \textbf{234
 basins} on all inhabited continents; 38 of these are African (37 mainland
 plus Madagascar), and 8 are glaciated and tracked as a separate stratum.
-% source: context_global_study.md (Africa count); results/phase2_strata.csv (stratum value_counts: glaciated 8, verified 2026-08-15)
+% source: docs/STUDY_CONTEXT.md (Africa count); results/phase2_strata.csv (stratum value_counts: glaciated 8, verified 2026-08-15)
 
 \paragraph{Basin areas and native mascon geometry.} Basin areas used in the
 stratifications of Sect.~\ref{sec:results_neighbor} are our own
@@ -938,7 +938,7 @@ Lead & Skill (\%) & 95\,\% CI & DM $p$ & Per-basin wins \\
 \end{table*}
 
 \begin{figure*}[t]
-\includegraphics[width=12cm]{fig02_crossing.pdf} % to be generated; spec: paper/FIGURE_PLAN.md (F2)
+\includegraphics[width=12cm]{fig02_crossing.pdf} % to be generated; spec: paper/notes/FIGURE_PLAN.md (F2)
 \caption{The initial-conditions/forcing crossover on observed TWSA. Skill
 (\%) of our stacked system relative to the GRACE-FCast full product
 \citep{li2026fcast} as a function of lead on the matched sample (227 basins,
@@ -1186,7 +1186,7 @@ archived source files are listed in Appendix~\ref{app:repro}.}
 \end{table*}
 
 \begin{figure*}[t]
-% \includegraphics[width=12cm]{fig04_controls.pdf} % to be generated; spec: paper/FIGURE_PLAN.md (F4)
+% \includegraphics[width=12cm]{fig04_controls.pdf} % to be generated; spec: paper/notes/FIGURE_PLAN.md (F4)
 % source (caption numbers): results/phase3b_summary.csv h1 (min300 +0.32%, min500 +0.16%, min1000 -0.60% vs own ridge); results/phase6_era5_headline.csv (+0.308% vs +0.322%)
 \caption{The lead-1 neighbor estimate against its null models. (a) Pooled RMSE
 of the real correlation graph (line) against the distributions of 50
@@ -1205,7 +1205,7 @@ confidence intervals cross zero, which is the point of the section.}
 \end{figure*}
 
 \begin{figure*}[t]
-% \includegraphics[width=12cm]{fig03_neighbor_map.pdf} % to be generated; spec: paper/FIGURE_PLAN.md (F3)
+% \includegraphics[width=12cm]{fig03_neighbor_map.pdf} % to be generated; spec: paper/notes/FIGURE_PLAN.md (F3)
 \caption{Geography of the lead-1 neighbor estimate. Global choropleth of the
 per-basin Diebold--Mariano statistic for the neighbor ridge versus
 its own-feature twin (234 basins; blue: neighbor helps, red: neighbor
@@ -1554,7 +1554,7 @@ moving-block bootstrap ribbons -- positive in every stratum at every lead,
 including where the linear effect is negative. Both panels share the y-axis;
 the stratification reuses the headline's test months
 (Sect.~\ref{sec:disc_limitations}).}
-% source: results/phase8_stratification.csv; spec: paper/FIGURE_PLAN.md (F8)
+% source: results/phase8_stratification.csv; spec: paper/notes/FIGURE_PLAN.md (F8)
 \label{fig:stratification}
 \end{figure*}
 
@@ -1764,7 +1764,7 @@ points the same way (Sect.~\ref{sec:results_neighbor}).
 % source: computed 2026-08-15 from phase6_era5_predictions.csv (rho -0.220 p=.0007; Africa pooled +0.850% p=.148 uncond, +0.849% p=.149 index-cond, +1.568% p=.0035 ERA5-cond, 38 basins; continent medians africa era5 +0.66%/nbr +3.09%, europe +7.55%/-1.93%); results/chain_basin_analysis.log (africa median skill +1.59%)
 
 \begin{figure*}[t]
-% \includegraphics[width=12cm]{fig06_complementarity.pdf} % to be generated; spec: paper/FIGURE_PLAN.md (F6)
+% \includegraphics[width=12cm]{fig06_complementarity.pdf} % to be generated; spec: paper/notes/FIGURE_PLAN.md (F6)
 % TODO-RERUN: every quantitative element of this caption comes from the phase-6 basin analysis, pending rerun.
 \caption{Do the two information sources cover each other's dead zones?
 Scatter of per-basin lead-1 ERA5 gain against per-basin lead-1
@@ -2075,7 +2075,7 @@ TODO: acknowledgements, including funding.
 
 %% ------------------------------------------------------------------
 %% FIGURES: not yet generated. Specifications, exact source CSVs, and layout
-%% are in paper/FIGURE_PLAN.md. Insert \begin{figure*} blocks at first
+%% are in paper/notes/FIGURE_PLAN.md. Insert \begin{figure*} blocks at first
 %% mention: F1 in Sect. 4.1, F2 in 4.3, F3 in 4.4, F4 in 4.4, F5 in 4.5,
 %% F6 in 5.3.
 %% ------------------------------------------------------------------

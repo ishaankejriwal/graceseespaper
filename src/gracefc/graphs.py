@@ -1,4 +1,18 @@
-"""Neighbor graph construction: correlation, geographic, and degree-matched random controls."""
+"""Decides which basins count as a basin's "neighbours".
+
+Three ways to pick them: most-correlated (on the training window only), nearest by
+distance, and — most importantly — RANDOM.
+
+The random ones are the placebo. To claim "knowing what neighbouring basins do helps",
+it is not enough to show the model improved when neighbours were added; maybe any extra
+input would have helped. So we rerun everything with randomly chosen basins wired up in a
+graph of exactly the same shape (same number of connections per basin) using the same
+model seed. The only thing that differs is WHICH basins are connected. If the real graph
+does not beat the random ones, the effect was never about geography.
+
+"Degree-matched" below just means the fake graph gives each basin the same number of
+neighbours as the real one, so the comparison is not confounded by graph size.
+"""
 import numpy as np
 import pandas as pd
 
