@@ -1,0 +1,51 @@
+sample: 234 basins | placebo seeds=20
+f1 done
+f2 done
+f3 done
+f4 done
+f5 done
+
+=== horizon 1 ===
+               model  horizon  rmse_std     n  placebo_n  placebo_beaten   p_rank  dm_vs_ridge_twin         dm_p  skill_vs_ridge_own
+     ridge_corr_top1        1  1.048280 19422        NaN             NaN      NaN               NaN          NaN            0.003076
+ridge_corr_top1_2hop        1  1.048541 19422        NaN             NaN      NaN               NaN          NaN            0.002578
+           ridge_own        1  1.049896 19422        NaN             NaN      NaN               NaN          NaN            0.000000
+       gbm_corr_top1        1  1.053568 19422       20.0            20.0 0.047619          5.068056 2.441843e-06           -0.007008
+    mlp_corr_top1_s2        1  1.054251 19422        NaN             NaN      NaN          5.429349 5.634058e-07           -0.008314
+  gbm_corr_top1_2hop        1  1.054399 19422       20.0            20.0 0.047619          5.595205 2.833532e-07           -0.008597
+             gbm_own        1  1.056081 19422        NaN             NaN      NaN          6.366948 1.050195e-08           -0.011816
+    mlp_corr_top1_s0        1  1.056486 19422        NaN             NaN      NaN          6.781701 1.694818e-09           -0.012593
+    mlp_corr_top1_s1        1  1.056908 19422        NaN             NaN      NaN          4.170578 7.501444e-05           -0.013402
+          mlp_own_s1        1  1.057166 19422        NaN             NaN      NaN          5.100363 2.145653e-06           -0.013897
+          mlp_own_s2        1  1.057851 19422        NaN             NaN      NaN          4.997741 3.231281e-06           -0.015212
+          mlp_own_s0        1  1.059513 19422        NaN             NaN      NaN          4.984213 3.409499e-06           -0.018405
+
+=== horizon 2 ===
+               model  horizon  rmse_std     n  placebo_n  placebo_beaten   p_rank  dm_vs_ridge_twin         dm_p  skill_vs_ridge_own
+           ridge_own        2  1.201366 19188        NaN             NaN      NaN               NaN          NaN            0.000000
+     ridge_corr_top1        2  1.201949 19188        NaN             NaN      NaN               NaN          NaN           -0.000971
+ridge_corr_top1_2hop        2  1.202693 19188        NaN             NaN      NaN               NaN          NaN           -0.002210
+             gbm_own        2  1.207065 19188        NaN             NaN      NaN          7.976095 8.372872e-12           -0.009510
+       gbm_corr_top1        2  1.207621 19188       20.0            16.0 0.238095          5.504548 4.230912e-07           -0.010441
+    mlp_corr_top1_s0        2  1.208031 19188        NaN             NaN      NaN          5.701305 1.867430e-07           -0.011127
+  gbm_corr_top1_2hop        2  1.208768 19188       20.0             8.0 0.619048          5.371908 7.295618e-07           -0.012362
+    mlp_corr_top1_s1        2  1.209571 19188        NaN             NaN      NaN          6.449088 7.630122e-09           -0.013706
+    mlp_corr_top1_s2        2  1.209948 19188        NaN             NaN      NaN          5.814269 1.161999e-07           -0.014339
+          mlp_own_s2        2  1.210326 19188        NaN             NaN      NaN          7.963904 8.848697e-12           -0.014972
+          mlp_own_s1        2  1.210641 19188        NaN             NaN      NaN          6.844100 1.346334e-09           -0.015500
+          mlp_own_s0        2  1.211833 19188        NaN             NaN      NaN          6.935041 8.998849e-10           -0.017501
+
+=== horizon 3 ===
+               model  horizon  rmse_std     n  placebo_n  placebo_beaten   p_rank  dm_vs_ridge_twin         dm_p  skill_vs_ridge_own
+           ridge_own        3  1.270615 18954        NaN             NaN      NaN               NaN          NaN            0.000000
+     ridge_corr_top1        3  1.271831 18954        NaN             NaN      NaN               NaN          NaN           -0.001915
+ridge_corr_top1_2hop        3  1.272791 18954        NaN             NaN      NaN               NaN          NaN           -0.003429
+             gbm_own        3  1.280378 18954        NaN             NaN      NaN          7.209148 2.805022e-10           -0.015427
+       gbm_corr_top1        3  1.281282 18954       20.0            12.0 0.428571          6.965076 8.280465e-10           -0.016862
+    mlp_corr_top1_s2        3  1.281851 18954        NaN             NaN      NaN          6.800638 1.709604e-09           -0.017765
+          mlp_own_s0        3  1.283641 18954        NaN             NaN      NaN          5.917127 7.757827e-08           -0.020609
+  gbm_corr_top1_2hop        3  1.283674 18954       20.0             2.0 0.904762          7.635686 4.167366e-11           -0.020662
+    mlp_corr_top1_s0        3  1.284662 18954        NaN             NaN      NaN          5.947967 6.809283e-08           -0.022233
+          mlp_own_s2        3  1.285256 18954        NaN             NaN      NaN          5.779290 1.385568e-07           -0.023179
+    mlp_corr_top1_s1        3  1.285459 18954        NaN             NaN      NaN          7.943322 1.044300e-11           -0.023502
+          mlp_own_s1        3  1.285947 18954        NaN             NaN      NaN          4.914993 4.637852e-06           -0.024279

@@ -1246,13 +1246,25 @@ applies the neighbor only where it helped in the other four folds. The
 latter is a measure of cross-fold stability in per-basin benefit, not an
 operational recipe: selection for early folds uses folds lying later in
 time, so a deployable version would have to select on past folds only.
-% TODO-RERUN: phase-6 basin analysis (per-basin FDR, continental pooling, RF covariates, LOFO).
-\todo{RERUN: per-basin helped/hurt counts under FDR control, the continental
-pooling (including the Africa sub-sample and its behaviour under ERA5
-conditioning), the random-forest covariate $R^2$, and the leave-one-fold-out
-and oracle selection effects, all from the corrected-pipeline phase-6 basin
-analysis.} We do not restate the pre-correction values, because the pooled
-effect they decomposed no longer exists.
+On the corrected pipeline the per-basin decomposition confirms the
+two-sided structure: 128 of 234 basins nominally favor the neighbor and 21
+survive FDR control at $q = 0.10$ -- \textbf{13 helped and 8 hurt}. The
+hurt set is not noise: it is the familiar great-river roster (Yenisey,
+Paran\'a, Yangtze, Amur) whose large, clean footprints invite spurious
+distant neighbors. The helped set skews African and coastal (Niger,
+S\~ao Francisco, Rukwa, Namibia, Zambezia, the West Nile Delta).
+% source: results/phase5_perbasin_fdr_h1.csv (corr_top1_vs_own_ridge: 128/234 a_better, 21 FDR-significant = 13 helped + 8 hurt)
+Static covariates barely predict who benefits (random-forest
+cross-validated $R^2 = 0.05$; the top predictors are basin size and
+cross-fold neighbor stability), but past per-basin performance does:
+applying the neighbor only where it helped in the other four folds lifts the
+pooled lead-1 effect from $+0.31\,\%$ (n.s.) to $+1.12\,\%$
+($p < 10^{-9}$, ${\sim}128$ basins selected), 63\,\% of the in-sample
+oracle's $+1.78\,\%$, with the same pattern on the ERA5 backbone
+($+1.05\,\%$). Under the caveat above, this is a stability measurement, not
+a deployable recipe. We do not restate the pre-correction values, because
+the pooled effect they decomposed no longer exists.
+% source: results/phase6_basin_analysis_selective.csv (all +0.3076 p=.199; lofo +1.1206 p<1e-9 n~127.8; oracle +1.7787; rf +0.5522 p=.0039; era5_ridge lofo +1.0506); results/phase6_basin_analysis_rf_importance.csv (cv_r2_mean 0.053)
 
 \paragraph{Architectures that should have enlarged the effect do not.}
 Predictive-lag neighbor selection loses to the own-basin reference at every
@@ -1261,9 +1273,16 @@ lead. Alternative graph constructions and structurally richer filters --
 predictive-lag selection, a single-latent fusion filter treating the neighbor
 as a second sensor of the same state, and the bivariate filter with
 correlated process noise -- were all built and all failed to enlarge the
-effect. \todo{RERUN: skill and placebo ranks for the predictive-lag graph,
-the fusion filter, and the coupled bivariate filter on the corrected
-pipeline.} Two-hop neighborhoods are no better than one-hop on the corrected
+effect. On the corrected pipeline, predictive-lag selection is $-1.30\,\%$
+against the own-basin reference at lead 1 ($p = 0.0007$) and beats 0 of 50
+placebo graphs -- worse than a random basin; the fusion filter is
+$-2.14\,\%$ against the plain Kalman ($p = 10^{-4}$; its MLE-weighted
+variant $-6.27\,\%$), likewise 0/50; and the coupled bivariate filter is
+indistinguishable from the plain Kalman ($-0.02\,\%$, $p = 0.96$), ahead of
+45 of 50 placebo draws but short of significance
+($p_{\mathrm{rank}} = 0.12$).
+% source: results/phase5_headline_table.csv h1 (pred_lag1 -0.0130 p=.0007; fusion -0.0214 p=1e-4, mle -0.0627; coupled -0.0002 p=.962); results/phase5_{predlag,fusion,coupled}_summary.csv (0/50, 0/50, 45/50 p_rank=.1176)
+Two-hop neighborhoods are no better than one-hop on the corrected
 % source: results/phase7_corrected_analysis.md Q3 (resmlp top2 vs top1: +0.13/-0.28/-0.15 ns; gnn top2 vs top1 ens -0.48 at h2, p=.013)
 pipeline (residual MLP $+0.13$/$-0.28$/$-0.15\,\%$, all n.s.; the GAT is
 significantly worse at lead 2), with one disclosed exception: the
@@ -1669,10 +1688,11 @@ forcing-driven skill to lead 6 and beyond. That the linear ERA5 gain now
 stops at lead 1 sharpens rather than weakens the map: the useful part of
 forcing information at longer leads is not in the lags themselves but in
 how a sequence model integrates them.
-% TODO-RERUN: per-basin correlation between the two systems' edges (phase-6 basin analysis Q4).
-\todo{RERUN: the basin-level rank correlation between GRACE-FCast's lead-4
-edge and the neighbor benefit, which quantified complementarity at basin
-level as well as by lead.} A genuinely hybrid product -- filtered
+At basin level the two edges are uncorrelated (Spearman $-0.141$ between
+GRACE-FCast's lead-4 edge and the neighbor benefit), so the complementarity
+holds across basins as well as across leads.
+% source: results/phase6_basin_analysis_q4.csv (spearman_dm_p3b_vs_li_h4 = -0.141)
+A genuinely hybrid product -- filtered
 initial conditions, forcing-driven long leads, and a spatial correction --
 is the obvious system nobody has built; our splice is a descriptive sketch
 of its headroom, not that product.
@@ -1728,16 +1748,20 @@ message passing is the wrong way to extract it.
 A regional reading of where the neighbor channel pays would be valuable in a
 water-security context (Fig.~\ref{fig:complementarity}), particularly the
 hypothesis that spatial TWSA information matters most where reanalysis
-forcing is least trustworthy. The corrected-pipeline evidence for that
-hypothesis is currently one-sided: it is supported by the GRACE-only
-residual-MLP result, in which the neighbor signal exists without ERA5 and vanishes once
-ERA5 enters the model (Sect.~\ref{sec:results_neighbor}), but the
-continental decomposition that would test it directly has not yet been
-regenerated.
-% TODO-RERUN: phase-6 basin analysis continental pooling and ERA5/neighbor anti-correlation.
-\todo{RERUN: the Africa pooled neighbor effect with and without ERA5
-conditioning, and the per-basin rank correlation between ERA5 gain and
-neighbor gain, before this paragraph makes a regional claim.}
+forcing is least trustworthy. The corrected pipeline supports it from three
+directions. Per basin, ERA5 gain and conditioned neighbor gain are
+anti-correlated (Spearman $-0.220$, $p = 0.0007$, 234 basins). By continent,
+the two are mirror images: Africa has the smallest median ERA5 gain
+($+0.7\,\%$) and the largest median neighbor gain ($+3.1\,\%$ conditioned;
+median per-basin skill $+1.6\,\%$ on the linear tier), while Europe shows
+the reverse ($+7.6\,\%$ ERA5, $-1.9\,\%$ neighbor). And pooled Africa
+sharpens rather than dilutes under conditioning: the unconditioned African
+neighbor effect is $+0.85\,\%$ ($p = 0.15$), unchanged by index
+conditioning, but rises to $+1.57\,\%$ ($p = 0.0035$) once all eleven ERA5
+variables are aboard -- spatial TWSA information is worth most precisely
+where the reanalysis has least to say. The GRACE-only residual-MLP result
+points the same way (Sect.~\ref{sec:results_neighbor}).
+% source: computed 2026-08-15 from phase6_era5_predictions.csv (rho -0.220 p=.0007; Africa pooled +0.850% p=.148 uncond, +0.849% p=.149 index-cond, +1.568% p=.0035 ERA5-cond, 38 basins; continent medians africa era5 +0.66%/nbr +3.09%, europe +7.55%/-1.93%); results/chain_basin_analysis.log (africa median skill +1.59%)
 
 \begin{figure*}[t]
 % \includegraphics[width=12cm]{fig06_complementarity.pdf} % to be generated; spec: paper/FIGURE_PLAN.md (F6)
@@ -1748,12 +1772,12 @@ ERA5-conditioned neighbor gain (234 basins, colored by continent), with
 continental pooled values inset. The hypothesis the panel tests is that ERA5
 gains concentrate in the extratropics and fail in the humid tropics, while
 any neighbor benefit concentrates where reanalysis forcing is weakest.
-\todo{RERUN: the per-basin rank correlation between the two gains, the
-continental pooled values, and the identity and magnitude of the extreme
-reanalysis failures, from the corrected-pipeline phase-6 basin analysis.}}
+On the corrected pipeline the rank correlation is $-0.220$ ($p = 0.0007$);
+continental medians run from Africa ($+0.7\,\%$ ERA5, $+3.1\,\%$ neighbor)
+to Europe ($+7.6\,\%$ ERA5, $-1.9\,\%$ neighbor).}
 % figure build note: generate from the corrected-pipeline per-basin ERA5 skill table
 % and basin analysis summary; spec FIGURE_PLAN.md (F6)
-% source: pending corrected-pipeline phase-6 basin analysis
+% source: computed 2026-08-15 from phase6_era5_predictions.csv (see regional-reading paragraph)
 \label{fig:complementarity}
 \end{figure*}
 

@@ -1,0 +1,83 @@
+covariates: 234 basins
+p3b: 234 basins, median skill +0.52%
+p4cond: 234 basins, median skill +0.51%
+era5r: 234 basins, median skill +0.52%
+era5c: 234 basins, median skill +0.17%
+
+=== continent ===
+                n  median_skill_pct  ...  frac_dm_sig_helped  frac_dm_sig_hurt
+continent                            ...                                      
+africa         38             1.592  ...               0.342             0.158
+south_america  27             1.139  ...               0.111             0.148
+north_america  46             1.007  ...               0.152             0.043
+asia           79             0.481  ...               0.114             0.063
+europe         30            -1.095  ...               0.033             0.067
+australia      14            -1.509  ...               0.000             0.000
+
+[6 rows x 5 columns]
+
+=== stratum ===
+             n  median_skill_pct  ...  frac_dm_sig_helped  frac_dm_sig_hurt
+stratum                           ...                                      
+high         5             5.440  ...               0.200             0.000
+glaciated    8             0.785  ...               0.250             0.125
+sub_noise   62             0.713  ...               0.194             0.129
+mid         49             0.591  ...               0.082             0.082
+low        110            -0.042  ...               0.127             0.055
+
+[5 rows x 5 columns]
+
+=== dist_band ===
+            n  median_skill_pct  ...  frac_dm_sig_helped  frac_dm_sig_hurt
+dist_band                        ...                                      
+300-600    74             0.964  ...               0.216             0.054
+<300km     15             0.591  ...               0.067             0.067
+600-1000   88             0.531  ...               0.114             0.045
+>1000      57            -1.408  ...               0.105             0.175
+
+[4 rows x 5 columns]
+
+=== corr_band ===
+            n  median_skill_pct  ...  frac_dm_sig_helped  frac_dm_sig_hurt
+corr_band                        ...                                      
+high_corr  78             1.234  ...               0.192             0.064
+mid_corr   78            -0.073  ...               0.128             0.051
+low_corr   78            -0.676  ...               0.103             0.128
+
+[3 rows x 5 columns]
+
+=== lat_band ===
+                 n  median_skill_pct  ...  frac_dm_sig_helped  frac_dm_sig_hurt
+lat_band                              ...                                      
+tropics         79             0.950  ...               0.177             0.114
+N_midlat        78             0.179  ...               0.115             0.064
+N_high          57            -0.043  ...               0.140             0.088
+S_extratropics  20            -0.236  ...               0.100             0.000
+
+[4 rows x 5 columns]
+
+=== selective application (h1) ===
+         strategy  skill_pct  n_selected_mean  dm_stat    dm_p     setting
+0             all     0.3076            234.0  -1.2962  0.1986  p3b_kalman
+1          oracle     1.7787            129.0 -10.2967  0.0000  p3b_kalman
+2  lofo_empirical     1.1206            127.8  -6.4316  0.0000  p3b_kalman
+3   rf_covariates     0.5522            152.2  -2.9715  0.0039  p3b_kalman
+4             all     0.3224            234.0  -1.5927  0.1151  era5_ridge
+5          oracle     1.7613            119.0 -11.6733  0.0000  era5_ridge
+6  lofo_empirical     1.0506            123.4  -6.9377  0.0000  era5_ridge
+7   rf_covariates     0.4953            133.0  -3.6625  0.0004  era5_ridge
+
+=== Q4 ===
+spearman_dm_p3b_vs_dm_era5c             0.849
+spearman_dm_era5r_vs_dm_era5c           0.849
+spearman_skill_era5r_vs_skill_era5c     0.826
+frac_sign_flip_era5                     0.145
+max_abs_diff_dm_p3b_vs_era5r            0.000
+n_sig_helped_p3b                       33.000
+n_sig_helped_era5r                     33.000
+n_sig_helped_era5c                     32.000
+n_sig_helped_overlap_era5              20.000
+spearman_dm_p3b_vs_li_h4               -0.141
+dtype: float64
+
+saved: phase6_basin_analysis_summary.csv + spearman/rf_importance/selective/q4 CSVs
