@@ -1,0 +1,2 @@
+﻿chain: predlag -> conditioned -> surrogates -> r0_ablation -> phase5_nonlinear -> phase5_stats -> basin_analysis -> phase6_era5 -> phase8_h13 -> phase8_h46 -> phase8b_merge -> phase8_strat -> phase7_resmlp -> phase7_lstm
+[predlag] start -> chain_predlag.log

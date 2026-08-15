@@ -560,10 +560,12 @@ basins score low; it is therefore a \emph{lower bound} on footprint sharing.
 \paragraph{Jump screen.} A $6\sigma$ outlier screen flags basins with
 step-like jumps and removes them before the neighbor comparison, in a
 train-only version and in a test-informed variant kept as a post-hoc
-diagnostic only.
-% TODO-RERUN: phase-4 jump screen on the corrected pipeline.
-\todo{RERUN: flagged-basin counts and the screened neighbor effect from the
-corrected-pipeline jump screen (\texttt{results/phase4\_jump\_screen.csv}).}
+diagnostic only. On the corrected pipeline the train-only screen flags 2
+basins (Taiwan; Northern Kordofan) and leaves the lead-1 neighbor comparison
+at $+0.21\,\%$ against its own-ridge reference, still ahead of all 50 placebo
+draws ($p_{\mathrm{rank}} = 0.02$); the test-informed variant flags 27 and
+gives $+0.08\,\%$, likewise 50/50.
+% source: results/phase4_jump_screen.csv (train_only_6sigma n=2 skill +0.00207, 50/50, p_rank .0196; full_series_6sigma n=27 skill +0.00082, 50/50)
 
 \subsection{Learned models}
 \label{sec:methods_models}
@@ -1147,8 +1149,8 @@ Full ERA5 conditioning (11 variables) & Shared local weather? &
 % source: results/phase6_era5_headline.csv (ridge_corr_top1_era5 vs ridge_own_era5 h1 +0.322%, p=.115; unconditioned +0.308%, p=.199)
 point estimate unmoved ($+0.322\,\%$ vs. $+0.308\,\%$); both non-significant \\
 Train-only $6\sigma$ jump screen & A few outlier basins? &
-% TODO-RERUN: phase-4 jump screen on the corrected pipeline
-\todo{RERUN: flag count, screened estimate, placebo rank} \\
+% source: results/phase4_jump_screen.csv (train_only_6sigma: 2 flagged, +0.207%, 50/50, p_rank .0196)
+2 flagged; screened estimate $+0.21\,\%$, still 50/50 vs placebos \\
 Area stratification ($\ge$/$<$ 90{,}000\,km$^2$) & Small-basin leakage receivers? &
 % source: results/post_rerun_audit.md sect. 2 (resolved +0.099% p=.715; sub-resolution +1.033% p=.00065); results/resolution_sweep_area.csv (stable across 60k-200k cuts)
 \textbf{not passed}: the whole pooled effect sits in the 35 small basins ($+1.03\,\%$, $p=.0007$) and none in the 199 large ones ($+0.10\,\%$, $p=.72$) \\
