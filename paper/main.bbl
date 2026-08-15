@@ -1,0 +1,301 @@
+\begin{thebibliography}{44}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{https://doi.org/\discretionary{}{}{}#1}\else
+  \providecommand{\doi}{https://doi.org/\discretionary{}{}{}\begingroup
+  \urlstyle{rm}\Url}\fi
+
+\bibitem[{Ahi and Cekim(2021)}]{ahi2021prediction}
+Ahi, G.~O. and Cekim, H.~O.: Long-term temporal prediction of terrestrial water
+  storage changes over global basins using {GRACE} and limited {GRACE-FO} data,
+  Acta Geodaetica et Geophysica, 56, 321--344,
+  \doi{10.1007/s40328-021-00338-4}, 2021.
+
+\bibitem[{Ahmed et~al.(2019)Ahmed, Sultan, Elbayoumi, and
+  Tissot}]{ahmed2019narx}
+Ahmed, M., Sultan, M., Elbayoumi, T., and Tissot, P.: Forecasting {GRACE} Data
+  over the African Watersheds Using Artificial Neural Networks, Remote Sensing,
+  11, 1769, \doi{10.3390/rs11151769}, 2019.
+
+\bibitem[{Arsenault et~al.(2020)Arsenault, Shukla, Hazra, Getirana, McNally,
+  Kumar, Koster, Peters-Lidard, Zaitchik, Badr, Jung, Narapusetty, Navari,
+  Wang, Mocko, Funk, Harrison, Husak, Adoum, Galu, Magadzire, Roningen, Shaw,
+  Eylander, Bergaoui, McDonnell, and Verdin}]{arsenault2020nhyfas}
+Arsenault, K.~R., Shukla, S., Hazra, A., Getirana, A., McNally, A., Kumar,
+  S.~V., Koster, R.~D., Peters-Lidard, C.~D., Zaitchik, B.~F., Badr, H., Jung,
+  H.~C., Narapusetty, B., Navari, M., Wang, S., Mocko, D.~M., Funk, C.,
+  Harrison, L., Husak, G.~J., Adoum, A., Galu, G., Magadzire, T., Roningen, J.,
+  Shaw, M., Eylander, J., Bergaoui, K., McDonnell, R.~A., and Verdin, J.~P.:
+  The {NASA} Hydrological Forecast System for Food and Water Security
+  Applications, Bulletin of the American Meteorological Society, 101,
+  E1007--E1025, \doi{10.1175/BAMS-D-18-0264.1}, 2020.
+
+\bibitem[{Arzoumanidis et~al.(2026)Arzoumanidis, Johannsen, Middendorf, Eicker,
+  and Dehbi}]{arzoumanidis2026stgnn}
+Arzoumanidis, L., Johannsen, L., Middendorf, K., Eicker, A., and Dehbi, Y.:
+  Reconstructing {GRACE} Terrestrial Water Storage with Spatio-Temporal Graph
+  Neural Networks: An Application to South America,
+  \urlprefix\url{https://arxiv.org/abs/2606.23833}, 2026.
+
+\bibitem[{Benjamini and Hochberg(1995)}]{benjamini1995fdr}
+Benjamini, Y. and Hochberg, Y.: Controlling the False Discovery Rate: A
+  Practical and Powerful Approach to Multiple Testing, Journal of the Royal
+  Statistical Society Series B: Statistical Methodology, 57, 289--300,
+  \doi{10.1111/j.2517-6161.1995.tb02031.x}, 1995.
+
+\bibitem[{Diebold and Mariano(1995)}]{diebold1995comparing}
+Diebold, F.~X. and Mariano, R.~S.: Comparing Predictive Accuracy, Journal of
+  Business \& Economic Statistics, 13, 253--263,
+  \doi{10.1080/07350015.1995.10524599}, 1995.
+
+\bibitem[{Getirana et~al.(2020)Getirana, Rodell, Kumar, Beaudoing, Arsenault,
+  Zaitchik, Save, and Bettadpur}]{getirana2020groundwater}
+Getirana, A., Rodell, M., Kumar, S., Beaudoing, H.~K., Arsenault, K., Zaitchik,
+  B., Save, H., and Bettadpur, S.: {GRACE} Improves Seasonal Groundwater
+  Forecast Initialization over the {United States}, Journal of
+  Hydrometeorology, 21, 59--71, \doi{10.1175/JHM-D-19-0096.1}, 2020.
+
+\bibitem[{Harvey et~al.(1997)Harvey, Leybourne, and
+  Newbold}]{harvey1997testing}
+Harvey, D., Leybourne, S., and Newbold, P.: Testing the equality of prediction
+  mean squared errors, International Journal of Forecasting, 13, 281--291,
+  \doi{10.1016/S0169-2070(96)00719-4}, 1997.
+
+\bibitem[{Hochreiter and Schmidhuber(1997)}]{hochreiter1997lstm}
+Hochreiter, S. and Schmidhuber, J.: Long Short-Term Memory, Neural Computation,
+  9, 1735--1780, \doi{10.1162/neco.1997.9.8.1735}, 1997.
+
+\bibitem[{Humphrey and Gudmundsson(2019)}]{humphrey2019gracerec}
+Humphrey, V. and Gudmundsson, L.: {GRACE-REC}: a reconstruction of
+  climate-driven water storage changes over the last century, Earth System
+  Science Data, 11, 1153--1170, \doi{10.5194/essd-11-1153-2019}, 2019.
+
+\bibitem[{Kalman(1960)}]{kalman1960}
+Kalman, R.~E.: A New Approach to Linear Filtering and Prediction Problems,
+  Journal of Basic Engineering, 82, 35--45, \doi{10.1115/1.3662552}, 1960.
+
+\bibitem[{Kankanige et~al.(2026)Kankanige, Vishwakarma, Liu, and
+  Sharma}]{kankanige2026persistence}
+Kankanige, D., Vishwakarma, B.~D., Liu, Y.~Y., and Sharma, A.: Can a
+  Persistence-Based Prediction of {GRACE} Gravity Field Coefficients Reduce
+  Uncertainties at Finer Temporal Scales?, Earth and Space Science, 13,
+  \doi{10.1029/2025EA004554}, 2026.
+
+\bibitem[{Koster et~al.(2010)Koster, Mahanama, Yamada, Balsamo, Berg,
+  Boisserie, Dirmeyer, Doblas-Reyes, Drewitt, Gordon, Guo, Jeong, Lawrence,
+  Lee, Li, Luo, Malyshev, Merryfield, Seneviratne, Stanelle, van~den Hurk,
+  Vitart, and Wood}]{koster2010glace2}
+Koster, R.~D., Mahanama, S. P.~P., Yamada, T.~J., Balsamo, G., Berg, A.~A.,
+  Boisserie, M., Dirmeyer, P.~A., Doblas-Reyes, F.~J., Drewitt, G., Gordon,
+  C.~T., Guo, Z., Jeong, J.-H., Lawrence, D.~M., Lee, W.-S., Li, Z., Luo, L.,
+  Malyshev, S., Merryfield, W.~J., Seneviratne, S.~I., Stanelle, T., van~den
+  Hurk, B. J. J.~M., Vitart, F., and Wood, E.~F.: Contribution of land surface
+  initialization to subseasonal forecast skill: First results from a
+  multi-model experiment, Geophysical Research Letters, 37,
+  \doi{10.1029/2009GL041677}, 2010.
+
+\bibitem[{K{\"u}nsch(1989)}]{kunsch1989blockboot}
+K{\"u}nsch, H.~R.: The Jackknife and the Bootstrap for General Stationary
+  Observations, The Annals of Statistics, 17, 1217--1241,
+  \doi{10.1214/aos/1176347265}, 1989.
+
+\bibitem[{Landerer et~al.(2020)Landerer, Flechtner, Save, Webb, Bandikova,
+  Bertiger, Bettadpur, Byun, Dahle, Dobslaw, Fahnestock, Harvey, Kang,
+  Kruizinga, Loomis, McCullough, Murb{\"o}ck, Nagel, Paik, Pie, Poole,
+  Strekalov, Tamisiea, Wang, Watkins, Wen, Wiese, and
+  Yuan}]{landerer2020gracefo}
+Landerer, F.~W., Flechtner, F.~M., Save, H., Webb, F.~H., Bandikova, T.,
+  Bertiger, W.~I., Bettadpur, S.~V., Byun, S.~H., Dahle, C., Dobslaw, H.,
+  Fahnestock, E., Harvey, N., Kang, Z., Kruizinga, G. L.~H., Loomis, B.~D.,
+  McCullough, C., Murb{\"o}ck, M., Nagel, P., Paik, M., Pie, N., Poole, S.,
+  Strekalov, D., Tamisiea, M.~E., Wang, F., Watkins, M.~M., Wen, H.-Y., Wiese,
+  D.~N., and Yuan, D.-N.: Extending the Global Mass Change Data Record: {GRACE
+  Follow-On} Instrument and Science Data Performance, Geophysical Research
+  Letters, 47, \doi{10.1029/2020GL088306}, 2020.
+
+\bibitem[{Lehner and Grill(2013)}]{lehner2013hydrosheds}
+Lehner, B. and Grill, G.: Global river hydrography and network routing:
+  baseline data and new approaches to study the world's large river systems,
+  Hydrological Processes, 27, 2171--2186, \doi{10.1002/hyp.9740}, 2013.
+
+\bibitem[{Li et~al.(2026)Li, Hazra, McNally, Slinski, Shukla, and
+  Anderson}]{li2026fldas}
+Li, B., Hazra, A., McNally, A., Slinski, K., Shukla, S., and Anderson, W.:
+  Skills in sub-seasonal to seasonal terrestrial water storage forecasting:
+  insights from the {FEWS NET} land data assimilation system, Hydrology and
+  Earth System Sciences, 30, 1097--1115, \doi{10.5194/hess-30-1097-2026}, 2026.
+
+\bibitem[{Li(2025)}]{li2025pangaea}
+Li, F.: A Global Dataset for Seasonal to Annual Forecasts of GRACE-like Gridded
+  Terrestrial Water Storage (2010--2024), \doi{10.1594/PANGAEA.973113}, 2025.
+
+\bibitem[{Li and Kusche(2026)}]{li2026fcast}
+Li, F. and Kusche, J.: Observation-Driven Forecast of Global Terrestrial Water
+  Storage and Evaluation for 2010--2024, Water Resources Research, 62,
+  \doi{10.1029/2025WR041710}, 2026.
+
+\bibitem[{Li et~al.(2020)Li, Kusche, Rietbroek, Wang, Forootan, Schulze, and
+  L{\"u}ck}]{li2020wrr}
+Li, F., Kusche, J., Rietbroek, R., Wang, Z., Forootan, E., Schulze, K., and
+  L{\"u}ck, C.: Comparison of Data-Driven Techniques to Reconstruct
+  (1992--2002) and Predict (2017--2018) {GRACE}-Like Gridded Total Water
+  Storage Changes Using Climate Inputs, Water Resources Research, 56,
+  \doi{10.1029/2019WR026551}, 2020.
+
+\bibitem[{Li et~al.(2024)Li, Kusche, Sneeuw, Siebert, Gerdener, Wang, Chao,
+  Chen, and Tian}]{li2024grl}
+Li, F., Kusche, J., Sneeuw, N., Siebert, S., Gerdener, H., Wang, Z., Chao, N.,
+  Chen, G., and Tian, K.: Forecasting Next Year's Global Land Water Storage
+  Using {GRACE} Data, Geophysical Research Letters, 51,
+  \doi{10.1029/2024GL109101}, 2024.
+
+\bibitem[{Li et~al.(2025)Li, Springer, Kusche, Gutknecht, and
+  Ewerdwalbesloh}]{li2025wrr}
+Li, F., Springer, A., Kusche, J., Gutknecht, B.~D., and Ewerdwalbesloh, Y.:
+  Reanalysis and Forecasting of Total Water Storage and Hydrological States by
+  Combining Machine Learning With {CLM} Model Simulations and {GRACE} Data
+  Assimilation, Water Resources Research, 61, \doi{10.1029/2024WR037926}, 2025.
+
+\bibitem[{Mo et~al.(2022)Mo, Zhong, Forootan, Mehrnegar, Yin, Wu, Feng, and
+  Shi}]{mo2022gap}
+Mo, S., Zhong, Y., Forootan, E., Mehrnegar, N., Yin, X., Wu, J., Feng, W., and
+  Shi, X.: Bayesian convolutional neural networks for predicting the
+  terrestrial water storage anomalies during {GRACE} and {GRACE-FO} gap,
+  Journal of Hydrology, 604, 127\,244, \doi{10.1016/j.jhydrol.2021.127244},
+  2022.
+
+\bibitem[{Mo et~al.(2025)Mo, Schumacher, van Dijk, Shi, Wu, and
+  Forootan}]{mo2025nrt}
+Mo, S., Schumacher, M., van Dijk, A. I. J.~M., Shi, X., Wu, J., and Forootan,
+  E.: Near-Real-Time Monitoring of Global Terrestrial Water Storage Anomalies
+  and Hydrological Droughts, Geophysical Research Letters, 52,
+  \doi{10.1029/2024GL112677}, 2025.
+
+\bibitem[{Mu{\~n}oz-Sabater et~al.(2021)Mu{\~n}oz-Sabater, Dutra,
+  Agust{\'i}-Panareda, Albergel, Arduini, Balsamo, Boussetta, Choulga,
+  Harrigan, Hersbach, Martens, Miralles, Piles, Rodr{\'i}guez-Fern{\'a}ndez,
+  Zsoter, Buontempo, and Th{\'e}paut}]{munozsabater2021era5land}
+Mu{\~n}oz-Sabater, J., Dutra, E., Agust{\'i}-Panareda, A., Albergel, C.,
+  Arduini, G., Balsamo, G., Boussetta, S., Choulga, M., Harrigan, S., Hersbach,
+  H., Martens, B., Miralles, D.~G., Piles, M., Rodr{\'i}guez-Fern{\'a}ndez,
+  N.~J., Zsoter, E., Buontempo, C., and Th{\'e}paut, J.-N.: {ERA5-Land}: a
+  state-of-the-art global reanalysis dataset for land applications, Earth
+  System Science Data, 13, 4349--4383, \doi{10.5194/essd-13-4349-2021}, 2021.
+
+\bibitem[{Newey and West(1987)}]{newey1987hac}
+Newey, W.~K. and West, K.~D.: A Simple, Positive Semi-Definite,
+  Heteroskedasticity and Autocorrelation Consistent Covariance Matrix,
+  Econometrica, 55, 703--708, \doi{10.2307/1913610}, 1987.
+
+\bibitem[{Nie et~al.(2025)Nie, Kumar, Chen, Zhao, Skulovich, Yoo, Pflug, Ahmad,
+  and Konapala}]{nie2025linear}
+Nie, W., Kumar, S.~V., Chen, J., Zhao, L., Skulovich, O., Yoo, J., Pflug, J.,
+  Ahmad, S.~K., and Konapala, G.: Rethinking deep learning: linear regression
+  remains a key benchmark in predicting terrestrial water storage,
+  \urlprefix\url{https://arxiv.org/abs/2510.10799}, 2025.
+
+\bibitem[{Niraula and Goessling(2021)}]{niraula2021seaice}
+Niraula, B. and Goessling, H.~F.: Spatial Damped Anomaly Persistence of the Sea
+  Ice Edge as a Benchmark for Dynamical Forecast Systems, Journal of
+  Geophysical Research: Oceans, 126, \doi{10.1029/2021JC017784}, 2021.
+
+\bibitem[{Pechlivanidis et~al.(2020)Pechlivanidis, Crochemore, Rosberg, and
+  Bosshard}]{pechlivanidis2020drivers}
+Pechlivanidis, I.~G., Crochemore, L., Rosberg, J., and Bosshard, T.: What Are
+  the Key Drivers Controlling the Quality of Seasonal Streamflow Forecasts?,
+  Water Resources Research, 56, \doi{10.1029/2019WR026987}, 2020.
+
+\bibitem[{Pezeshki et~al.(2021)Pezeshki, Kaba, Bengio, Courville, Precup, and
+  Lajoie}]{pezeshki2021gradient}
+Pezeshki, M., Kaba, S.-O., Bengio, Y., Courville, A., Precup, D., and Lajoie,
+  G.: Gradient Starvation: A Learning Proclivity in Neural Networks,
+  \urlprefix\url{https://arxiv.org/abs/2011.09468}, advances in Neural
+  Information Processing Systems 34, 2021.
+
+\bibitem[{Reager et~al.(2014)Reager, Thomas, and Famiglietti}]{reager2014flood}
+Reager, J.~T., Thomas, B.~F., and Famiglietti, J.~S.: River basin flood
+  potential inferred using {GRACE} gravity observations at several months lead
+  time, Nature Geoscience, 7, 588--592, \doi{10.1038/ngeo2203}, 2014.
+
+\bibitem[{Save et~al.(2016)Save, Bettadpur, and Tapley}]{save2016mascons}
+Save, H., Bettadpur, S., and Tapley, B.~D.: High-resolution {CSR GRACE RL05}
+  mascons, Journal of Geophysical Research: Solid Earth, 121, 7547--7569,
+  \doi{10.1002/2016JB013007}, 2016.
+
+\bibitem[{Schreiber and Schmitz(1996)}]{schreiber1996surrogate}
+Schreiber, T. and Schmitz, A.: Improved Surrogate Data for Nonlinearity Tests,
+  Physical Review Letters, 77, 635--638, \doi{10.1103/PhysRevLett.77.635},
+  1996.
+
+\bibitem[{Schreiber and Schmitz(2000)}]{schreiber2000surrogate}
+Schreiber, T. and Schmitz, A.: Surrogate time series, Physica D: Nonlinear
+  Phenomena, 142, 346--382, \doi{10.1016/S0167-2789(00)00043-9}, 2000.
+
+\bibitem[{Shukla and Lettenmaier(2011)}]{shukla2011seasonal}
+Shukla, S. and Lettenmaier, D.~P.: Seasonal hydrologic prediction in the
+  {United States}: understanding the role of initial hydrologic conditions and
+  seasonal climate forecast skill, Hydrology and Earth System Sciences, 15,
+  3529--3538, \doi{10.5194/hess-15-3529-2011}, 2011.
+
+\bibitem[{Springer et~al.(2026)Springer, De~Lannoy, Rodell, Ewerdwalbesloh,
+  Gerdener, Khaki, Li, Li, Schumacher, Tangdamrongsub, Tourian, Nie, and
+  Kusche}]{springer2026review}
+Springer, A., De~Lannoy, G., Rodell, M., Ewerdwalbesloh, Y., Gerdener, H.,
+  Khaki, M., Li, B., Li, F., Schumacher, M., Tangdamrongsub, N., Tourian,
+  M.~J., Nie, W., and Kusche, J.: A review of current best practices and future
+  directions in assimilating {GRACE/-FO} terrestrial water storage data into
+  numerical models, Hydrology and Earth System Sciences, 30, 985--1022,
+  \doi{10.5194/hess-30-985-2026}, 2026.
+
+\bibitem[{Steidl and Zhu(2025)}]{steidl2025hignn}
+Steidl, V. and Zhu, X.~X.: Hierarchical Graph Networks for Forecasting
+  Terrestrial Water Storage Anomalies, in: Machine Learning and the Physical
+  Sciences Workshop, 39th Conference on Neural Information Processing Systems
+  (NeurIPS), \urlprefix\url{https://ml4physicalsciences.github.io/2025/}, 2025.
+
+\bibitem[{Tapley et~al.(2004)Tapley, Bettadpur, Watkins, and
+  Reigber}]{tapley2004grace}
+Tapley, B.~D., Bettadpur, S., Watkins, M., and Reigber, C.: The gravity
+  recovery and climate experiment: Mission overview and early results,
+  Geophysical Research Letters, 31, \doi{10.1029/2004GL019920}, 2004.
+
+\bibitem[{Veli{\v c}kovi{\'c} et~al.(2018)Veli{\v c}kovi{\'c}, Cucurull,
+  Casanova, Romero, Li{\`o}, and Bengio}]{velickovic2018gat}
+Veli{\v c}kovi{\'c}, P., Cucurull, G., Casanova, A., Romero, A., Li{\`o}, P.,
+  and Bengio, Y.: Graph Attention Networks,
+  \urlprefix\url{https://arxiv.org/abs/1710.10903}, international Conference on
+  Learning Representations, 2018.
+
+\bibitem[{Wilks(2016)}]{wilks2016stippling}
+Wilks, D.~S.: ``The Stippling Shows Statistically Significant Grid Points'':
+  How Research Results are Routinely Overstated and Overinterpreted, and What
+  to Do about It, Bulletin of the American Meteorological Society, 97,
+  2263--2273, \doi{10.1175/BAMS-D-15-00267.1}, 2016.
+
+\bibitem[{Wood and Lettenmaier(2008)}]{wood2008esp}
+Wood, A.~W. and Lettenmaier, D.~P.: An ensemble approach for attribution of
+  hydrologic prediction uncertainty, Geophysical Research Letters, 35,
+  \doi{10.1029/2008GL034648}, 2008.
+
+\bibitem[{Yin et~al.(2023)Yin, Slater, Khouakhi, Yu, Liu, Li, Pokhrel, and
+  Gentine}]{yin2023gtws}
+Yin, J., Slater, L.~J., Khouakhi, A., Yu, L., Liu, P., Li, F., Pokhrel, Y., and
+  Gentine, P.: {GTWS-MLrec}: global terrestrial water storage reconstruction by
+  machine learning from 1940 to present, Earth System Science Data, 15,
+  5597--5615, \doi{10.5194/essd-15-5597-2023}, 2023.
+
+\bibitem[{Yossef et~al.(2013)Yossef, Winsemius, Weerts, van Beek, and
+  Bierkens}]{yossef2013skill}
+Yossef, N.~C., Winsemius, H., Weerts, A., van Beek, R., and Bierkens, M. F.~P.:
+  Skill of a global seasonal streamflow forecasting system, relative roles of
+  initial conditions and meteorological forcing, Water Resources Research, 49,
+  4687--4699, \doi{10.1002/wrcr.20350}, 2013.
+
+\bibitem[{Zhu et~al.(2019)Zhu, Yuan, and Wood}]{zhu2019elasticity}
+Zhu, E., Yuan, X., and Wood, A.~W.: Benchmark decadal forecast skill for
+  terrestrial water storage estimated by an elasticity framework, Nature
+  Communications, 10, 1237, \doi{10.1038/s41467-019-09245-3}, 2019.
+
+\end{thebibliography}

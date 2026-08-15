@@ -1,0 +1,166 @@
+﻿li rows: 163440 | basins: 227
+
+===== all_matched =====
+     subset                  model  horizon  rmse_std     n  n_months  n_basins  skill_vs_damped
+all_matched             kalman_ar1        1  1.042441 13620        60       227         0.051618
+all_matched       kalman_corr_top1        1  1.043430 13620        60       227         0.049818
+all_matched       kalman_own_ridge        1  1.043588 13620        60       227         0.049531
+all_matched     ridge_own_perbasin        1  1.056014 13620        60       227         0.026761
+all_matched damped_persistence_rho        1  1.070434 13620        60       227         0.000000
+all_matched           li_lstm_full        1  1.128223 13620        60       227        -0.110886
+all_matched            persistence        1  1.170172 13620        60       227        -0.195031
+all_matched        li_lstm_nonseas        1  1.214205 13620        60       227        -0.286660
+all_matched       climatology_zero        1  1.636814 13620        60       227        -1.338185
+all_matched           li_lstm_full        2  1.157973 13620        60       227         0.147612
+all_matched             kalman_ar1        2  1.195993 13620        60       227         0.090719
+all_matched       kalman_own_ridge        2  1.203069 13620        60       227         0.079928
+all_matched       kalman_corr_top1        2  1.206115 13620        60       227         0.075264
+all_matched     ridge_own_perbasin        2  1.215640 13620        60       227         0.060600
+all_matched        li_lstm_nonseas        2  1.234657 13620        60       227         0.030979
+all_matched damped_persistence_rho        2  1.254237 13620        60       227         0.000000
+all_matched            persistence        2  1.369529 13620        60       227        -0.192295
+all_matched       climatology_zero        2  1.655294 13620        60       227        -0.741770
+all_matched           li_lstm_full        3  1.188623 13620        60       227         0.233034
+all_matched        li_lstm_nonseas        3  1.252308 13620        60       227         0.148646
+all_matched       kalman_own_ridge        3  1.278748 13620        60       227         0.112317
+all_matched             kalman_ar1        3  1.281822 13620        60       227         0.108045
+all_matched       kalman_corr_top1        3  1.282653 13620        60       227         0.106888
+all_matched     ridge_own_perbasin        3  1.295616 13620        60       227         0.088744
+all_matched damped_persistence_rho        3  1.357238 13620        60       227         0.000000
+all_matched            persistence        3  1.435189 13620        60       227        -0.118165
+all_matched       climatology_zero        3  1.674405 13620        60       227        -0.521979
+all_matched           li_lstm_full        4  1.220098 13620        60       227         0.289709
+all_matched        li_lstm_nonseas        4  1.266954 13620        60       227         0.234106
+all_matched       kalman_own_ridge        4  1.333686 13620        60       227         0.151301
+all_matched       kalman_corr_top1        4  1.337952 13620        60       227         0.145863
+all_matched             kalman_ar1        4  1.351367 13620        60       227         0.128649
+all_matched     ridge_own_perbasin        4  1.361946 13620        60       227         0.114953
+all_matched damped_persistence_rho        4  1.447694 13620        60       227         0.000000
+all_matched            persistence        4  1.480119 13620        60       227        -0.045298
+all_matched       climatology_zero        4  1.693821 13620        60       227        -0.368931
+all_matched           li_lstm_full        5  1.254709 13620        60       227         0.316968
+all_matched        li_lstm_nonseas        5  1.294253 13620        60       227         0.273236
+all_matched       kalman_own_ridge        5  1.400389 13620        60       227         0.149150
+all_matched       kalman_corr_top1        5  1.404169 13620        60       227         0.144552
+all_matched             kalman_ar1        5  1.420855 13620        60       227         0.124100
+all_matched     ridge_own_perbasin        5  1.439912 13620        60       227         0.100446
+all_matched damped_persistence_rho        5  1.518177 13620        60       227         0.000000
+all_matched            persistence        5  1.524010 13620        60       227        -0.007699
+all_matched       climatology_zero        5  1.720233 13620        60       227        -0.283895
+all_matched           li_lstm_full        6  1.277653 13620        60       227         0.341431
+all_matched        li_lstm_nonseas        6  1.313185 13620        60       227         0.304292
+all_matched       kalman_own_ridge        6  1.465732 13620        60       227         0.133268
+all_matched       kalman_corr_top1        6  1.469509 13620        60       227         0.128795
+all_matched             kalman_ar1        6  1.477997 13620        60       227         0.118702
+all_matched     ridge_own_perbasin        6  1.511972 13620        60       227         0.077720
+all_matched damped_persistence_rho        6  1.574390 13620        60       227         0.000000
+all_matched            persistence        6  1.593431 13620        60       227        -0.024335
+all_matched       climatology_zero        6  1.739619 13620        60       227        -0.220911
+
+===== coverage_ge_0.5 =====
+         subset                  model  horizon  rmse_std     n  n_months  n_basins  skill_vs_damped
+coverage_ge_0.5             kalman_ar1        1  1.031401 12540        60       209         0.049151
+coverage_ge_0.5       kalman_corr_top1        1  1.031984 12540        60       209         0.048076
+coverage_ge_0.5       kalman_own_ridge        1  1.032614 12540        60       209         0.046913
+coverage_ge_0.5     ridge_own_perbasin        1  1.046952 12540        60       209         0.020263
+coverage_ge_0.5 damped_persistence_rho        1  1.057723 12540        60       209         0.000000
+coverage_ge_0.5           li_lstm_full        1  1.120628 12540        60       209        -0.122482
+coverage_ge_0.5            persistence        1  1.150748 12540        60       209        -0.183632
+coverage_ge_0.5        li_lstm_nonseas        1  1.208055 12540        60       209        -0.304456
+coverage_ge_0.5       climatology_zero        1  1.645926 12540        60       209        -1.421457
+coverage_ge_0.5           li_lstm_full        2  1.152938 12540        60       209         0.145860
+coverage_ge_0.5             kalman_ar1        2  1.191157 12540        60       209         0.088293
+coverage_ge_0.5       kalman_own_ridge        2  1.198643 12540        60       209         0.076798
+coverage_ge_0.5       kalman_corr_top1        2  1.201296 12540        60       209         0.072705
+coverage_ge_0.5     ridge_own_perbasin        2  1.212806 12540        60       209         0.054851
+coverage_ge_0.5        li_lstm_nonseas        2  1.230710 12540        60       209         0.026740
+coverage_ge_0.5 damped_persistence_rho        2  1.247502 12540        60       209         0.000000
+coverage_ge_0.5            persistence        2  1.349690 12540        60       209        -0.170537
+coverage_ge_0.5       climatology_zero        2  1.665045 12540        60       209        -0.781434
+coverage_ge_0.5           li_lstm_full        3  1.183757 12540        60       209         0.238806
+coverage_ge_0.5        li_lstm_nonseas        3  1.249619 12540        60       209         0.151747
+coverage_ge_0.5       kalman_own_ridge        3  1.279427 12540        60       209         0.110797
+coverage_ge_0.5             kalman_ar1        3  1.282613 12540        60       209         0.106363
+coverage_ge_0.5       kalman_corr_top1        3  1.282648 12540        60       209         0.106315
+coverage_ge_0.5     ridge_own_perbasin        3  1.297332 12540        60       209         0.085735
+coverage_ge_0.5 damped_persistence_rho        3  1.356798 12540        60       209         0.000000
+coverage_ge_0.5            persistence        3  1.426501 12540        60       209        -0.105386
+coverage_ge_0.5       climatology_zero        3  1.685488 12540        60       209        -0.543195
+coverage_ge_0.5           li_lstm_full        4  1.216564 12540        60       209         0.296489
+coverage_ge_0.5        li_lstm_nonseas        4  1.265308 12540        60       209         0.238985
+coverage_ge_0.5       kalman_own_ridge        4  1.336118 12540        60       209         0.151425
+coverage_ge_0.5       kalman_corr_top1        4  1.339795 12540        60       209         0.146748
+coverage_ge_0.5             kalman_ar1        4  1.354471 12540        60       209         0.127953
+coverage_ge_0.5     ridge_own_perbasin        4  1.365990 12540        60       209         0.113057
+coverage_ge_0.5 damped_persistence_rho        4  1.450440 12540        60       209         0.000000
+coverage_ge_0.5            persistence        4  1.472867 12540        60       209        -0.031164
+coverage_ge_0.5       climatology_zero        4  1.705733 12540        60       209        -0.383001
+coverage_ge_0.5           li_lstm_full        5  1.253131 12540        60       209         0.325207
+coverage_ge_0.5        li_lstm_nonseas        5  1.293759 12540        60       209         0.280742
+coverage_ge_0.5       kalman_own_ridge        5  1.407068 12540        60       209         0.149239
+coverage_ge_0.5       kalman_corr_top1        5  1.410454 12540        60       209         0.145139
+coverage_ge_0.5             kalman_ar1        5  1.428400 12540        60       209         0.123248
+coverage_ge_0.5     ridge_own_perbasin        5  1.448135 12540        60       209         0.098853
+coverage_ge_0.5            persistence        5  1.513495 12540        60       209         0.015673
+coverage_ge_0.5 damped_persistence_rho        5  1.525497 12540        60       209         0.000000
+coverage_ge_0.5       climatology_zero        5  1.734602 12540        60       209        -0.292937
+coverage_ge_0.5           li_lstm_full        6  1.278788 12540        60       209         0.349505
+coverage_ge_0.5        li_lstm_nonseas        6  1.315472 12540        60       209         0.311649
+coverage_ge_0.5       kalman_own_ridge        6  1.478343 12540        60       209         0.130644
+coverage_ge_0.5       kalman_corr_top1        6  1.481719 12540        60       209         0.126670
+coverage_ge_0.5             kalman_ar1        6  1.491062 12540        60       209         0.115622
+coverage_ge_0.5     ridge_own_perbasin        6  1.525600 12540        60       209         0.074176
+coverage_ge_0.5 damped_persistence_rho        6  1.585538 12540        60       209         0.000000
+coverage_ge_0.5            persistence        6  1.591140 12540        60       209        -0.007079
+coverage_ge_0.5       climatology_zero        6  1.756360 12540        60       209        -0.227083
+
+===== headline (all_matched) =====
+     subset           model                     vs  horizon  n_rows  n_months     skill     ci_lo     ci_hi    dm_stat         dm_p
+all_matched    li_lstm_full       kalman_corr_top1        1   13620        60 -0.169130 -0.323155 -0.039648   2.989580 4.069203e-03
+all_matched    li_lstm_full       kalman_corr_top1        2   13620        60  0.078237 -0.013258  0.165647  -1.857700 6.820400e-02
+all_matched    li_lstm_full       kalman_corr_top1        3   13620        60  0.141244  0.072875  0.209994  -3.558125 7.446647e-04
+all_matched    li_lstm_full       kalman_corr_top1        4   13620        60  0.168411  0.107646  0.236026  -3.998526 1.798385e-04
+all_matched    li_lstm_full       kalman_corr_top1        5   13620        60  0.201550  0.149400  0.267722  -4.745166 1.365815e-05
+all_matched    li_lstm_full       kalman_corr_top1        6   13620        60  0.244071  0.197394  0.303020  -6.015465 1.219000e-07
+all_matched    li_lstm_full             kalman_ar1        1   13620        60 -0.171349 -0.326393 -0.039289   3.001890 3.929379e-03
+all_matched    li_lstm_full             kalman_ar1        2   13620        60  0.062569 -0.031777  0.154675  -1.443008 1.543067e-01
+all_matched    li_lstm_full             kalman_ar1        3   13620        60  0.140130  0.071900  0.209431  -3.511940 8.599955e-04
+all_matched    li_lstm_full             kalman_ar1        4   13620        60  0.184840  0.127430  0.249845  -4.487873 3.390503e-05
+all_matched    li_lstm_full             kalman_ar1        5   13620        60  0.220194  0.170885  0.284308  -5.295831 1.837748e-06
+all_matched    li_lstm_full             kalman_ar1        6   13620        60  0.252728  0.206326  0.311478  -6.254518 4.870931e-08
+all_matched    li_lstm_full     ridge_own_perbasin        1   13620        60 -0.141433 -0.277748 -0.022367   2.713692 8.709015e-03
+all_matched    li_lstm_full     ridge_own_perbasin        2   13620        60  0.092625  0.011981  0.172289  -2.430680 1.812918e-02
+all_matched    li_lstm_full     ridge_own_perbasin        3   13620        60  0.158343  0.099046  0.220992  -4.487738 3.392097e-05
+all_matched    li_lstm_full     ridge_own_perbasin        4   13620        60  0.197454  0.140968  0.262579  -4.913279 7.463230e-06
+all_matched    li_lstm_full     ridge_own_perbasin        5   13620        60  0.240699  0.192524  0.303412  -5.925540 1.718366e-07
+all_matched    li_lstm_full     ridge_own_perbasin        6   13620        60  0.285934  0.241345  0.343079  -7.513875 3.642992e-10
+all_matched    li_lstm_full damped_persistence_rho        1   13620        60 -0.110886 -0.261115  0.016454   1.943725 5.670281e-02
+all_matched    li_lstm_full damped_persistence_rho        2   13620        60  0.147612  0.065227  0.228674  -3.621005 6.111186e-04
+all_matched    li_lstm_full damped_persistence_rho        3   13620        60  0.233034  0.173657  0.295264  -6.177964 6.538584e-08
+all_matched    li_lstm_full damped_persistence_rho        4   13620        60  0.289709  0.238429  0.348277  -7.392561 5.849543e-10
+all_matched    li_lstm_full damped_persistence_rho        5   13620        60  0.316968  0.271309  0.375009  -7.725087 1.597699e-10
+all_matched    li_lstm_full damped_persistence_rho        6   13620        60  0.341431  0.296659  0.396294  -8.377819 1.260230e-11
+all_matched li_lstm_nonseas       kalman_corr_top1        1   13620        60 -0.354119 -0.487991 -0.246816   7.607294 2.529903e-10
+all_matched li_lstm_nonseas       kalman_corr_top1        2   13620        60 -0.047889 -0.119314  0.015384   1.650700 1.041138e-01
+all_matched li_lstm_nonseas       kalman_corr_top1        3   13620        60  0.046756  0.002811  0.091073  -1.988379 5.141512e-02
+all_matched li_lstm_nonseas       kalman_corr_top1        4   13620        60  0.103313  0.070416  0.143115  -4.408721 4.466195e-05
+all_matched li_lstm_nonseas       kalman_corr_top1        5   13620        60  0.150429  0.120826  0.190859  -6.066241 1.003727e-07
+all_matched li_lstm_nonseas       kalman_corr_top1        6   13620        60  0.201441  0.168461  0.241092  -7.148153 1.518286e-09
+all_matched li_lstm_nonseas             kalman_ar1        1   13620        60 -0.356690 -0.491897 -0.246981   7.613595 2.468448e-10
+all_matched li_lstm_nonseas             kalman_ar1        2   13620        60 -0.065700 -0.139417  0.002472   2.165024 3.444206e-02
+all_matched li_lstm_nonseas             kalman_ar1        3   13620        60  0.045519  0.003766  0.090242  -1.947196 5.627583e-02
+all_matched li_lstm_nonseas             kalman_ar1        4   13620        60  0.121028  0.090476  0.159083  -5.408706 1.207929e-06
+all_matched li_lstm_nonseas             kalman_ar1        5   13620        60  0.170266  0.141124  0.209162  -7.018181 2.520287e-09
+all_matched li_lstm_nonseas             kalman_ar1        6   13620        60  0.210586  0.177152  0.249601  -7.481683 4.130775e-10
+all_matched li_lstm_nonseas     ridge_own_perbasin        1   13620        60 -0.322040 -0.435978 -0.229175   7.688641 1.841815e-10
+all_matched li_lstm_nonseas     ridge_own_perbasin        2   13620        60 -0.031532 -0.090782  0.024432   1.249780 2.163147e-01
+all_matched li_lstm_nonseas     ridge_own_perbasin        3   13620        60  0.065736  0.029841  0.103535  -3.301481 1.636014e-03
+all_matched li_lstm_nonseas     ridge_own_perbasin        4   13620        60  0.134629  0.106863  0.170010  -6.637971 1.106010e-08
+all_matched li_lstm_nonseas     ridge_own_perbasin        5   13620        60  0.192084  0.164628  0.228932  -8.243488 2.122561e-11
+all_matched li_lstm_nonseas     ridge_own_perbasin        6   13620        60  0.245665  0.212483  0.286173  -8.602268 5.285464e-12
+all_matched li_lstm_nonseas damped_persistence_rho        1   13620        60 -0.286660 -0.416935 -0.180423   6.244970 5.053298e-08
+all_matched li_lstm_nonseas damped_persistence_rho        2   13620        60  0.030979 -0.029403  0.086613  -1.174120 2.450644e-01
+all_matched li_lstm_nonseas damped_persistence_rho        3   13620        60  0.148646  0.114293  0.186394  -7.221733 1.139413e-09
+all_matched li_lstm_nonseas damped_persistence_rho        4   13620        60  0.234106  0.208431  0.267305 -10.760275 1.537846e-15
+all_matched li_lstm_nonseas damped_persistence_rho        5   13620        60  0.273236  0.245235  0.310706 -10.551655 3.309779e-15
+all_matched li_lstm_nonseas damped_persistence_rho        6   13620        60  0.304292  0.272184  0.343593 -10.091159 1.828400e-14

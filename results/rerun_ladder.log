@@ -1,0 +1,93 @@
+﻿                 model  horizon     n  rmse_std             damped_ref  skill_vs_damped  dm_stat_vs_damped  dm_p_vs_damped
+      climatology_zero        1 19422  1.616340 damped_persistence_rho        -1.255988          24.084544    6.041280e-39
+           persistence        1 19422  1.182510 damped_persistence_rho        -0.207482           7.844210    1.420713e-11
+damped_persistence_rho        1 19422  1.076129 damped_persistence_rho         0.000000                NaN             NaN
+damped_persistence_reg        1 19422  1.083145 damped_persistence_rho        -0.013082           3.875245    2.136016e-04
+        ridge_own_lags        1 19422  1.069842 damped_persistence_rho         0.011651          -1.445842    1.520328e-01
+ridge_own_plus_indices        1 19422  1.070815 damped_persistence_rho         0.009852          -1.177360    2.424580e-01
+    ridge_own_perbasin        1 19422  1.059568 damped_persistence_rho         0.030542          -4.586823    1.598624e-05
+            kalman_ar1        1 19422  1.048995 damped_persistence_rho         0.049793          -8.149137    3.537716e-12
+      kalman_own_ridge        1 19422  1.049896 damped_persistence_rho         0.048161          -7.839333    1.452596e-11
+      kalman_corr_top1        1 19422  1.048280 damped_persistence_rho         0.051089          -8.187259    2.972318e-12
+      climatology_zero        2 19188  1.635423 damped_persistence_reg        -0.707270          26.335733    1.804680e-41
+           persistence        2 19188  1.386322 damped_persistence_reg        -0.226790           7.596046    4.669820e-11
+damped_persistence_rho        2 19188  1.255240 damped_persistence_reg        -0.005762           1.530398    1.298145e-01
+damped_persistence_reg        2 19188  1.251639 damped_persistence_reg         0.000000                NaN             NaN
+        ridge_own_lags        2 19188  1.221362 damped_persistence_reg         0.047795          -4.486987    2.362204e-05
+ridge_own_plus_indices        2 19188  1.223028 damped_persistence_reg         0.045194          -4.191672    7.019495e-05
+    ridge_own_perbasin        2 19188  1.213926 damped_persistence_reg         0.059354          -8.274472    2.160084e-12
+            kalman_ar1        2 19188  1.195358 damped_persistence_reg         0.087909         -11.614556    6.338283e-19
+      kalman_own_ridge        2 19188  1.201366 damped_persistence_reg         0.078719         -11.637131    5.740575e-19
+      kalman_corr_top1        2 19188  1.201949 damped_persistence_reg         0.077824         -11.210971    3.755043e-18
+      climatology_zero        3 18954  1.652484 damped_persistence_reg        -0.589293          22.401381    3.253234e-36
+           persistence        3 18954  1.444184 damped_persistence_reg        -0.213877           7.659867    3.738652e-11
+damped_persistence_rho        3 18954  1.351853 damped_persistence_reg        -0.063624          11.858924    2.633673e-19
+damped_persistence_reg        3 18954  1.310796 damped_persistence_reg         0.000000                NaN             NaN
+        ridge_own_lags        3 18954  1.277036 damped_persistence_reg         0.050847          -4.970750    3.725675e-06
+ridge_own_plus_indices        3 18954  1.276631 damped_persistence_reg         0.051450          -5.026005    2.995471e-06
+    ridge_own_perbasin        3 18954  1.282582 damped_persistence_reg         0.042586          -5.714979    1.813118e-07
+            kalman_ar1        3 18954  1.273398 damped_persistence_reg         0.056248         -11.682405    5.664524e-19
+      kalman_own_ridge        3 18954  1.270615 damped_persistence_reg         0.060369         -11.960251    1.699334e-19
+      kalman_corr_top1        3 18954  1.271831 damped_persistence_reg         0.058570         -10.352621    1.994192e-16
+      climatology_zero        4 18720  1.669845 damped_persistence_reg        -0.513571          21.428059    1.176312e-34
+           persistence        4 18720  1.483679 damped_persistence_reg        -0.194898           5.732361    1.735029e-07
+damped_persistence_rho        4 18720  1.435409 damped_persistence_reg        -0.118412          14.284050    1.347127e-23
+damped_persistence_reg        4 18720  1.357296 damped_persistence_reg         0.000000                NaN             NaN
+        ridge_own_lags        4 18720  1.332380 damped_persistence_reg         0.036378          -4.329547    4.341402e-05
+ridge_own_plus_indices        4 18720  1.331650 damped_persistence_reg         0.037434          -4.410683    3.219563e-05
+    ridge_own_perbasin        4 18720  1.343286 damped_persistence_reg         0.020538          -4.144840    8.478836e-05
+            kalman_ar1        4 18720  1.336299 damped_persistence_reg         0.030700          -7.758821    2.568044e-11
+      kalman_own_ridge        4 18720  1.320441 damped_persistence_reg         0.053570         -11.227996    4.902445e-18
+      kalman_corr_top1        4 18720  1.322802 damped_persistence_reg         0.050182         -10.647799    6.240942e-17
+      climatology_zero        5 18486  1.688121 damped_persistence_reg        -0.426924          22.070687    2.781214e-35
+           persistence        5 18486  1.522351 damped_persistence_reg        -0.160441           3.816896    2.692898e-04
+damped_persistence_rho        5 18486  1.495338 damped_persistence_reg        -0.119624          13.083201    2.301123e-21
+damped_persistence_reg        5 18486  1.413199 damped_persistence_reg         0.000000                NaN             NaN
+        ridge_own_lags        5 18486  1.390646 damped_persistence_reg         0.031663          -3.114256    2.579220e-03
+ridge_own_plus_indices        5 18486  1.390588 damped_persistence_reg         0.031743          -3.117514    2.554043e-03
+    ridge_own_perbasin        5 18486  1.410494 damped_persistence_reg         0.003824          -0.711630    4.788167e-01
+            kalman_ar1        5 18486  1.395073 damped_persistence_reg         0.025488          -5.370601    7.866023e-07
+      kalman_own_ridge        5 18486  1.376423 damped_persistence_reg         0.051369          -8.076057    6.702896e-12
+      kalman_corr_top1        5 18486  1.378822 damped_persistence_reg         0.048059          -8.316230    2.293341e-12
+      climatology_zero        6 18252  1.705516 damped_persistence_reg        -0.336216          21.659997    1.708451e-34
+           persistence        6 18252  1.587719 damped_persistence_reg        -0.158009           3.582466    5.940955e-04
+damped_persistence_rho        6 18252  1.547782 damped_persistence_reg        -0.100487          13.406169    7.901945e-22
+damped_persistence_reg        6 18252  1.475426 damped_persistence_reg         0.000000                NaN             NaN
+        ridge_own_lags        6 18252  1.456952 damped_persistence_reg         0.024886          -2.535584    1.325205e-02
+ridge_own_plus_indices        6 18252  1.457798 damped_persistence_reg         0.023753          -2.478774    1.537076e-02
+    ridge_own_perbasin        6 18252  1.477597 damped_persistence_reg        -0.002945           0.387644    6.993487e-01
+            kalman_ar1        6 18252  1.448381 damped_persistence_reg         0.036326          -6.799363    1.988736e-09
+      kalman_own_ridge        6 18252  1.436852 damped_persistence_reg         0.051606          -9.035648    1.023738e-13
+      kalman_corr_top1        6 18252  1.439154 damped_persistence_reg         0.048564          -8.829006    2.561935e-13
+
+        challenger              reference  horizon     skill     ci_lo    ci_hi    dm_stat         dm_p
+        kalman_ar1 damped_persistence_rho        1  0.049793  0.038710 0.060852  -8.149137 3.537716e-12
+        kalman_ar1     ridge_own_perbasin        1  0.019857  0.008932 0.031275  -3.540026 6.624567e-04
+        kalman_ar1         ridge_own_lags        1  0.038591  0.022906 0.053667  -4.734194 9.080399e-06
+  kalman_own_ridge     ridge_own_perbasin        1  0.018174  0.007521 0.029053  -3.323225 1.331388e-03
+ridge_own_perbasin damped_persistence_rho        1  0.030542  0.019071 0.043098  -4.586823 1.598624e-05
+        kalman_ar1 damped_persistence_reg        2  0.087909  0.074072 0.101445 -11.614556 6.338283e-19
+        kalman_ar1     ridge_own_perbasin        2  0.030357  0.020371 0.042427  -5.358516 7.705849e-07
+        kalman_ar1         ridge_own_lags        2  0.042127  0.031328 0.052304  -7.902223 1.170234e-11
+  kalman_own_ridge     ridge_own_perbasin        2  0.020587  0.011639 0.031368  -4.115231 9.243725e-05
+ridge_own_perbasin damped_persistence_reg        2  0.059354  0.044772 0.070622  -8.274472 2.160084e-12
+        kalman_ar1 damped_persistence_reg        3  0.056248  0.048028 0.064906 -11.682405 5.664524e-19
+        kalman_ar1     ridge_own_perbasin        3  0.014270  0.004481 0.026110  -2.538434 1.307506e-02
+        kalman_ar1         ridge_own_lags        3  0.005690 -0.008372 0.018818  -0.753174 4.535559e-01
+  kalman_own_ridge     ridge_own_perbasin        3  0.018575  0.008649 0.030237  -3.282275 1.527780e-03
+ridge_own_perbasin damped_persistence_reg        3  0.042586  0.028552 0.055897  -5.714979 1.813118e-07
+        kalman_ar1 damped_persistence_reg        4  0.030700  0.022777 0.038814  -7.758821 2.568044e-11
+        kalman_ar1     ridge_own_perbasin        4  0.010375  0.000441 0.021833  -1.783925 7.827581e-02
+        kalman_ar1         ridge_own_lags        4 -0.005892 -0.019782 0.007407   0.737965 4.627221e-01
+  kalman_own_ridge     ridge_own_perbasin        4  0.033724  0.022547 0.046589  -5.128458 2.033746e-06
+ridge_own_perbasin damped_persistence_reg        4  0.020538  0.011324 0.029686  -4.144840 8.478836e-05
+        kalman_ar1 damped_persistence_reg        5  0.025488  0.017764 0.033325  -5.370601 7.866023e-07
+        kalman_ar1     ridge_own_perbasin        5  0.021747  0.009794 0.034291  -2.883925 5.074378e-03
+        kalman_ar1         ridge_own_lags        5 -0.006377 -0.020543 0.005428   0.770636 4.432505e-01
+  kalman_own_ridge     ridge_own_perbasin        5  0.047727  0.034623 0.062443  -5.386147 7.386237e-07
+ridge_own_perbasin damped_persistence_reg        5  0.003824 -0.005516 0.011580  -0.711630 4.788167e-01
+        kalman_ar1 damped_persistence_reg        6  0.036326  0.028339 0.045688  -6.799363 1.988736e-09
+        kalman_ar1     ridge_own_perbasin        6  0.039155  0.027372 0.052858  -4.777015 8.333840e-06
+        kalman_ar1         ridge_own_lags        6  0.011731 -0.002945 0.023030  -1.325748 1.888428e-01
+  kalman_own_ridge     ridge_own_perbasin        6  0.054391  0.042453 0.069119  -6.153592 3.163148e-08
+ridge_own_perbasin damped_persistence_reg        6 -0.002945 -0.014737 0.008660   0.387644 6.993487e-01

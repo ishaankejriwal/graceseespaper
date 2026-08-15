@@ -1,0 +1,13 @@
+axis,challenger,reference,horizon,n_months,mean_diff_pp,dm_stat,dm_p
+cont_high_vs_low,lstmres_corr_top1_ens,lstm_own_era5_ens,1,83,-0.3113940216252485,-1.666838932997233,0.09936180813222341
+cont_high_vs_low,lstmres_corr_top1_ens,lstm_own_era5_ens,2,82,-0.17309004197096237,-0.6656587079104167,0.507520472754398
+cont_high_vs_low,lstmres_corr_top1_ens,lstm_own_era5_ens,3,81,-0.0008875739493781462,-0.002674672338181271,0.9978725812211118
+cont_high_vs_low,lstmres_corr_top1_ens,lstm_own_era5_ens,4,80,-0.0696127710296645,-0.1954570939474458,0.845536973703231
+cont_high_vs_low,lstmres_corr_top1_ens,lstm_own_era5_ens,5,79,-0.050775161522761396,-0.12657639154670122,0.8996014052190886
+cont_high_vs_low,lstmres_corr_top1_ens,lstm_own_era5_ens,6,78,-0.1920273607291314,-0.4449358103957248,0.6576143917079619
+sub_vs_resolved,lstmres_corr_top1_ens,lstm_own_era5_ens,1,83,0.3526998611924352,2.263820784781257,0.026226179668605142
+sub_vs_resolved,lstmres_corr_top1_ens,lstm_own_era5_ens,2,82,0.713899439873936,3.854608536762851,0.0002311605117361841
+sub_vs_resolved,lstmres_corr_top1_ens,lstm_own_era5_ens,3,81,0.5031450350338136,2.395062219264452,0.01895482031443719
+sub_vs_resolved,lstmres_corr_top1_ens,lstm_own_era5_ens,4,80,0.6119314558962807,2.284538478203566,0.025023817408484285
+sub_vs_resolved,lstmres_corr_top1_ens,lstm_own_era5_ens,5,79,0.7855332451946865,2.720192675032613,0.008040747206580892
+sub_vs_resolved,lstmres_corr_top1_ens,lstm_own_era5_ens,6,78,1.1042149870758113,3.9340935092872447,0.00018154193225547888

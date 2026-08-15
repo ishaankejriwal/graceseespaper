@@ -1,0 +1,115 @@
+﻿                 model horizon  rmse_std     n  n_months  n_basins  skill_vs_damped
+  ridge_corr_top1_era5       1  1.025714 13620        60       227         0.081809
+        hybrid_era5_li       1  1.025714 13620        60       227         0.081809
+     hybrid_era5_li_h1       1  1.025714 13620        60       227         0.081809
+      kalman_corr_top1       1  1.043430 13620        60       227         0.049818
+      hybrid_kalman_li       1  1.043430 13620        60       227         0.049818
+   hybrid_kalman_li_h1       1  1.043430 13620        60       227         0.049818
+damped_persistence_rho       1  1.070434 13620        60       227         0.000000
+          li_lstm_full       1  1.128223 13620        60       227        -0.110886
+       li_lstm_nonseas       1  1.214205 13620        60       227        -0.286660
+          li_lstm_full       2  1.157973 13620        60       227         0.147612
+   hybrid_kalman_li_h1       2  1.157973 13620        60       227         0.147612
+     hybrid_era5_li_h1       2  1.157973 13620        60       227         0.147612
+  ridge_corr_top1_era5       2  1.203185 13620        60       227         0.079751
+        hybrid_era5_li       2  1.203185 13620        60       227         0.079751
+      kalman_corr_top1       2  1.206115 13620        60       227         0.075264
+      hybrid_kalman_li       2  1.206115 13620        60       227         0.075264
+       li_lstm_nonseas       2  1.234657 13620        60       227         0.030979
+damped_persistence_rho       2  1.254237 13620        60       227         0.000000
+          li_lstm_full       3  1.188623 13620        60       227         0.233034
+      hybrid_kalman_li       3  1.188623 13620        60       227         0.233034
+        hybrid_era5_li       3  1.188623 13620        60       227         0.233034
+   hybrid_kalman_li_h1       3  1.188623 13620        60       227         0.233034
+     hybrid_era5_li_h1       3  1.188623 13620        60       227         0.233034
+       li_lstm_nonseas       3  1.252308 13620        60       227         0.148646
+      kalman_corr_top1       3  1.282653 13620        60       227         0.106888
+  ridge_corr_top1_era5       3  1.284412 13620        60       227         0.104436
+damped_persistence_rho       3  1.357238 13620        60       227         0.000000
+          li_lstm_full       4  1.220098 13620        60       227         0.289709
+      hybrid_kalman_li       4  1.220098 13620        60       227         0.289709
+        hybrid_era5_li       4  1.220098 13620        60       227         0.289709
+   hybrid_kalman_li_h1       4  1.220098 13620        60       227         0.289709
+     hybrid_era5_li_h1       4  1.220098 13620        60       227         0.289709
+       li_lstm_nonseas       4  1.266954 13620        60       227         0.234106
+      kalman_corr_top1       4  1.337952 13620        60       227         0.145863
+damped_persistence_rho       4  1.447694 13620        60       227         0.000000
+          li_lstm_full       5  1.254709 13620        60       227         0.316968
+      hybrid_kalman_li       5  1.254709 13620        60       227         0.316968
+        hybrid_era5_li       5  1.254709 13620        60       227         0.316968
+   hybrid_kalman_li_h1       5  1.254709 13620        60       227         0.316968
+     hybrid_era5_li_h1       5  1.254709 13620        60       227         0.316968
+       li_lstm_nonseas       5  1.294253 13620        60       227         0.273236
+      kalman_corr_top1       5  1.404169 13620        60       227         0.144552
+damped_persistence_rho       5  1.518177 13620        60       227         0.000000
+          li_lstm_full       6  1.277653 13620        60       227         0.341431
+      hybrid_kalman_li       6  1.277653 13620        60       227         0.341431
+        hybrid_era5_li       6  1.277653 13620        60       227         0.341431
+   hybrid_kalman_li_h1       6  1.277653 13620        60       227         0.341431
+     hybrid_era5_li_h1       6  1.277653 13620        60       227         0.341431
+       li_lstm_nonseas       6  1.313185 13620        60       227         0.304292
+      kalman_corr_top1       6  1.469509 13620        60       227         0.128795
+damped_persistence_rho       6  1.574390 13620        60       227         0.000000
+     hybrid_era5_li_h1     all  1.190318 81720        65       227         0.256920
+   hybrid_kalman_li_h1     all  1.192882 81720        65       227         0.253716
+        hybrid_era5_li     all  1.197769 81720        65       227         0.247589
+      hybrid_kalman_li     all  1.200806 81720        65       227         0.243767
+          li_lstm_full     all  1.205677 81720        65       227         0.237620
+       li_lstm_nonseas     all  1.263043 81720        65       227         0.163346
+      kalman_corr_top1     all  1.298070 81720        65       227         0.116298
+damped_persistence_rho     all  1.380846 81720        65       227         0.000000
+
+===== headline =====
+              model                     vs horizon     skill     ci_lo    ci_hi    dm_stat         dm_p
+   hybrid_kalman_li       kalman_corr_top1       3  0.141244  0.072875 0.209994  -3.558125 7.446647e-04
+   hybrid_kalman_li       kalman_corr_top1       4  0.168411  0.107646 0.236026  -3.998526 1.798385e-04
+   hybrid_kalman_li       kalman_corr_top1       5  0.201550  0.149400 0.267722  -4.745166 1.365815e-05
+   hybrid_kalman_li       kalman_corr_top1       6  0.244071  0.197394 0.303020  -6.015465 1.219000e-07
+   hybrid_kalman_li       kalman_corr_top1     all  0.144245       NaN      NaN  -3.746520 3.870701e-04
+   hybrid_kalman_li           li_lstm_full       1  0.144663  0.038136 0.244231  -2.989580 4.069203e-03
+   hybrid_kalman_li           li_lstm_full       2 -0.084877 -0.198534 0.013084   1.857700 6.820400e-02
+   hybrid_kalman_li           li_lstm_full     all  0.008063       NaN      NaN  -0.484399 6.297565e-01
+   hybrid_kalman_li damped_persistence_rho       1  0.049818  0.040265 0.062611  -7.076039 2.011386e-09
+   hybrid_kalman_li damped_persistence_rho       2  0.075264  0.065592 0.086376 -11.372175 1.672442e-16
+   hybrid_kalman_li damped_persistence_rho       3  0.233034  0.173657 0.295264  -6.177964 6.538584e-08
+   hybrid_kalman_li damped_persistence_rho       4  0.289709  0.238429 0.348277  -7.392561 5.849543e-10
+   hybrid_kalman_li damped_persistence_rho       5  0.316968  0.271309 0.375009  -7.725087 1.597699e-10
+   hybrid_kalman_li damped_persistence_rho       6  0.341431  0.296659 0.396294  -8.377819 1.260230e-11
+   hybrid_kalman_li damped_persistence_rho     all  0.243767       NaN      NaN  -6.308001 2.992152e-08
+     hybrid_era5_li   ridge_corr_top1_era5       3  0.143595  0.066481 0.219795  -3.223885 2.062181e-03
+     hybrid_era5_li           li_lstm_full       1  0.173461  0.046290 0.284274  -3.155556 2.521923e-03
+     hybrid_era5_li           li_lstm_full       2 -0.079613 -0.212060 0.035339   1.515697 1.349356e-01
+     hybrid_era5_li           li_lstm_full     all  0.013075       NaN      NaN  -0.649391 5.184096e-01
+     hybrid_era5_li damped_persistence_rho       1  0.081809  0.050031 0.109218  -6.376089 3.048205e-08
+     hybrid_era5_li damped_persistence_rho       2  0.079751  0.055064 0.102573  -7.415109 5.356673e-10
+     hybrid_era5_li damped_persistence_rho       3  0.233034  0.173657 0.295264  -6.177964 6.538584e-08
+     hybrid_era5_li damped_persistence_rho       4  0.289709  0.238429 0.348277  -7.392561 5.849543e-10
+     hybrid_era5_li damped_persistence_rho       5  0.316968  0.271309 0.375009  -7.725087 1.597699e-10
+     hybrid_era5_li damped_persistence_rho       6  0.341431  0.296659 0.396294  -8.377819 1.260230e-11
+     hybrid_era5_li damped_persistence_rho     all  0.247589       NaN      NaN  -7.013287 1.763234e-09
+hybrid_kalman_li_h1       kalman_corr_top1       2  0.078237 -0.013258 0.165647  -1.857700 6.820400e-02
+hybrid_kalman_li_h1       kalman_corr_top1       3  0.141244  0.072875 0.209994  -3.558125 7.446647e-04
+hybrid_kalman_li_h1       kalman_corr_top1       4  0.168411  0.107646 0.236026  -3.998526 1.798385e-04
+hybrid_kalman_li_h1       kalman_corr_top1       5  0.201550  0.149400 0.267722  -4.745166 1.365815e-05
+hybrid_kalman_li_h1       kalman_corr_top1       6  0.244071  0.197394 0.303020  -6.015465 1.219000e-07
+hybrid_kalman_li_h1       kalman_corr_top1     all  0.155502       NaN      NaN  -3.262464 1.773540e-03
+hybrid_kalman_li_h1           li_lstm_full       1  0.144663  0.038136 0.244231  -2.989580 4.069203e-03
+hybrid_kalman_li_h1           li_lstm_full     all  0.021112       NaN      NaN  -1.840793 7.028820e-02
+hybrid_kalman_li_h1 damped_persistence_rho       1  0.049818  0.040265 0.062611  -7.076039 2.011386e-09
+hybrid_kalman_li_h1 damped_persistence_rho       2  0.147612  0.065227 0.228674  -3.621005 6.111186e-04
+hybrid_kalman_li_h1 damped_persistence_rho       3  0.233034  0.173657 0.295264  -6.177964 6.538584e-08
+hybrid_kalman_li_h1 damped_persistence_rho       4  0.289709  0.238429 0.348277  -7.392561 5.849543e-10
+hybrid_kalman_li_h1 damped_persistence_rho       5  0.316968  0.271309 0.375009  -7.725087 1.597699e-10
+hybrid_kalman_li_h1 damped_persistence_rho       6  0.341431  0.296659 0.396294  -8.377819 1.260230e-11
+hybrid_kalman_li_h1 damped_persistence_rho     all  0.253716       NaN      NaN  -5.521449 6.544001e-07
+  hybrid_era5_li_h1   ridge_corr_top1_era5       2  0.073742 -0.036633 0.174958  -1.515697 1.349356e-01
+  hybrid_era5_li_h1   ridge_corr_top1_era5       3  0.143595  0.066481 0.219795  -3.223885 2.062181e-03
+  hybrid_era5_li_h1           li_lstm_full       1  0.173461  0.046290 0.284274  -3.155556 2.521923e-03
+  hybrid_era5_li_h1           li_lstm_full     all  0.025315       NaN      NaN  -1.886369 6.378380e-02
+  hybrid_era5_li_h1 damped_persistence_rho       1  0.081809  0.050031 0.109218  -6.376089 3.048205e-08
+  hybrid_era5_li_h1 damped_persistence_rho       2  0.147612  0.065227 0.228674  -3.621005 6.111186e-04
+  hybrid_era5_li_h1 damped_persistence_rho       3  0.233034  0.173657 0.295264  -6.177964 6.538584e-08
+  hybrid_era5_li_h1 damped_persistence_rho       4  0.289709  0.238429 0.348277  -7.392561 5.849543e-10
+  hybrid_era5_li_h1 damped_persistence_rho       5  0.316968  0.271309 0.375009  -7.725087 1.597699e-10
+  hybrid_era5_li_h1 damped_persistence_rho       6  0.341431  0.296659 0.396294  -8.377819 1.260230e-11
+  hybrid_era5_li_h1 damped_persistence_rho     all  0.256920       NaN      NaN  -5.816653 2.080671e-07

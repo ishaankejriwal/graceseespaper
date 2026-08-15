@@ -1,0 +1,42 @@
+﻿sample: 234 basins | fusion seeds=50
+f1 done
+f2 done
+f3 done
+f4 done
+f5 done
+
+=== horizon 1 ===
+               model  horizon  rmse_std     n  placebo_n  placebo_beaten  p_rank  dm_vs_kalman         dm_p  skill_ci_lo  skill_ci_hi  skill_vs_kalman
+          kalman_ar1        1  1.048995 19422        NaN             NaN     NaN           NaN          NaN          NaN          NaN         0.000000
+    fusion_corr_top1        1  1.060175 19422       50.0             0.0     1.0      4.246985 5.682121e-05    -0.030618    -0.009541        -0.021429
+fusion_corr_top1_mle        1  1.081368 19422       50.0             0.0     1.0      8.093953 4.551431e-12    -0.079626    -0.043847        -0.062675
+
+=== horizon 2 ===
+               model  horizon  rmse_std     n  placebo_n  placebo_beaten  p_rank  dm_vs_kalman         dm_p  skill_ci_lo  skill_ci_hi  skill_vs_kalman
+          kalman_ar1        2  1.195358 19188        NaN             NaN     NaN           NaN          NaN          NaN          NaN         0.000000
+    fusion_corr_top1        2  1.202983 19188       50.0             0.0     1.0      3.573942 5.959421e-04    -0.019413    -0.004579        -0.012798
+fusion_corr_top1_mle        2  1.218315 19188       50.0             0.0     1.0      6.610594 3.766072e-09    -0.050754    -0.024444        -0.038778
+
+=== horizon 3 ===
+               model  horizon  rmse_std     n  placebo_n  placebo_beaten   p_rank  dm_vs_kalman         dm_p  skill_ci_lo  skill_ci_hi  skill_vs_kalman
+          kalman_ar1        3  1.273398 18954        NaN             NaN      NaN           NaN          NaN          NaN          NaN         0.000000
+    fusion_corr_top1        3  1.278687 18954       50.0             1.0 0.980392      2.864135 5.338239e-03    -0.013674    -0.002227        -0.008324
+fusion_corr_top1_mle        3  1.291193 18954       50.0             0.0 1.000000      5.477801 4.840502e-07    -0.038640    -0.016808        -0.028144
+
+=== horizon 4 ===
+               model  horizon  rmse_std     n  placebo_n  placebo_beaten  p_rank  dm_vs_kalman         dm_p  skill_ci_lo  skill_ci_hi  skill_vs_kalman
+          kalman_ar1        4  1.336299 18720        NaN             NaN     NaN           NaN          NaN          NaN          NaN         0.000000
+    fusion_corr_top1        4  1.341485 18720       50.0             0.0     1.0      3.403352 1.047821e-03    -0.012082    -0.003048        -0.007776
+fusion_corr_top1_mle        4  1.352116 18720       50.0             0.0     1.0      5.756570 1.568589e-07    -0.031657    -0.015357        -0.023813
+
+=== horizon 5 ===
+               model  horizon  rmse_std     n  placebo_n  placebo_beaten  p_rank  dm_vs_kalman         dm_p  skill_ci_lo  skill_ci_hi  skill_vs_kalman
+          kalman_ar1        5  1.395073 18486        NaN             NaN     NaN           NaN          NaN          NaN          NaN         0.000000
+    fusion_corr_top1        5  1.400440 18486       50.0             0.0     1.0      4.146011 8.530808e-05    -0.010936    -0.004204        -0.007710
+fusion_corr_top1_mle        5  1.410505 18486       50.0             0.0     1.0      5.514638 4.378638e-07    -0.029354    -0.015281        -0.022247
+
+=== horizon 6 ===
+               model  horizon  rmse_std     n  placebo_n  placebo_beaten  p_rank  dm_vs_kalman     dm_p  skill_ci_lo  skill_ci_hi  skill_vs_kalman
+          kalman_ar1        6  1.448381 18252        NaN             NaN     NaN           NaN      NaN          NaN          NaN         0.000000
+    fusion_corr_top1        6  1.452648 18252       50.0             0.0     1.0      3.762200 0.000327    -0.008296    -0.003183        -0.005901
+fusion_corr_top1_mle        6  1.461194 18252       50.0             0.0     1.0      4.421864 0.000032    -0.023559    -0.012063        -0.017771

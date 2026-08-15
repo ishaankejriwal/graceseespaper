@@ -1,0 +1,167 @@
+Li & Kusche (2026) - Full reference list
+
+Ahmed, M., Sultan, M., Elbayoumi, T., & Tissot, P. (2019). Forecasting GRACE data over the African watersheds using artificial neural networks.
+Remote Sensing, 11(15), 1769. https://doi.org/10.3390/rs11151769
+Ahmed, M., Sultan, M., Wahr, J., & Yan, E. (2014). The use of GRACE data to monitor natural and anthropogenic induced variations in water
+availability across Africa. Earth‐Science Reviews, 136, 289–300. https://doi.org/10.1016/j.earscirev.2014.05.009
+Arsenault, K. R., Shukla, S., Hazra, A., Getirana, A., McNally, A., Kumar, S. V., et al. (2020). The NASA hydrological forecast system for food and
+water security applications. Bulletin of the American Meteorological Society, 101(7), E1007–E1025. https://doi.org/10.1175/bams‐d‐18‐0264.1
+Bahari, N. A. A. B. S., Ahmed, A. N., Chong, K. L., Lai, V., Huang, Y. F., Koo, C. H., et al. (2023). Predicting sea level rise using artificial
+intelligence: A review. Archives of Computational Methods in Engineering, 30(7), 4045–4062. https://doi.org/10.1007/s11831‐023‐09934‐9
+Balsamo, G., Beljaars, A., Scipal, K., Viterbo, P., van den Hurk, B., Hirschi, M., & Betts, A. K. (2009). A revised hydrology for the ECMWF
+model: Verification from field site to terrestrial water storage and impact in the Integrated Forecast System. Journal of Hydrometeorology,
+10(3), 623–643. https://doi.org/10.1175/2008jhm1068.1
+Bhardwaj, J., Kuleshov, Y., Chua, Z. W., Watkins, A. B., Choy, S., & Sun, C. (2023). Pairing monitoring datasets with probabilistic forecasts to
+provide early warning of drought in Australia. Journal of Hydrology, 626, 130259. https://doi.org/10.1016/j.jhydrol.2023.130259
+Cáceres, D., Marzeion, B., Malles, J. H., Gutknecht, B. D., Müller Schmied, H., & Döll, P. (2020). Assessing global water mass transfers from
+continents to oceans over the period 1948–2016. Hydrology and Earth System Sciences, 24(10), 4831–4851.
+Cammalleri, C., Arias‐Muñoz, C., Barbosa, P., de Jager, A., Magni, D., Masante, D., et al. (2021). A revision of the Combined Drought Indicator
+(CDI) used in the European Drought Observatory (EDO). Natural Hazards and Earth System Sciences, 21(2), 481–495. https://doi.org/10.
+5194/nhess‐21‐481‐2021
+Cassagnole, M., Ramos, M. H., Zalachori, I., Thirel, G., Garçon, R., Gailhard, J., & Ouillon, T. (2021). Impact of the quality of hydrological
+forecasts on the management and revenue of hydroelectric reservoirs–A conceptual approach. Hydrology and Earth System Sciences, 25(2),
+1033–1052. https://doi.org/10.5194/hess‐25‐1033‐2021
+Cheng, L., Zhu, J., Cowley, R., Boyer, T., & Wijffels, S. (2014). Time, probe type, and temperature variable bias corrections to historical
+expendable bathythermograph observations. Journal of Atmospheric and Oceanic Technology, 31(8), 1793–1825. https://doi.org/10.1175/jte
+ch‐d‐13‐00197.1
+Collins, K., Hannaford, J., Svoboda, M., Knutson, C., Wall, N., Bernadt, T., et al. (2016). Stakeholder coinquiries on drought impacts, monitoring,
+and early warning systems. Bulletin of the American Meteorological Society, 97(11), ES217–ES220. https://doi.org/10.1175/bams‐d‐16‐0185.1
+Dieng, H. B., Cazenave, A., Meyssignac, B., & Ablain, M. (2017). New estimate of the current rate of sea level rise from a sea level budget
+approach. Geophysical Research Letters, 44(8), 3744–3751. https://doi.org/10.1002/2017gl073308
+Dill, R., Dobslaw, H., & Thomas, M. (2019). Improved 90‐day Earth orientation predictions from angular momentum forecasts of atmosphere,
+ocean, and terrestrial hydrosphere. Journal of Geodesy, 93(3), 287–295. https://doi.org/10.1007/s00190‐018‐1158‐7
+Dion, P., Martel, J. L., & Arsenault, R. (2021). Hydrological ensemble forecasting using a multi‐model framework. Journal of Hydrology, 600,
+126537. https://doi.org/10.1016/j.jhydrol.2021.126537
+Dobslaw, H., & Dill, R. (2018). Predicting Earth orientation changes from global forecasts of atmosphere‐hydrosphere dynamics. Advances in
+Space Research, 61(4), 1047–1054. https://doi.org/10.1016/j.asr.2017.11.044
+Eicker, A., Schumacher, M., Kusche, J., Döll, P., & Schmied, H. M. (2014). Calibration/data assimilation approach for integrating GRACE data
+into the WaterGAP Global Hydrology Model (WGHM) using an ensemble Kalman filter: First results. Surveys in Geophysics, 35(6), 1285–
+1309. https://doi.org/10.1007/s10712‐014‐9309‐8
+Felfelani, F., Wada, Y., Longuevergne, L., & Pokhrel, Y. N. (2017). Natural and human‐induced terrestrial water storage change: A global
+analysis using hydrological models and GRACE. Journal of Hydrology, 553, 105–118. https://doi.org/10.1016/j.jhydrol.2017.07.048
+Funk, C., Shukla, S., Thiaw, W. M., Rowland, J., Hoell, A., McNally, A., et al. (2019). Recognizing the famine early warning systems network:
+Over 30 years of drought early warning science advances and partnerships promoting global food security. Bulletin of the American Meteorological Society, 100(6), 1011–1027. https://doi.org/10.1175/bams‐d‐17‐0233.1
+GCOS. (2022). The 2022 GCOS ECVs requirements (GCOS 245).
+Gerdener, H., Engels, O., & Kusche, J. (2020). A framework for deriving drought indicators from the Gravity Recovery and Climate Experiment
+(GRACE). Hydrology and Earth System Sciences, 24(1), 227–248. https://doi.org/10.5194/hess‐24‐227‐2020
+Gerdener, H., Kusche, J., Schulze, K., Döll, P., & Klos, A. (2023). The global land water storage data set release 2 (GLWS2. 0) derived via
+assimilating GRACE and GRACE‐FO data into a global hydrological model. Journal of Geodesy, 97(7), 73. https://doi.org/10.1007/s00190‐023‐01763‐9
+Getirana, A., Rodell, M., Kumar, S., Beaudoing, H. K., Arsenault, K., Zaitchik, B., et al. (2020). GRACE improves seasonal groundwater forecast
+initialization over the United States. Journal of Hydrometeorology, 21(1), 59–71. https://doi.org/10.1175/jhm‐d‐19‐0096.1
+Girotto, M., De Lannoy, G. J., Reichle, R. H., & Rodell, M. (2016). Assimilation of gridded terrestrial water storage observations from GRACE
+into a land surface model. Water Resources Research, 52(5), 4164–4183. https://doi.org/10.1002/2015wr018417
+Grippa, M., Kergoat, L., Frappart, F., Araud, Q., Boone, A., De Rosnay, P., et al. (2011). Land water storage variability over West Africa estimated
+by Gravity Recovery and Climate Experiment (GRACE) and land surface models. Water Resources Research, 47(5). https://doi.org/10.1029/
+2009wr008856
+Gyawali, B., Ahmed, M., Murgulet, D., & Wiese, D. N. (2022). Filling temporal gaps within and between GRACE and GRACE‐FO terrestrial
+water storage records: An innovative approach. Remote Sensing, 14(7), 1565. https://doi.org/10.3390/rs14071565
+Hacker, C., & Kusche, J. (2024). How realistic are multi‐decadal reconstructions of GRACE‐like total water storage anomalies? Journal of
+Hydrology, 645, 132180. https://doi.org/10.1016/j.jhydrol.2024.132180
+Hao, Z., Xia, Y., Luo, L., Singh, V. P., Ouyang, W., & Hao, F. (2017). Toward a categorical drought prediction system based on US Drought
+Monitor (USDM) and climate forecast. Journal of Hydrology, 551, 300–305. https://doi.org/10.1016/j.jhydrol.2017.06.005
+Hauswirth, S. M., Bierkens, M. F., Beijk, V., & Wanders, N. (2023). The suitability of a seasonal ensemble hybrid framework including data‐driven approaches for hydrological forecasting. Hydrology and Earth System Sciences, 27(2), 501–517. https://doi.org/10.5194/hess‐27‐501‐2023
+Hersbach, H., Bell, B., Berrisford, P., Hirahara, S., Horányi, A., Muñoz‐Sabater, J., et al. (2020). The ERA5 global reanalysis. Quarterly Journal
+of the Royal Meteorological Society, 146(730), 1999–2049. https://doi.org/10.1002/qj.3803
+Humphrey, V., & Gudmundsson, L. (2019). GRACE‐REC: A reconstruction of climate‐driven water storage changes over the last century. Earth
+System Science Data, 11(3), 1153–1170. https://doi.org/10.5194/essd‐11‐1153‐2019
+Humphrey, V., Gudmundsson, L., & Seneviratne, S. I. (2016). Assessing global water storage variability from GRACE: Trends, seasonal cycle,
+subseasonal anomalies and extremes. Surveys in Geophysics, 37(2), 357–395. https://doi.org/10.1007/s10712‐016‐9367‐1
+Humphrey, V., Gudmundsson, L., & Seneviratne, S. I. (2017). A global reconstruction of climate‐driven subdecadal water storage variability.
+Geophysical Research Letters, 44(5), 2300–2309. https://doi.org/10.1002/2017gl072564
+Jensen, L., Eicker, A., Dobslaw, H., Stacke, T., & Humphrey, V. (2019). Long‐term wetting and drying trends in land water storage derived from
+GRACE and CMIP5 models. Journal of Geophysical Research: Atmospheres, 124(17–18), 9808–9823. https://doi.org/10.1029/2018jd029989
+Jensen, L., Gerdener, H., Eicker, A., Kusche, J., & Fiedler, S. (2024). Observations indicate regionally misleading wetting and drying trends in
+CMIP6. npj Climate and Atmospheric Science, 7(1), 249. https://doi.org/10.1038/s41612‐024‐00788‐x
+Johnson, S. J., Stockdale, T. N., Ferranti, L., Balmaseda, M. A., Molteni, F., Magnusson, L., et al. (2019). SEAS5: The new ECMWF seasonal
+forecast system. Geoscientific Model Development, 12(3), 1087–1117. https://doi.org/10.5194/gmd‐12‐1087‐2019
+Kumar, S. V., Zaitchik, B. F., Peters‐Lidard, C. D., Rodell, M., Reichle, R., Li, B., et al. (2016). Assimilation of gridded GRACE terrestrial water
+storage estimates in the North American Land Data Assimilation System. Journal of Hydrometeorology, 17(7), 1951–1972. https://doi.org/10.
+1175/jhm‐d‐15‐0157.1
+Kusche, J., Eicker, A., Forootan, E., Springer, A., & Longuevergne, L. (2016). Mapping probabilities of extreme continental water storage
+changes from space gravimetry. Geophysical Research Letters, 43(15), 8026–8034. https://doi.org/10.1002/2016gl069538
+Landerer, F. W., Flechtner, F. M., Save, H., Webb, F. H., Bandikova, T., Bertiger, W. I., et al. (2020). Extending the global mass change data
+record: GRACE follow‐on instrument and science data performance. Geophysical Research Letters, 47(12), e2020GL088306. https://doi.org/
+10.1029/2020gl088306
+Lehmann, F., Vishwakarma, B. D., & Bamber, J. (2022). How well are we able to close the water budget at the global scale? Hydrology and Earth
+System Sciences, 26(1), 35–54. https://doi.org/10.5194/hess‐26‐35‐2022
+Li, B., Rodell, M., Kumar, S., Beaudoing, H. K., Getirana, A., Zaitchik, B. F., et al. (2019). Global GRACE data assimilation for groundwater and
+drought monitoring: Advances and challenges. Water Resources Research, 55(9), 7564–7586. https://doi.org/10.1029/2018wr024618
+Li, F. (2025). A global dataset for seasonal to annual forecasts of GRACE‐like gridded terrestrial water storage (2010–2024) [Dataset]. PAN-
+GAEA. https://doi.pangaea.de/10.1594/PANGAEA.973113
+Li, F., Kusche, J., Chao, N., Wang, Z., & Löcher, A. (2021). Long‐term (1979‐present) total water storage anomalies over the global land derived
+by reconstructing GRACE data. Geophysical Research Letters, 48(8), e2021GL093492. https://doi.org/10.1029/2021gl093492
+Li, F., Kusche, J., Rietbroek, R., Wang, Z., Forootan, E., Schulze, K., & Lück, C. (2020). Comparison of data‐driven techniques to reconstruct
+(1992–2002) and predict (2017–2018) GRACE‐like gridded total water storage changes using climate inputs. Water Resources Research,
+56(5), e2019WR026551. https://doi.org/10.1029/2019wr026551
+Li, F., Kusche, J., Sneeuw, N., Siebert, S., Gerdener, H., Wang, Z., et al. (2024). Forecasting next year's global land water storage using GRACE
+data. Geophysical Research Letters, 51(17), e2024GL109101. https://doi.org/10.1029/2024gl109101
+Li, F., Springer, A., Kusche, J., Gutknecht, B. D., & Ewerdwalbesloh, Y. (2025). Reanalysis and forecasting of total water storage and hydrological states by combining machine learning with CLM model simulations and GRACE data assimilation. Water Resources Research, 61(2),
+e2024WR037926. https://doi.org/10.1029/2024wr037926
+Loomis, B. D., Luthcke, S. B., & Sabaka, T. J. (2019). Regularization and error characterization of GRACE mascons. Journal of Geodesy, 93(9),
+1381–1398. https://doi.org/10.1007/s00190‐019‐01252‐y
+Maxwell, D. H., Jackson, B. M., & McGregor, J. (2018). Constraining the ensemble Kalman filter for improved streamflow forecasting. Journal of
+Hydrology, 560, 127–140. https://doi.org/10.1016/j.jhydrol.2018.03.015
+Monitor, U. D. (2014). US drought monitor.
+Nieves, V., Radin, C., & Camps‐Valls, G. (2021). Predicting regional coastal sea level changes with machine learning. Scientific Reports, 11(1),
+7650. https://doi.org/10.1038/s41598‐021‐87460‐z
+Orth, R., Dutra, E., Trigo, I. F., & Balsamo, G. (2017). Advancing land surface model development with satellite‐based Earth observations.
+Hydrology and Earth System Sciences, 21(5), 2483–2495. https://doi.org/10.5194/hess‐21‐2483‐2017
+Otkin, J. A., Shafer, M., Svoboda, M., Wardlow, B., Anderson, M. C., Hain, C., & Basara, J. (2015). Facilitating the use of drought early warning
+information through interactions with agricultural stakeholders. Bulletin of the American Meteorological Society, 96(7), 1073–1078. https://doi.
+org/10.1175/bams‐d‐14‐00219.1
+Rahimzad, M., Moghaddam Nia, A., Zolfonoon, H., Soltani, J., Danandeh Mehr, A., & Kwon, H. H. (2021). Performance comparison of an
+LSTM‐based deep learning model versus conventional machine learning algorithms for streamflow forecasting. Water Resources Management, 35(12), 4167–4187. https://doi.org/10.1007/s11269‐021‐02937‐w
+Reager, J. T., Thomas, B. F., & Famiglietti, J. S. (2014). River basin flood potential inferred using GRACE gravity observations at several months
+lead time. Nature Geoscience, 7(8), 588–592. https://doi.org/10.1038/ngeo2203
+Rodell, M., Famiglietti, J. S., Wiese, D. N., Reager, J. T., Beaudoing, H. K., Landerer, F. W., & Lo, M. H. (2018). Emerging trends in global
+freshwater availability. Nature, 557(7707), 651–659. https://doi.org/10.1038/s41586‐018‐0123‐1
+Rodell, M., Houser, P. R., Jambor, U. E. A., Gottschalck, J., Mitchell, K., Meng, C. J., et al. (2004). The global land data assimilation system.
+Bulletin of the American Meteorological Society, 85(3), 38–394. https://doi.org/10.1175/bams‐85‐3‐381
+Rodell, M., & Li, B. (2023). Changing intensity of hydroclimatic extreme events revealed by GRACE and GRACE‐FO. Nature Water, 1(3), 241–
+248. https://doi.org/10.1038/s44221‐023‐00040‐5
+Rodell, M., & Reager, J. T. (2023). Water cycle science enabled by the GRACE and GRACE‐FO satellite missions. Nature Water, 1(1), 47–59.
+https://doi.org/10.1038/s44221‐022‐00005‐0
+Rus, M., Fettich, A., Kristan, M., & Ličer, M. (2023). HIDRA2: Deep‐learning ensemble sea level and storm tide forecasting in the presence of
+seiches–the case of the northern Adriatic. Geoscientific Model Development, 16(1), 271–288. https://doi.org/10.5194/gmd‐16‐271‐2023
+Sakumura, C., Bettadpur, S., & Bruinsma, S. (2014). Ensemble prediction and intercomparison analysis of GRACE time‐variable gravity field
+models. Geophysical Research Letters, 41(5), 1389–1397. https://doi.org/10.1002/2013gl058632
+Save, H., Bettadpur, S., & Tapley, B. D. (2016). High‐resolution CSR GRACE RL05 mascons. Journal of Geophysical Research: Solid Earth,
+121(10), 7547–7569. https://doi.org/10.1002/2016jb013007
+Scanlon, B. R., Rateb, A., Anyamba, A., Kebede, S., MacDonald, A. M., Shamsudduha, M., et al. (2022). Linkages between GRACE water
+storage, hydrologic extremes, and climate teleconnections in major African aquifers. Environmental Research Letters, 17(1), 014046. https://
+doi.org/10.1088/1748‐9326/ac3bfc
+Scanlon, B. R., Zhang, Z., Save, H., Sun, A. Y., Müller Schmied, H., Van Beek, L. P., et al. (2018). Global models underestimate large decadal
+declining and rising water storage trends relative to GRACE satellite data. Proceedings of the National Academy of Sciences, 115(6), E1080–
+E1089. https://doi.org/10.1073/pnas.1704665115
+Sharafi, L., Zarafshani, K., Keshavarz, M., Azadi, H., & Van Passel, S. (2021). Farmers' decision to use drought early warning system in
+developing countries. Science of the Total Environment, 758, 142761. https://doi.org/10.1016/j.scitotenv.2020.142761
+Sherstinsky, A. (2020). Fundamentals of recurrent neural network (RNN) and long short‐term memory (LSTM) network. Physica D: Nonlinear
+Phenomena, 404, 132306. https://doi.org/10.1016/j.physd.2019.132306
+Soltani, S. S., Ataie‐Ashtiani, B., & Simmons, C. T. (2021). Review of assimilating GRACE terrestrial water storage data into hydrological
+models: Advances, challenges and opportunities. Earth‐Science Reviews, 213, 103487. https://doi.org/10.1016/j.earscirev.2020.103487
+Sun, A. Y., Scanlon, B. R., Save, H., & Rateb, A. (2021). Reconstruction of GRACE total water storage through automated machine learning.
+Water Resources Research, 57(2), e2020WR028666. https://doi.org/10.1029/2020wr028666
+Sun, Z., Long, D., Yang, W., Li, X., & Pan, Y. (2020). Reconstruction of GRACE data on changes in total water storage over the global land
+surface and 60 basins. Water Resources Research, 56(4), e2019WR026250. https://doi.org/10.1029/2019wr026250
+Tan, X., Liu, B., Tan, X., & Chen, X. (2022). Long‐term water imbalances of watersheds resulting from biases in hydroclimatic data sets for water
+budget analyses. Water Resources Research, 58(3), e2021WR031209. https://doi.org/10.1029/2021wr031209
+Tapley, B. D., Bettadpur, S., Watkins, M., & Reigber, C. (2004). The gravity recovery and climate experiment: Mission overview and early results.
+Geophysical Research Letters, 31(9). https://doi.org/10.1029/2004gl019920
+Velicogna, I., Mohajerani, Y., Landerer, F., Mouginot, J., Noel, B., Rignot, E., et al. (2020). Continuity of ice sheet mass loss in Greenland and
+Antarctica from the GRACE and GRACE follow‐on missions. Geophysical Research Letters, 47(8), e2020GL087291. https://doi.org/10.1029/
+2020gl087291
+Vereecken, H., Amelung, W., Bauke, S. L., Bogena, H., Brüggemann, N., Montzka, C., et al. (2022). Soil hydrology in the Earth system. Nature
+Reviews Earth & Environment, 3(9), 573–587. https://doi.org/10.1038/s43017‐022‐00324‐6
+Vishwakarma, B. D., Zhang, J., & Sneeuw, N. (2021). Downscaling GRACE total water storage change using partial least squares regression.
+Scientific Data, 8(1), 95. https://doi.org/10.1038/s41597‐021‐00862‐6
+Watkins, M. M., Wiese, D. N., Yuan, D. N., Boening, C., & Landerer, F. W. (2015). Improved methods for observing Earth's time variable mass
+distribution with GRACE using spherical cap mascons. Journal of Geophysical Research: Solid Earth, 120(4), 2648–2671. https://doi.org/10.
+1002/2014jb011547
+Yin, J., Slater, L. J., Khouakhi, A., Yu, L., Liu, P., Li, F., et al. (2023). GTWS‐MLrec: Global terrestrial water storage reconstruction by machine
+learning from 1940 to present. Earth System Science Data, 15(12), 5597–5615. https://doi.org/10.5194/essd‐15‐5597‐2023
+Zhang, D., Zhang, Q., Werner, A. D., & Liu, X. (2016). GRACE‐based hydrological drought evaluation of the Yangtze River Basin, China.
+Journal of Hydrometeorology, 17(3), 811–828. https://doi.org/10.1175/jhm‐d‐15‐0084.1
+Zhang, J., Tourian, M. J., & Sneeuw, N. (2020). Identification of ENSO signature in the boreal hydrological cycle through canonical correlation
+with sea surface temperature anomalies. International Journal of Climatology, 40(15), 6219–6241. https://doi.org/10.1002/joc.6573
+Zhou, Y., Cui, Z., Lin, K., Sheng, S., Chen, H., Guo, S., & Xu, C. Y. (2022). Short‐term flood probability density forecasting using a conceptual
+hydrological model with machine learning techniques. Journal of Hydrology, 604, 127255. https://doi.org/10.1016/j.jhydrol.2021.127255

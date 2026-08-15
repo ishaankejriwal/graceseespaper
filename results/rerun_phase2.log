@@ -1,0 +1,65 @@
+﻿hydrology sample: 234 basins, 290 months on gapless index
+strata: {'low': 110, 'sub_noise': 62, 'mid': 49, 'glaciated': 8, 'high': 5}
+
+Pooled metrics by horizon (standardized fit, reported in cm and std units):
+                 model  horizon   rmse_cm   mae_cm        r     n  rmse_std  skill_vs_damped
+    ridge_own_perbasin        1  5.132699 2.644333 0.868109 19422  1.059568         0.030542
+        ridge_own_lags        1  5.642417 2.795585 0.847820 19422  1.069842         0.011651
+ridge_own_plus_indices        1  5.699178 2.813016 0.845201 19422  1.070815         0.009852
+damped_persistence_rho        1  5.320759 2.712657 0.859013 19422  1.076129         0.000000
+damped_persistence_reg        1  5.290471 2.718263 0.861286 19422  1.083145        -0.013082
+           persistence        1  6.068195 2.903946 0.822957 19422  1.182510        -0.207482
+      climatology_zero        1 10.283055 4.923296      NaN 19422  1.616340        -1.255988
+    ridge_own_perbasin        2  5.769149 3.119385 0.835660 19188  1.213926         0.059354
+        ridge_own_lags        2  6.566292 3.338766 0.816243 19188  1.221362         0.047795
+ridge_own_plus_indices        2  6.637262 3.357449 0.811528 19188  1.223028         0.045194
+damped_persistence_reg        2  6.155571 3.253165 0.817533 19188  1.251639         0.000000
+damped_persistence_rho        2  6.232378 3.268286 0.813757 19188  1.255240        -0.005762
+           persistence        2  6.809396 3.529854 0.779281 19188  1.386322        -0.226790
+      climatology_zero        2 10.401854 4.972468      NaN 19188  1.635423        -0.707270
+ridge_own_plus_indices        3  7.046651 3.555553 0.796251 18954  1.276631         0.051450
+        ridge_own_lags        3  6.983436 3.546989 0.802424 18954  1.277036         0.050847
+    ridge_own_perbasin        3  6.007644 3.325417 0.824198 18954  1.282582         0.042586
+damped_persistence_reg        3  6.383402 3.464596 0.808014 18954  1.310796         0.000000
+damped_persistence_rho        3  6.706522 3.575711 0.788411 18954  1.351853        -0.063624
+           persistence        3  7.142478 3.742716 0.759418 18954  1.444184        -0.213877
+      climatology_zero        3 10.516918 5.018021      NaN 18954  1.652484        -0.589293
+ridge_own_plus_indices        4  7.434700 3.746675 0.781125 18720  1.331650         0.037434
+        ridge_own_lags        4  7.372454 3.736349 0.788671 18720  1.332380         0.036378
+    ridge_own_perbasin        4  6.192811 3.493482 0.817088 18720  1.343286         0.020538
+damped_persistence_reg        4  6.446990 3.574729 0.808976 18720  1.357296         0.000000
+damped_persistence_rho        4  7.341461 3.860082 0.772821 18720  1.435409        -0.118412
+           persistence        4  7.408213 3.881218 0.743921 18720  1.483679        -0.194898
+      climatology_zero        4 10.634213 5.063717      NaN 18720  1.669845        -0.513571
+ridge_own_plus_indices        5  7.862706 3.967946 0.774696 18486  1.390588         0.031743
+        ridge_own_lags        5  7.778215 3.952736 0.786563 18486  1.390646         0.031663
+    ridge_own_perbasin        5  6.480044 3.689988 0.805329 18486  1.410494         0.003824
+damped_persistence_reg        5  6.689450 3.733663 0.797993 18486  1.413199         0.000000
+damped_persistence_rho        5  7.840886 4.082077 0.758886 18486  1.495338        -0.119624
+           persistence        5  7.384967 3.995254 0.748835 18486  1.522351        -0.160441
+      climatology_zero        5 10.768367 5.110596      NaN 18486  1.688121        -0.426924
+        ridge_own_lags        6  8.345888 4.186512 0.780770 18252  1.456952         0.024886
+ridge_own_plus_indices        6  8.464484 4.204788 0.759165 18252  1.457798         0.023753
+damped_persistence_reg        6  6.935295 3.913120 0.792671 18252  1.475426         0.000000
+    ridge_own_perbasin        6  6.783450 3.877016 0.795339 18252  1.477597        -0.002945
+damped_persistence_rho        6  8.494358 4.318061 0.738328 18252  1.547782        -0.100487
+           persistence        6  7.565771 4.168077 0.740466 18252  1.587719        -0.158009
+      climatology_zero        6 10.902028 5.160488      NaN 18252  1.705516        -0.336216
+
+Per-basin wins: ridge_own_lags vs damped_persistence_reg
+ horizon  challenger_wins  total
+       1              118    234
+       2              133    234
+       3              149    234
+       4              141    234
+       5              140    234
+       6              134    234
+
+Skill vs damped persistence by stratum (rmse_std ratio, ridge_own_lags):
+horizon         1       2       3       4       5       6
+stratum                                                  
+glaciated  0.0551  0.1254 -0.0021 -0.0600 -0.0414 -0.1237
+high      -0.2540 -0.2150 -0.1687 -0.1411 -0.1541 -0.1621
+low        0.0037  0.0228  0.0393  0.0345  0.0296  0.0260
+mid       -0.0544 -0.0134  0.0133 -0.0076 -0.0064 -0.0113
+sub_noise  0.0723  0.0935  0.0910  0.0728  0.0650  0.0629

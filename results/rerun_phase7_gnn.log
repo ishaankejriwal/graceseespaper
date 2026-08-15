@@ -1,0 +1,103 @@
+﻿sample: 234 basins | placebo seeds=20
+f1 h1 done
+f1 h2 done
+f1 h3 done
+f2 h1 done
+f2 h2 done
+f2 h3 done
+f3 h1 done
+f3 h2 done
+f3 h3 done
+f4 h1 done
+f4 h2 done
+f4 h3 done
+f5 h1 done
+f5 h2 done
+f5 h3 done
+
+=== horizon 1 ===
+                model  horizon  rmse_std     n  placebo_n  placebo_beaten   p_rank  dm_vs_ridge_twin     dm_p  dm_vs_no_era5  dm_p_era5  skill_vs_ridge_own
+ ridge_corr_top1_era5        1  1.023699 19422        NaN             NaN      NaN               NaN      NaN      -4.108084   0.000094            0.049281
+ ridge_corr_top2_era5        1  1.024401 19422        NaN             NaN      NaN               NaN      NaN      -4.515451   0.000021            0.047977
+gnn_corr_top1_era5_s2        1  1.025202 19422       20.0            17.0 0.190476          0.900230 0.370634      -4.577423   0.000017            0.046487
+gnn_corr_top2_era5_s2        1  1.025208 19422       20.0            14.0 0.333333          0.360977 0.719045      -5.200879   0.000001            0.046476
+       ridge_own_era5        1  1.025353 19422        NaN             NaN      NaN               NaN      NaN      -4.097988   0.000097            0.046206
+gnn_corr_top1_era5_s1        1  1.029653 19422       20.0             8.0 0.619048          3.988983 0.000144      -3.730807   0.000351            0.038190
+gnn_corr_top2_era5_s1        1  1.030708 19422       20.0             2.0 0.904762          4.037738 0.000121      -3.296124   0.001450            0.036219
+gnn_corr_top1_era5_s0        1  1.031076 19422       20.0             6.0 0.714286          3.214912 0.001867      -3.024341   0.003326            0.035529
+gnn_corr_top2_era5_s0        1  1.040438 19422       20.0             0.0 1.000000          3.451549 0.000884      -1.206474   0.231104            0.017936
+      ridge_corr_top1        1  1.048280 19422        NaN             NaN      NaN               NaN      NaN            NaN        NaN            0.003076
+           kalman_ar1        1  1.048995 19422        NaN             NaN      NaN               NaN      NaN            NaN        NaN            0.001715
+            ridge_own        1  1.049896 19422        NaN             NaN      NaN               NaN      NaN            NaN        NaN            0.000000
+      ridge_corr_top2        1  1.050207 19422        NaN             NaN      NaN               NaN      NaN            NaN        NaN           -0.000593
+     gnn_corr_top2_s0        1  1.052394 19422       20.0            20.0 0.047619          2.065134 0.042069            NaN        NaN           -0.004765
+     gnn_corr_top2_s1        1  1.052910 19422       20.0            19.0 0.095238          1.978435 0.051237            NaN        NaN           -0.005750
+     gnn_corr_top1_s2        1  1.053241 19422       20.0            16.0 0.238095          4.894380 0.000005            NaN        NaN           -0.006383
+     gnn_corr_top1_s0        1  1.053252 19422       20.0            16.0 0.238095          4.252468 0.000056            NaN        NaN           -0.006403
+     gnn_corr_top2_s2        1  1.054074 19422       20.0            15.0 0.285714          3.860014 0.000225            NaN        NaN           -0.007975
+     gnn_corr_top1_s1        1  1.055132 19422       20.0             6.0 0.714286          4.412871 0.000031            NaN        NaN           -0.010000
+
+=== horizon 2 ===
+                model  horizon  rmse_std     n  placebo_n  placebo_beaten   p_rank  dm_vs_ridge_twin     dm_p  dm_vs_no_era5  dm_p_era5  skill_vs_ridge_own
+gnn_corr_top1_era5_s2        2  1.190307 19188       20.0            18.0 0.142857         -1.486123 0.141129      -3.307562   0.001405            0.018325
+       ridge_own_era5        2  1.192981 19188        NaN             NaN      NaN               NaN      NaN      -1.705297   0.091972            0.013911
+gnn_corr_top2_era5_s2        2  1.193514 19188       20.0            14.0 0.333333         -1.816018 0.073068      -3.337918   0.001277            0.013028
+ ridge_corr_top1_era5        2  1.193529 19188        NaN             NaN      NaN               NaN      NaN      -1.754265   0.083167            0.013004
+           kalman_ar1        2  1.195358 19188        NaN             NaN      NaN               NaN      NaN            NaN        NaN            0.009976
+gnn_corr_top2_era5_s1        2  1.197314 19188       20.0             8.0 0.619048         -0.001865 0.998517      -1.787430   0.077609            0.006734
+ ridge_corr_top2_era5        2  1.197318 19188        NaN             NaN      NaN               NaN      NaN      -2.160485   0.033690            0.006728
+gnn_corr_top1_era5_s1        2  1.198696 19188       20.0             6.0 0.714286          3.147514 0.002305      -1.121521   0.265380            0.004440
+gnn_corr_top1_era5_s0        2  1.199224 19188       20.0             5.0 0.761905          3.295687 0.001458      -0.686349   0.494453            0.003562
+gnn_corr_top2_era5_s0        2  1.199693 19188       20.0             5.0 0.761905          1.243197 0.217382      -1.488172   0.140588            0.002783
+            ridge_own        2  1.201366 19188        NaN             NaN      NaN               NaN      NaN            NaN        NaN            0.000000
+      ridge_corr_top1        2  1.201949 19188        NaN             NaN      NaN               NaN      NaN            NaN        NaN           -0.000971
+     gnn_corr_top1_s0        2  1.203571 19188       20.0            19.0 0.095238          1.705720 0.091892            NaN        NaN           -0.003674
+     gnn_corr_top1_s2        2  1.204108 19188       20.0            18.0 0.142857          2.161863 0.033580            NaN        NaN           -0.004571
+     gnn_corr_top1_s1        2  1.205068 19188       20.0            15.0 0.285714          2.398855 0.018744            NaN        NaN           -0.006174
+     gnn_corr_top2_s1        2  1.206167 19188       20.0            15.0 0.285714         -0.920002 0.360304            NaN        NaN           -0.008008
+      ridge_corr_top2        2  1.207118 19188        NaN             NaN      NaN               NaN      NaN            NaN        NaN           -0.009599
+     gnn_corr_top2_s0        2  1.207353 19188       20.0            11.0 0.476190          0.277814 0.781863            NaN        NaN           -0.009992
+     gnn_corr_top2_s2        2  1.207964 19188       20.0             8.0 0.619048          0.695773 0.488563            NaN        NaN           -0.011015
+
+=== horizon 3 ===
+                model  horizon  rmse_std     n  placebo_n  placebo_beaten   p_rank  dm_vs_ridge_twin     dm_p  dm_vs_no_era5  dm_p_era5  skill_vs_ridge_own
+gnn_corr_top1_era5_s2        3  1.267441 18954       20.0            19.0 0.095238         -1.017692 0.311892      -1.939704   0.055940            0.004989
+       ridge_own_era5        3  1.268513 18954        NaN             NaN      NaN               NaN      NaN      -0.515135   0.607879            0.003305
+ ridge_corr_top1_era5        3  1.269669 18954        NaN             NaN      NaN               NaN      NaN      -0.545578   0.586874            0.001488
+gnn_corr_top1_era5_s1        3  1.270295 18954       20.0            15.0 0.285714          0.365789 0.715488      -1.200133   0.233630            0.000503
+            ridge_own        3  1.270615 18954        NaN             NaN      NaN               NaN      NaN            NaN        NaN            0.000000
+gnn_corr_top1_era5_s0        3  1.271605 18954       20.0            12.0 0.428571          0.994266 0.323091      -0.784307   0.435176           -0.001560
+      ridge_corr_top1        3  1.271831 18954        NaN             NaN      NaN               NaN      NaN            NaN        NaN           -0.001915
+           kalman_ar1        3  1.273398 18954        NaN             NaN      NaN               NaN      NaN            NaN        NaN           -0.004386
+gnn_corr_top2_era5_s2        3  1.273587 18954       20.0             8.0 0.619048         -0.582927 0.561582      -0.737647   0.462887           -0.004685
+ ridge_corr_top2_era5        3  1.275402 18954        NaN             NaN      NaN               NaN      NaN      -0.731449   0.466642           -0.007550
+     gnn_corr_top1_s1        3  1.276101 18954       20.0            18.0 0.142857          2.412201 0.018146            NaN        NaN           -0.008654
+     gnn_corr_top1_s0        3  1.276176 18954       20.0            18.0 0.142857          2.247705 0.027348            NaN        NaN           -0.008774
+gnn_corr_top2_era5_s1        3  1.276330 18954       20.0             3.0 0.857143          0.371629 0.711152      -0.656071   0.513661           -0.009017
+gnn_corr_top2_era5_s0        3  1.276747 18954       20.0             2.0 0.904762          0.424337 0.672459      -0.404895   0.686635           -0.009676
+     gnn_corr_top1_s2        3  1.277197 18954       20.0            16.0 0.238095          3.985257 0.000148            NaN        NaN           -0.010388
+     gnn_corr_top2_s2        3  1.277661 18954       20.0            14.0 0.333333         -0.343976 0.731767            NaN        NaN           -0.011122
+      ridge_corr_top2        3  1.278242 18954        NaN             NaN      NaN               NaN      NaN            NaN        NaN           -0.012042
+     gnn_corr_top2_s0        3  1.279337 18954       20.0            11.0 0.476190          0.709432 0.480119            NaN        NaN           -0.013777
+     gnn_corr_top2_s1        3  1.279966 18954       20.0            10.0 0.523810          0.719126 0.474159            NaN        NaN           -0.014774
+
+=== headline contrasts ===
+           challenger             reference  horizon  skill_pct  ci_lo_pct  ci_hi_pct  dm_stat   dm_p
+     gnn_corr_top1_s0       ridge_corr_top1        1    -0.9508    -1.4336    -0.5262   4.2525 0.0001
+     gnn_corr_top1_s0       ridge_corr_top1        2    -0.2700    -0.5940     0.0872   1.7057 0.0919
+     gnn_corr_top1_s0       ridge_corr_top1        3    -0.6846    -1.2812    -0.1620   2.2477 0.0273
+     gnn_corr_top1_s0             ridge_own        1    -0.6403    -1.1647    -0.0416   2.3389 0.0218
+     gnn_corr_top1_s0             ridge_own        2    -0.3674    -0.8901     0.2714   1.3499 0.1808
+     gnn_corr_top1_s0             ridge_own        3    -0.8774    -1.6474    -0.2077   2.3619 0.0206
+     gnn_corr_top2_s0      gnn_corr_top1_s0        1     0.1627    -0.1972     0.5193  -0.9106 0.3652
+     gnn_corr_top2_s0      gnn_corr_top1_s0        2    -0.6294    -1.1354    -0.2055   2.6579 0.0095
+     gnn_corr_top2_s0      gnn_corr_top1_s0        3    -0.4960    -1.0230    -0.0779   1.9032 0.0606
+     gnn_corr_top2_s0       ridge_corr_top2        1    -0.4170    -0.8285    -0.0231   2.0651 0.0421
+     gnn_corr_top2_s0       ridge_corr_top2        2    -0.0389    -0.3120     0.2437   0.2778 0.7819
+     gnn_corr_top2_s0       ridge_corr_top2        3    -0.1714    -0.6597     0.2466   0.7094 0.4801
+gnn_corr_top1_era5_s0  ridge_corr_top1_era5        1    -1.4465    -2.3062    -0.6749   3.2149 0.0019
+gnn_corr_top1_era5_s0  ridge_corr_top1_era5        2    -0.9567    -1.5739    -0.4662   3.2957 0.0015
+gnn_corr_top1_era5_s0  ridge_corr_top1_era5        3    -0.3053    -0.8637     0.2586   0.9943 0.3231
+gnn_corr_top2_era5_s0 gnn_corr_top1_era5_s0        1    -1.8241    -3.3027    -0.5104   2.6059 0.0109
+gnn_corr_top2_era5_s0 gnn_corr_top1_era5_s0        2    -0.0781    -0.8254     0.6214   0.2158 0.8297
+gnn_corr_top2_era5_s0 gnn_corr_top1_era5_s0        3    -0.8104    -1.4097    -0.2758   2.7015 0.0084

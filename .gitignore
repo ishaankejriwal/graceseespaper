@@ -1,0 +1,30 @@
+# Environments and caches
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Raw and archived data: not in git.
+# - data/ holds source datasets (CSR mascons, ERA5, Li 2026, indices) that are
+#   re-downloadable and documented in README/RUN_LOG.
+# - archive/ is the frozen pre-audit snapshot, integrity-pinned by its own
+#   SHA256_MANIFEST.csv.
+data/
+archive/
+*.nc
+Li_2026_figures_only.pdf
+
+# Large derived outputs (>5 MB): integrity-pinned via results/SHA256_MANIFEST_LIVE.csv,
+# regenerable from the committed code + raw data.
+results/*_predictions.csv
+results/*_placebo_basin.csv
+results/phase3b_placebo_monthly.csv
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.blg
+paper/*.fls
+paper/*.fdb_latexmk

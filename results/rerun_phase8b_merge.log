@@ -1,0 +1,229 @@
+﻿
+===== all_matched =====
+     subset                  model  horizon  rmse_std     n  n_months  n_basins  skill_vs_damped
+all_matched   lstmres_corr_top1_s0        1  1.008937 13620        60       227         0.111601
+all_matched  lstmres_corr_top1_ens        1  1.009042 13620        60       227         0.111417
+all_matched       lstm_own_era5_s0        1  1.011472 13620        60       227         0.107131
+all_matched      lstm_own_era5_ens        1  1.013153 13620        60       227         0.104161
+all_matched   lstmres_corr_top1_s1        1  1.013612 13620        60       227         0.103349
+all_matched       lstm_own_era5_s1        1  1.019515 13620        60       227         0.092874
+all_matched   ridge_corr_top1_era5        1  1.025714 13620        60       227         0.081809
+all_matched         ridge_own_era5        1  1.026248 13620        60       227         0.080854
+all_matched             kalman_ar1        1  1.042441 13620        60       227         0.051618
+all_matched              ridge_own        1  1.043588 13620        60       227         0.049531
+all_matched damped_persistence_rho        1  1.070434 13620        60       227         0.000000
+all_matched           li_lstm_full        1  1.128223 13620        60       227        -0.110886
+all_matched        li_lstm_nonseas        1  1.214205 13620        60       227        -0.286660
+all_matched           li_lstm_full        2  1.157973 13620        60       227         0.147612
+all_matched   lstmres_corr_top1_s0        2  1.174641 13620        60       227         0.122896
+all_matched  lstmres_corr_top1_ens        2  1.178023 13620        60       227         0.117838
+all_matched       lstm_own_era5_s0        2  1.182260 13620        60       227         0.111480
+all_matched   lstmres_corr_top1_s1        2  1.185094 13620        60       227         0.107215
+all_matched      lstm_own_era5_ens        2  1.186961 13620        60       227         0.104401
+all_matched       lstm_own_era5_s1        2  1.195329 13620        60       227         0.091729
+all_matched             kalman_ar1        2  1.195993 13620        60       227         0.090719
+all_matched         ridge_own_era5        2  1.200597 13620        60       227         0.083705
+all_matched              ridge_own        2  1.203069 13620        60       227         0.079928
+all_matched   ridge_corr_top1_era5        2  1.203185 13620        60       227         0.079751
+all_matched        li_lstm_nonseas        2  1.234657 13620        60       227         0.030979
+all_matched damped_persistence_rho        2  1.254237 13620        60       227         0.000000
+all_matched           li_lstm_full        3  1.188623 13620        60       227         0.233034
+all_matched        li_lstm_nonseas        3  1.252308 13620        60       227         0.148646
+all_matched   lstmres_corr_top1_s0        3  1.259966 13620        60       227         0.138202
+all_matched  lstmres_corr_top1_ens        3  1.263165 13620        60       227         0.133821
+all_matched       lstm_own_era5_s0        3  1.268535 13620        60       227         0.126441
+all_matched   lstmres_corr_top1_s1        3  1.268689 13620        60       227         0.126227
+all_matched      lstm_own_era5_ens        3  1.272107 13620        60       227         0.121514
+all_matched       lstm_own_era5_s1        3  1.277836 13620        60       227         0.113583
+all_matched              ridge_own        3  1.278748 13620        60       227         0.112317
+all_matched         ridge_own_era5        3  1.280767 13620        60       227         0.109512
+all_matched             kalman_ar1        3  1.281822 13620        60       227         0.108045
+all_matched   ridge_corr_top1_era5        3  1.284412 13620        60       227         0.104436
+all_matched damped_persistence_rho        3  1.357238 13620        60       227         0.000000
+all_matched           li_lstm_full        4  1.220098 13620        60       227         0.289709
+all_matched        li_lstm_nonseas        4  1.266954 13620        60       227         0.234106
+all_matched   lstmres_corr_top1_s0        4  1.322075 13620        60       227         0.166013
+all_matched  lstmres_corr_top1_ens        4  1.322194 13620        60       227         0.165864
+all_matched   lstmres_corr_top1_s1        4  1.323702 13620        60       227         0.163960
+all_matched       lstm_own_era5_s0        4  1.330711 13620        60       227         0.155083
+all_matched      lstm_own_era5_ens        4  1.331692 13620        60       227         0.153837
+all_matched              ridge_own        4  1.333686 13620        60       227         0.151301
+all_matched       lstm_own_era5_s1        4  1.333904 13620        60       227         0.151024
+all_matched         ridge_own_era5        4  1.337684 13620        60       227         0.146205
+all_matched   ridge_corr_top1_era5        4  1.342233 13620        60       227         0.140388
+all_matched             kalman_ar1        4  1.351367 13620        60       227         0.128649
+all_matched damped_persistence_rho        4  1.447694 13620        60       227         0.000000
+all_matched           li_lstm_full        5  1.254709 13620        60       227         0.316968
+all_matched        li_lstm_nonseas        5  1.294253 13620        60       227         0.273236
+all_matched   lstmres_corr_top1_s0        5  1.391270 13620        60       227         0.160195
+all_matched  lstmres_corr_top1_ens        5  1.395168 13620        60       227         0.155483
+all_matched              ridge_own        5  1.400389 13620        60       227         0.149150
+all_matched   lstmres_corr_top1_s1        5  1.400806 13620        60       227         0.148644
+all_matched       lstm_own_era5_s0        5  1.402352 13620        60       227         0.146764
+all_matched      lstm_own_era5_ens        5  1.405546 13620        60       227         0.142873
+all_matched         ridge_own_era5        5  1.405804 13620        60       227         0.142558
+all_matched   ridge_corr_top1_era5        5  1.409986 13620        60       227         0.137449
+all_matched       lstm_own_era5_s1        5  1.410137 13620        60       227         0.137264
+all_matched             kalman_ar1        5  1.420855 13620        60       227         0.124100
+all_matched damped_persistence_rho        5  1.518177 13620        60       227         0.000000
+all_matched           li_lstm_full        6  1.277653 13620        60       227         0.341431
+all_matched        li_lstm_nonseas        6  1.313185 13620        60       227         0.304292
+all_matched   lstmres_corr_top1_s0        6  1.456990 13620        60       227         0.143576
+all_matched  lstmres_corr_top1_ens        6  1.458660 13620        60       227         0.141612
+all_matched   lstmres_corr_top1_s1        6  1.462347 13620        60       227         0.137267
+all_matched              ridge_own        6  1.465732 13620        60       227         0.133268
+all_matched       lstm_own_era5_s0        6  1.470753 13620        60       227         0.127320
+all_matched         ridge_own_era5        6  1.472193 13620        60       227         0.125611
+all_matched      lstm_own_era5_ens        6  1.473279 13620        60       227         0.124320
+all_matched   ridge_corr_top1_era5        6  1.476298 13620        60       227         0.120727
+all_matched       lstm_own_era5_s1        6  1.477200 13620        60       227         0.119653
+all_matched             kalman_ar1        6  1.477997 13620        60       227         0.118702
+all_matched damped_persistence_rho        6  1.574390 13620        60       227         0.000000
+
+===== coverage_ge_0.5 =====
+         subset                  model  horizon  rmse_std     n  n_months  n_basins  skill_vs_damped
+coverage_ge_0.5  lstmres_corr_top1_ens        1  0.996169 12540        60       209         0.113004
+coverage_ge_0.5   lstmres_corr_top1_s0        1  0.996189 12540        60       209         0.112967
+coverage_ge_0.5       lstm_own_era5_s0        1  0.999059 12540        60       209         0.107848
+coverage_ge_0.5   lstmres_corr_top1_s1        1  1.000658 12540        60       209         0.104990
+coverage_ge_0.5      lstm_own_era5_ens        1  1.000659 12540        60       209         0.104989
+coverage_ge_0.5       lstm_own_era5_s1        1  1.006983 12540        60       209         0.093641
+coverage_ge_0.5   ridge_corr_top1_era5        1  1.012714 12540        60       209         0.083295
+coverage_ge_0.5         ridge_own_era5        1  1.013658 12540        60       209         0.081585
+coverage_ge_0.5             kalman_ar1        1  1.031401 12540        60       209         0.049151
+coverage_ge_0.5              ridge_own        1  1.032614 12540        60       209         0.046913
+coverage_ge_0.5 damped_persistence_rho        1  1.057723 12540        60       209         0.000000
+coverage_ge_0.5           li_lstm_full        1  1.120628 12540        60       209        -0.122482
+coverage_ge_0.5        li_lstm_nonseas        1  1.208055 12540        60       209        -0.304456
+coverage_ge_0.5           li_lstm_full        2  1.152938 12540        60       209         0.145860
+coverage_ge_0.5   lstmres_corr_top1_s0        2  1.168298 12540        60       209         0.122949
+coverage_ge_0.5  lstmres_corr_top1_ens        2  1.171590 12540        60       209         0.118000
+coverage_ge_0.5       lstm_own_era5_s0        2  1.176522 12540        60       209         0.110558
+coverage_ge_0.5   lstmres_corr_top1_s1        2  1.178618 12540        60       209         0.107387
+coverage_ge_0.5      lstm_own_era5_ens        2  1.181224 12540        60       209         0.103434
+coverage_ge_0.5       lstm_own_era5_s1        2  1.189646 12540        60       209         0.090604
+coverage_ge_0.5             kalman_ar1        2  1.191157 12540        60       209         0.088293
+coverage_ge_0.5         ridge_own_era5        2  1.194986 12540        60       209         0.082422
+coverage_ge_0.5   ridge_corr_top1_era5        2  1.197229 12540        60       209         0.078974
+coverage_ge_0.5              ridge_own        2  1.198643 12540        60       209         0.076798
+coverage_ge_0.5        li_lstm_nonseas        2  1.230710 12540        60       209         0.026740
+coverage_ge_0.5 damped_persistence_rho        2  1.247502 12540        60       209         0.000000
+coverage_ge_0.5           li_lstm_full        3  1.183757 12540        60       209         0.238806
+coverage_ge_0.5        li_lstm_nonseas        3  1.249619 12540        60       209         0.151747
+coverage_ge_0.5   lstmres_corr_top1_s0        3  1.259221 12540        60       209         0.138662
+coverage_ge_0.5  lstmres_corr_top1_ens        3  1.262783 12540        60       209         0.133782
+coverage_ge_0.5       lstm_own_era5_s0        3  1.268302 12540        60       209         0.126193
+coverage_ge_0.5   lstmres_corr_top1_s1        3  1.268701 12540        60       209         0.125644
+coverage_ge_0.5      lstm_own_era5_ens        3  1.272224 12540        60       209         0.120782
+coverage_ge_0.5       lstm_own_era5_s1        3  1.278324 12540        60       209         0.112329
+coverage_ge_0.5              ridge_own        3  1.279427 12540        60       209         0.110797
+coverage_ge_0.5         ridge_own_era5        3  1.281386 12540        60       209         0.108073
+coverage_ge_0.5             kalman_ar1        3  1.282613 12540        60       209         0.106363
+coverage_ge_0.5   ridge_corr_top1_era5        3  1.284357 12540        60       209         0.103931
+coverage_ge_0.5 damped_persistence_rho        3  1.356798 12540        60       209         0.000000
+coverage_ge_0.5           li_lstm_full        4  1.216564 12540        60       209         0.296489
+coverage_ge_0.5        li_lstm_nonseas        4  1.265308 12540        60       209         0.238985
+coverage_ge_0.5   lstmres_corr_top1_s0        4  1.323730 12540        60       209         0.167088
+coverage_ge_0.5  lstmres_corr_top1_ens        4  1.323888 12540        60       209         0.166889
+coverage_ge_0.5   lstmres_corr_top1_s1        4  1.325430 12540        60       209         0.164947
+coverage_ge_0.5       lstm_own_era5_s0        4  1.332925 12540        60       209         0.155476
+coverage_ge_0.5      lstm_own_era5_ens        4  1.334001 12540        60       209         0.154112
+coverage_ge_0.5              ridge_own        4  1.336118 12540        60       209         0.151425
+coverage_ge_0.5       lstm_own_era5_s1        4  1.336299 12540        60       209         0.151195
+coverage_ge_0.5         ridge_own_era5        4  1.339773 12540        60       209         0.146776
+coverage_ge_0.5   ridge_corr_top1_era5        4  1.343730 12540        60       209         0.141729
+coverage_ge_0.5             kalman_ar1        4  1.354471 12540        60       209         0.127953
+coverage_ge_0.5 damped_persistence_rho        4  1.450440 12540        60       209         0.000000
+coverage_ge_0.5           li_lstm_full        5  1.253131 12540        60       209         0.325207
+coverage_ge_0.5        li_lstm_nonseas        5  1.293759 12540        60       209         0.280742
+coverage_ge_0.5   lstmres_corr_top1_s0        5  1.396656 12540        60       209         0.161784
+coverage_ge_0.5  lstmres_corr_top1_ens        5  1.400901 12540        60       209         0.156680
+coverage_ge_0.5   lstmres_corr_top1_s1        5  1.406906 12540        60       209         0.149434
+coverage_ge_0.5              ridge_own        5  1.407068 12540        60       209         0.149239
+coverage_ge_0.5       lstm_own_era5_s0        5  1.408657 12540        60       209         0.147316
+coverage_ge_0.5      lstm_own_era5_ens        5  1.412067 12540        60       209         0.143182
+coverage_ge_0.5         ridge_own_era5        5  1.412112 12540        60       209         0.143128
+coverage_ge_0.5   ridge_corr_top1_era5        5  1.415940 12540        60       209         0.138477
+coverage_ge_0.5       lstm_own_era5_s1        5  1.416866 12540        60       209         0.137349
+coverage_ge_0.5             kalman_ar1        5  1.428400 12540        60       209         0.123248
+coverage_ge_0.5 damped_persistence_rho        5  1.525497 12540        60       209         0.000000
+coverage_ge_0.5           li_lstm_full        6  1.278788 12540        60       209         0.349505
+coverage_ge_0.5        li_lstm_nonseas        6  1.315472 12540        60       209         0.311649
+coverage_ge_0.5   lstmres_corr_top1_s0        6  1.468280 12540        60       209         0.142440
+coverage_ge_0.5  lstmres_corr_top1_ens        6  1.470100 12540        60       209         0.140313
+coverage_ge_0.5   lstmres_corr_top1_s1        6  1.473977 12540        60       209         0.135772
+coverage_ge_0.5              ridge_own        6  1.478343 12540        60       209         0.130644
+coverage_ge_0.5       lstm_own_era5_s0        6  1.482820 12540        60       209         0.125371
+coverage_ge_0.5         ridge_own_era5        6  1.484194 12540        60       209         0.123750
+coverage_ge_0.5      lstm_own_era5_ens        6  1.485645 12540        60       209         0.122036
+coverage_ge_0.5   ridge_corr_top1_era5        6  1.487966 12540        60       209         0.119290
+coverage_ge_0.5       lstm_own_era5_s1        6  1.489882 12540        60       209         0.117021
+coverage_ge_0.5             kalman_ar1        6  1.491062 12540        60       209         0.115622
+coverage_ge_0.5 damped_persistence_rho        6  1.585538 12540        60       209         0.000000
+
+===== headline (all_matched) =====
+     subset                 model                     vs  horizon  n_rows  n_months   skill   ci_lo   ci_hi  dm_stat   dm_p
+all_matched lstmres_corr_top1_ens           li_lstm_full        1   13620        60  0.2001  0.0813  0.3050  -3.8008 0.0003
+all_matched lstmres_corr_top1_ens           li_lstm_full        2   13620        60 -0.0349 -0.1646  0.0756   0.6721 0.5041
+all_matched lstmres_corr_top1_ens           li_lstm_full        3   13620        60 -0.1294 -0.2399 -0.0349   2.4974 0.0153
+all_matched lstmres_corr_top1_ens           li_lstm_full        4   13620        60 -0.1744 -0.2853 -0.0873   3.2133 0.0021
+all_matched lstmres_corr_top1_ens           li_lstm_full        5   13620        60 -0.2364 -0.3566 -0.1537   4.0882 0.0001
+all_matched lstmres_corr_top1_ens           li_lstm_full        6   13620        60 -0.3034 -0.4214 -0.2219   5.3592 0.0000
+all_matched  lstmres_corr_top1_s0           li_lstm_full        1   13620        60  0.2003  0.0846  0.3039  -3.8438 0.0003
+all_matched  lstmres_corr_top1_s0           li_lstm_full        2   13620        60 -0.0290 -0.1565  0.0806   0.5644 0.5746
+all_matched  lstmres_corr_top1_s0           li_lstm_full        3   13620        60 -0.1236 -0.2333 -0.0311   2.4069 0.0192
+all_matched  lstmres_corr_top1_s0           li_lstm_full        4   13620        60 -0.1741 -0.2841 -0.0878   3.2252 0.0021
+all_matched  lstmres_corr_top1_s0           li_lstm_full        5   13620        60 -0.2295 -0.3505 -0.1471   3.9528 0.0002
+all_matched  lstmres_corr_top1_s0           li_lstm_full        6   13620        60 -0.3004 -0.4171 -0.2207   5.3916 0.0000
+all_matched  lstmres_corr_top1_s1           li_lstm_full        1   13620        60  0.1929  0.0703  0.3005  -3.5822 0.0007
+all_matched  lstmres_corr_top1_s1           li_lstm_full        2   13620        60 -0.0474 -0.1818  0.0660   0.8892 0.3775
+all_matched  lstmres_corr_top1_s1           li_lstm_full        3   13620        60 -0.1393 -0.2525 -0.0432   2.6442 0.0105
+all_matched  lstmres_corr_top1_s1           li_lstm_full        4   13620        60 -0.1770 -0.2895 -0.0890   3.2324 0.0020
+all_matched  lstmres_corr_top1_s1           li_lstm_full        5   13620        60 -0.2464 -0.3698 -0.1626   4.2386 0.0001
+all_matched  lstmres_corr_top1_s1           li_lstm_full        6   13620        60 -0.3100 -0.4310 -0.2260   5.3309 0.0000
+all_matched     lstm_own_era5_ens           li_lstm_full        1   13620        60  0.1936  0.0759  0.2969  -3.7290 0.0004
+all_matched     lstm_own_era5_ens           li_lstm_full        2   13620        60 -0.0507 -0.1776  0.0573   0.9972 0.3227
+all_matched     lstm_own_era5_ens           li_lstm_full        3   13620        60 -0.1454 -0.2561 -0.0524   2.8076 0.0068
+all_matched     lstm_own_era5_ens           li_lstm_full        4   13620        60 -0.1913 -0.3022 -0.1026   3.5426 0.0008
+all_matched     lstm_own_era5_ens           li_lstm_full        5   13620        60 -0.2549 -0.3751 -0.1728   4.4803 0.0000
+all_matched     lstm_own_era5_ens           li_lstm_full        6   13620        60 -0.3297 -0.4512 -0.2466   5.8130 0.0000
+all_matched  ridge_corr_top1_era5           li_lstm_full        1   13620        60  0.1735  0.0463  0.2843  -3.1556 0.0025
+all_matched  ridge_corr_top1_era5           li_lstm_full        2   13620        60 -0.0796 -0.2121  0.0353   1.5157 0.1349
+all_matched  ridge_corr_top1_era5           li_lstm_full        3   13620        60 -0.1677 -0.2817 -0.0712   3.2239 0.0021
+all_matched  ridge_corr_top1_era5           li_lstm_full        4   13620        60 -0.2102 -0.3307 -0.1179   3.6670 0.0005
+all_matched  ridge_corr_top1_era5           li_lstm_full        5   13620        60 -0.2628 -0.3899 -0.1774   4.3711 0.0001
+all_matched  ridge_corr_top1_era5           li_lstm_full        6   13620        60 -0.3351 -0.4575 -0.2494   5.6978 0.0000
+all_matched            kalman_ar1           li_lstm_full        1   13620        60  0.1463  0.0378  0.2461  -3.0019 0.0039
+all_matched            kalman_ar1           li_lstm_full        2   13620        60 -0.0667 -0.1830  0.0308   1.4430 0.1543
+all_matched            kalman_ar1           li_lstm_full        3   13620        60 -0.1630 -0.2649 -0.0775   3.5119 0.0009
+all_matched            kalman_ar1           li_lstm_full        4   13620        60 -0.2268 -0.3331 -0.1460   4.4879 0.0000
+all_matched            kalman_ar1           li_lstm_full        5   13620        60 -0.2824 -0.3972 -0.2061   5.2958 0.0000
+all_matched            kalman_ar1           li_lstm_full        6   13620        60 -0.3382 -0.4524 -0.2600   6.2545 0.0000
+all_matched lstmres_corr_top1_ens        li_lstm_nonseas        1   13620        60  0.3094  0.2323  0.3834  -8.1490 0.0000
+all_matched lstmres_corr_top1_ens        li_lstm_nonseas        2   13620        60  0.0896  0.0155  0.1599  -2.7313 0.0083
+all_matched lstmres_corr_top1_ens        li_lstm_nonseas        3   13620        60 -0.0174 -0.0762  0.0354   0.6015 0.5498
+all_matched lstmres_corr_top1_ens        li_lstm_nonseas        4   13620        60 -0.0891 -0.1439 -0.0457   3.1123 0.0029
+all_matched lstmres_corr_top1_ens        li_lstm_nonseas        5   13620        60 -0.1620 -0.2265 -0.1189   5.0393 0.0000
+all_matched lstmres_corr_top1_ens        li_lstm_nonseas        6   13620        60 -0.2338 -0.3030 -0.1837   6.5013 0.0000
+all_matched lstmres_corr_top1_ens damped_persistence_rho        1   13620        60  0.1114  0.0886  0.1337 -12.2132 0.0000
+all_matched lstmres_corr_top1_ens damped_persistence_rho        2   13620        60  0.1178  0.0948  0.1409 -11.1934 0.0000
+all_matched lstmres_corr_top1_ens damped_persistence_rho        3   13620        60  0.1338  0.1162  0.1546 -12.5377 0.0000
+all_matched lstmres_corr_top1_ens damped_persistence_rho        4   13620        60  0.1659  0.1489  0.1868 -12.5095 0.0000
+all_matched lstmres_corr_top1_ens damped_persistence_rho        5   13620        60  0.1555  0.1407  0.1751 -11.6328 0.0000
+all_matched lstmres_corr_top1_ens damped_persistence_rho        6   13620        60  0.1416  0.1313  0.1547 -12.4188 0.0000
+all_matched          li_lstm_full damped_persistence_rho        1   13620        60 -0.1109 -0.2611  0.0165   1.9437 0.0567
+all_matched          li_lstm_full damped_persistence_rho        2   13620        60  0.1476  0.0652  0.2287  -3.6210 0.0006
+all_matched          li_lstm_full damped_persistence_rho        3   13620        60  0.2330  0.1737  0.2953  -6.1780 0.0000
+all_matched          li_lstm_full damped_persistence_rho        4   13620        60  0.2897  0.2384  0.3483  -7.3926 0.0000
+all_matched          li_lstm_full damped_persistence_rho        5   13620        60  0.3170  0.2713  0.3750  -7.7251 0.0000
+all_matched          li_lstm_full damped_persistence_rho        6   13620        60  0.3414  0.2967  0.3963  -8.3778 0.0000
+
+per-basin win counts (lstmres_ens beats li_full, dm_stat<0):
+         we_win    n
+horizon             
+1           137  227
+2            82  227
+3            71  227
+4            65  227
+5            59  227
+6            59  227

@@ -1,0 +1,85 @@
+﻿sample: 234 basins | cells=(('corr', 1), ('corr', 2), ('corr', 3), ('geo', 1), ('geo', 2), ('geo', 3), ('corr_min300', 1), ('corr_min500', 1), ('corr_min1000', 1)) seeds=50
+
+=== horizon 1 ===
+                   model  horizon  rmse_std     n  placebo_n  placebo_beaten   p_rank  skill_vs_kalman  skill_vs_own_ridge
+ kalman_corr_min300_top1        1  1.048197 19422       50.0            50.0 0.019608         0.001522            0.003234
+        kalman_corr_top1        1  1.048280 19422       50.0            50.0 0.019608         0.001364            0.003076
+              kalman_ar1        1  1.048995 19422        NaN             NaN      NaN         0.000000            0.001715
+ kalman_corr_min500_top1        1  1.049043 19422       50.0            50.0 0.019608        -0.000091            0.001624
+         kalman_geo_top1        1  1.049226 19422       50.0            50.0 0.019608        -0.000440            0.001276
+         kalman_geo_top3        1  1.049604 19422       50.0            50.0 0.019608        -0.001161            0.000556
+         kalman_geo_top2        1  1.049643 19422       50.0            49.0 0.039216        -0.001236            0.000481
+        kalman_own_ridge        1  1.049896 19422        NaN             NaN      NaN        -0.001718            0.000000
+        kalman_corr_top2        1  1.050207 19422       50.0             2.0 0.960784        -0.002312           -0.000593
+        kalman_corr_top3        1  1.052380 19422       50.0             0.0 1.000000        -0.006465           -0.004739
+kalman_corr_min1000_top1        1  1.053064 19422       50.0             0.0 1.000000        -0.007773           -0.006044
+
+=== horizon 2 ===
+                   model  horizon  rmse_std     n  placebo_n  placebo_beaten   p_rank  skill_vs_kalman  skill_vs_own_ridge
+              kalman_ar1        2  1.195358 19188        NaN             NaN      NaN         0.000000            0.009976
+        kalman_own_ridge        2  1.201366 19188        NaN             NaN      NaN        -0.010076            0.000000
+ kalman_corr_min300_top1        2  1.201738 19188       50.0             2.0 0.960784        -0.010702           -0.000619
+        kalman_corr_top1        2  1.201949 19188       50.0             0.0 1.000000        -0.011058           -0.000971
+         kalman_geo_top1        2  1.202237 19188       50.0             0.0 1.000000        -0.011541           -0.001451
+ kalman_corr_min500_top1        2  1.202706 19188       50.0             0.0 1.000000        -0.012332           -0.002233
+         kalman_geo_top2        2  1.203845 19188       50.0             0.0 1.000000        -0.014250           -0.004132
+         kalman_geo_top3        2  1.203952 19188       50.0             0.0 1.000000        -0.014431           -0.004311
+        kalman_corr_top2        2  1.207118 19188       50.0             0.0 1.000000        -0.019772           -0.009599
+kalman_corr_min1000_top1        2  1.208438 19188       50.0             0.0 1.000000        -0.022003           -0.011808
+        kalman_corr_top3        2  1.211172 19188       50.0             0.0 1.000000        -0.026633           -0.016391
+
+=== horizon 3 ===
+                   model  horizon  rmse_std     n  placebo_n  placebo_beaten  p_rank  skill_vs_kalman  skill_vs_own_ridge
+        kalman_own_ridge        3  1.270615 18954        NaN             NaN     NaN         0.004367            0.000000
+ kalman_corr_min300_top1        3  1.271623 18954       50.0             0.0     1.0         0.002786           -0.001588
+        kalman_corr_top1        3  1.271831 18954       50.0             0.0     1.0         0.002460           -0.001915
+         kalman_geo_top1        3  1.272028 18954       50.0             0.0     1.0         0.002150           -0.002227
+ kalman_corr_min500_top1        3  1.272393 18954       50.0             0.0     1.0         0.001577           -0.002802
+              kalman_ar1        3  1.273398 18954        NaN             NaN     NaN         0.000000           -0.004386
+         kalman_geo_top2        3  1.273792 18954       50.0             0.0     1.0        -0.000618           -0.005007
+         kalman_geo_top3        3  1.273866 18954       50.0             0.0     1.0        -0.000735           -0.005125
+        kalman_corr_top2        3  1.278242 18954       50.0             0.0     1.0        -0.007623           -0.012042
+kalman_corr_min1000_top1        3  1.278533 18954       50.0             0.0     1.0        -0.008081           -0.012503
+        kalman_corr_top3        3  1.282799 18954       50.0             0.0     1.0        -0.014820           -0.019272
+
+=== horizon 4 ===
+                   model  horizon  rmse_std     n  placebo_n  placebo_beaten  p_rank  skill_vs_kalman  skill_vs_own_ridge
+        kalman_own_ridge        4  1.320441 18720        NaN             NaN     NaN         0.023594            0.000000
+         kalman_geo_top1        4  1.322235 18720       50.0             0.0     1.0         0.020938           -0.002720
+ kalman_corr_min300_top1        4  1.322706 18720       50.0             0.0     1.0         0.020241           -0.003434
+        kalman_corr_top1        4  1.322802 18720       50.0             0.0     1.0         0.020099           -0.003580
+ kalman_corr_min500_top1        4  1.323377 18720       50.0             0.0     1.0         0.019246           -0.004452
+         kalman_geo_top2        4  1.323824 18720       50.0             0.0     1.0         0.018585           -0.005130
+         kalman_geo_top3        4  1.323982 18720       50.0             0.0     1.0         0.018350           -0.005370
+kalman_corr_min1000_top1        4  1.328499 18720       50.0             0.0     1.0         0.011640           -0.012243
+        kalman_corr_top2        4  1.329031 18720       50.0             0.0     1.0         0.010848           -0.013054
+        kalman_corr_top3        4  1.333578 18720       50.0             0.0     1.0         0.004069           -0.019996
+              kalman_ar1        4  1.336299 18720        NaN             NaN     NaN         0.000000           -0.024164
+
+=== horizon 5 ===
+                   model  horizon  rmse_std     n  placebo_n  placebo_beaten  p_rank  skill_vs_kalman  skill_vs_own_ridge
+        kalman_own_ridge        5  1.376423 18486        NaN             NaN     NaN         0.026558            0.000000
+         kalman_geo_top1        5  1.378215 18486       50.0             0.0     1.0         0.024022           -0.002605
+ kalman_corr_min300_top1        5  1.378613 18486       50.0             0.0     1.0         0.023458           -0.003185
+        kalman_corr_top1        5  1.378822 18486       50.0             0.0     1.0         0.023162           -0.003488
+ kalman_corr_min500_top1        5  1.379309 18486       50.0             0.0     1.0         0.022472           -0.004197
+         kalman_geo_top2        5  1.379592 18486       50.0             0.0     1.0         0.022070           -0.004610
+         kalman_geo_top3        5  1.379713 18486       50.0             0.0     1.0         0.021900           -0.004785
+kalman_corr_min1000_top1        5  1.383958 18486       50.0             0.0     1.0         0.015871           -0.010978
+        kalman_corr_top2        5  1.384096 18486       50.0             0.0     1.0         0.015675           -0.011180
+        kalman_corr_top3        5  1.388816 18486       50.0             0.0     1.0         0.008950           -0.018088
+              kalman_ar1        5  1.395073 18486        NaN             NaN     NaN         0.000000           -0.027282
+
+=== horizon 6 ===
+                   model  horizon  rmse_std     n  placebo_n  placebo_beaten  p_rank  skill_vs_kalman  skill_vs_own_ridge
+        kalman_own_ridge        6  1.436852 18252        NaN             NaN     NaN         0.015856            0.000000
+         kalman_geo_top1        6  1.438580 18252       50.0             0.0     1.0         0.013487           -0.002407
+ kalman_corr_min300_top1        6  1.438841 18252       50.0             0.0     1.0         0.013130           -0.002771
+        kalman_corr_top1        6  1.439154 18252       50.0             0.0     1.0         0.012699           -0.003208
+ kalman_corr_min500_top1        6  1.439884 18252       50.0             0.0     1.0         0.011699           -0.004225
+         kalman_geo_top2        6  1.440104 18252       50.0             0.0     1.0         0.011396           -0.004533
+         kalman_geo_top3        6  1.440243 18252       50.0             0.0     1.0         0.011205           -0.004726
+        kalman_corr_top2        6  1.444147 18252       50.0             0.0     1.0         0.005837           -0.010181
+kalman_corr_min1000_top1        6  1.444225 18252       50.0             0.0     1.0         0.005730           -0.010290
+              kalman_ar1        6  1.448381 18252        NaN             NaN     NaN         0.000000           -0.016112
+        kalman_corr_top3        6  1.448689 18252       50.0             0.0     1.0        -0.000425           -0.016544
