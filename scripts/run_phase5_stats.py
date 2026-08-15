@@ -40,7 +40,9 @@ def matched_compare(df_a, model_a, df_b, model_b, horizon) -> dict | None:
     stat, p = diebold_mariano(la.values, lb.values, horizon=horizon)
     skill = 1 - la.mean() / lb.mean()
     rng = np.random.default_rng(0)
-    n, block = len(la), 3
+    # Block scales with lead: overlapping h-step forecasts are dependent to lag h-1
+    # (audit 2026-08-15, same repair as stats.block_bootstrap_skill_ci)
+    n, block = len(la), max(3, horizon)
     n_blocks = int(np.ceil(n / block))
     draws = np.empty(2000)
     va, vb = la.values, lb.values

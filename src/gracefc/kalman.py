@@ -4,10 +4,10 @@ import pandas as pd
 from scipy.optimize import minimize
 
 
-def _filter_loglik(params: np.ndarray, y: np.ndarray) -> float:
+def _filter_loglik(params: np.ndarray, y: np.ndarray, fixed_r: float | None = None) -> float:
     rho = np.tanh(params[0])
     q = np.exp(params[1])
-    r = np.exp(params[2])
+    r = fixed_r if fixed_r is not None else np.exp(params[2])
     x, p = 0.0, q / max(1 - rho**2, 1e-6)
     ll = 0.0
     for obs in y:
@@ -23,22 +23,30 @@ def _filter_loglik(params: np.ndarray, y: np.ndarray) -> float:
     return -ll
 
 
-def fit_kalman_ar1(y_train: np.ndarray, full: bool = False):
+def fit_kalman_ar1(y_train: np.ndarray, full: bool = False, fixed_r: float | None = None):
     """MLE of (rho, q, r) with multiple starts; observed variance seeds the noise scales.
 
     With full=True also returns optimizer diagnostics: r is not separately
     identified when the likelihood is flat in the q/r split, and boundary
     collapse (r -> 0) must be visible downstream (audit 2026-08-13, P0-5).
+    With fixed_r=0.0 the update gain is 1 wherever an observation exists, so the
+    model degenerates to damped persistence with MLE rho — the ablation that
+    isolates the observation-noise term (audit 2026-08-15, blocker 2).
     """
     v = float(np.nanvar(y_train))
     best, best_val, best_res = None, np.inf, None
     for rho0 in (0.5, 0.9):
         for split in (0.5, 0.2):
-            x0 = np.array([np.arctanh(rho0), np.log(v * split + 1e-9), np.log(v * (1 - split) + 1e-9)])
-            res = minimize(_filter_loglik, x0, args=(y_train,), method="L-BFGS-B")
+            if fixed_r is None:
+                x0 = np.array([np.arctanh(rho0), np.log(v * split + 1e-9),
+                               np.log(v * (1 - split) + 1e-9)])
+            else:
+                x0 = np.array([np.arctanh(rho0), np.log(v * split + 1e-9)])
+            res = minimize(_filter_loglik, x0, args=(y_train, fixed_r), method="L-BFGS-B")
             if res.fun < best_val:
                 best, best_val, best_res = res.x, res.fun, res
-    rho, q, r = float(np.tanh(best[0])), float(np.exp(best[1])), float(np.exp(best[2]))
+    rho, q = float(np.tanh(best[0])), float(np.exp(best[1]))
+    r = fixed_r if fixed_r is not None else float(np.exp(best[2]))
     if not full:
         return rho, q, r
     diag = {
@@ -91,7 +99,8 @@ def filtered_state_wide(resid_wide: pd.DataFrame, params: pd.DataFrame) -> pd.Da
 
 
 def kalman_predictions(
-    resid_wide: pd.DataFrame, test_start: pd.Timestamp, horizons: range
+    resid_wide: pd.DataFrame, test_start: pd.Timestamp, horizons: range,
+    fixed_r: float | None = None,
 ) -> dict[int, pd.DataFrame]:
     """Fit per basin on pre-test data; forecast rho^h times the filtered state at each issue."""
     out = {h: [] for h in horizons}
@@ -100,7 +109,7 @@ def kalman_predictions(
         y_train = s[s.index < test_start].values
         if np.isfinite(y_train).sum() < 60:
             continue
-        rho, q, r = fit_kalman_ar1(y_train)
+        rho, q, r = fit_kalman_ar1(y_train, fixed_r=fixed_r)
         filt = kalman_forecast_series(s.values, rho, q, r)
         for h in horizons:
             pred = pd.DataFrame({

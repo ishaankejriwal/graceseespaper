@@ -200,6 +200,18 @@ def run_lstm_experiment(
             for arm, (Xtr, Xte) in ridge_arms.items():
                 emit(f"ridge_{arm}", kal_te + _fit_head("ridge", Xtr, ytr, Xte, 0))
 
+            # Flattened 12-month twins: the LSTM's exact information window, accessed
+            # linearly (ridge) and nonlinearly-but-unordered (MLP). Deconfounds the
+            # "sequence modeling" gain from "longer input history" — the flat twins
+            # above see only own_state now + ERA5 lags 0-2 (audit 2026-08-15).
+            X12_tr = np.column_stack([own_tr, era_tr.reshape(len(own_tr), -1)])
+            X12_te = np.column_stack([own_te, era_te.reshape(len(own_te), -1)])
+            emit("ridge_own_flat12", kal_te + _fit_head("ridge", own_tr, ytr, own_te, 0))
+            emit("ridge_own_era5_flat12", kal_te + _fit_head("ridge", X12_tr, ytr, X12_te, 0))
+            for s in lstm_seeds:
+                emit(f"mlp_own_era5_flat12_s{s}",
+                     kal_te + _fit_head("mlp", X12_tr, ytr, X12_te, s))
+
             nb_tr, nb_te = nbr_channel(nbr_idx)
             arms = {
                 "own": stack([own_tr], [own_te]),

@@ -46,8 +46,19 @@ def run_lstm_combined_experiment(
     seeds: tuple[int, ...] = (0, 1),
     params_cache: dict | None = None,
     era5_lags: tuple[int, ...] = (0, 1, 2),
+    oof_blocks: int = 3,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
+    """Returns (pred rows for real arms, aggregated monthly losses for placebo arms).
+
+    oof_blocks > 0 adds, on the lstm_own_era5 backbone only, stage-2 arms trained on
+    OUT-OF-FOLD stage-1 residuals (K contiguous issue-month blocks, one held-out net
+    each): lstmres_oof_corr_top1 and the lstmres_oof_own diagnostic. The audit expected
+    in-sample residuals to attenuate the correction and to be the mechanism behind the
+    own-state control's wrong-direction behavior; these arms answer both. A
+    delivery-equalized arm (lstmres_corr_top1_hist12) feeds stage 2 the SAME 12-month
+    neighbor history the input-channel arm receives, closing the representation
+    confound in the "same information, different delivery" claim (audit 2026-08-15).
+    """
     out, placebo_monthly = [], []
     for fold in folds:
         setup = fold_setup(wide, fold, params_cache)
@@ -130,7 +141,7 @@ def run_lstm_combined_experiment(
             # SAME stage-1 net as the arm they are compared against. Scoring seed-1 arms
             # against seed-0 placebos made the seed gap (~0.002-0.009 RMSE) swamp the placebo
             # spread (sd ~0.0008) and produced a spurious 16/20 cell (phase 8 audit, 2026-08-15).
-            resid_by, lstm_te_by = {}, {}
+            resid_by, lstm_te_by, oof_by = {}, {}, {}
             for arm, (Xtr, Xte) in stage1.items():
                 for s in seeds:
                     net = train_lstm(Xtr, ytr, val_mask, s)
@@ -142,6 +153,24 @@ def run_lstm_combined_experiment(
                     if arm == "lstm_own_era5":
                         emit(f"lstmres_own_s{s}",
                              kal_te + lstm_te + _fit_head("mlp", fs_tr, resid2, fs_te, s))
+                        # Delivery-equalized: stage 2 sees the neighbor's 12-month
+                        # history — the input-channel arm's exact representation
+                        emit(f"lstmres_corr_top1_hist12_s{s}",
+                             kal_te + lstm_te + _fit_head("mlp", nb_tr, resid2, nb_te, s))
+                        if oof_blocks > 0:
+                            oof = np.empty_like(ytr)
+                            blocks = np.array_split(np.sort(tr["issue_date"].unique()),
+                                                    oof_blocks)
+                            for blk in blocks:
+                                in_blk = tr["issue_date"].isin(blk).values
+                                sub_val = train_val_mask(tr[~in_blk])
+                                net_k = train_lstm(Xtr[~in_blk], ytr[~in_blk], sub_val, s)
+                                oof[in_blk] = ytr[in_blk] - lstm_predict(net_k, Xtr[in_blk])
+                            emit(f"lstmres_oof_corr_top1_s{s}",
+                                 kal_te + lstm_te + _fit_head("mlp", fn_tr, oof, fn_te, s))
+                            emit(f"lstmres_oof_own_s{s}",
+                                 kal_te + lstm_te + _fit_head("mlp", fs_tr, oof, fs_te, s))
+                            oof_by[(arm, s)] = oof
                     resid_by[(arm, s)], lstm_te_by[(arm, s)] = resid2, lstm_te
 
             # Placebos randomize the stage-2 neighbor graph ONLY: the MLP seed equals the
@@ -158,6 +187,18 @@ def run_lstm_combined_experiment(
                         emit_placebo(f"{stacked_of[arm]}_s{s}_rand{seed}",
                                      kal_te + lstm_te_by[(arm, s)]
                                      + _fit_head("mlp", pb_tr, resid_by[(arm, s)], pb_te, s))
+                # Seed-matched nulls for the new arms on the own_era5 backbone
+                p_hist_tr = _state_channel(F, widx_tr, valid_tr, p_idx[frame["tr_pos"], 0])
+                p_hist_te = _state_channel(F, widx_te, valid_te, p_idx[frame["te_pos"], 0])
+                for s in seeds:
+                    key = ("lstm_own_era5", s)
+                    emit_placebo(f"lstmres_corr_top1_hist12_s{s}_rand{seed}",
+                                 kal_te + lstm_te_by[key]
+                                 + _fit_head("mlp", p_hist_tr, resid_by[key], p_hist_te, s))
+                    if key in oof_by:
+                        emit_placebo(f"lstmres_oof_corr_top1_s{s}_rand{seed}",
+                                     kal_te + lstm_te_by[key]
+                                     + _fit_head("mlp", pb_tr, oof_by[key], pb_te, s))
             print(f"{fold.name} h{h} done", flush=True)
     return (pd.concat(out, ignore_index=True),
             pd.concat(placebo_monthly, ignore_index=True) if placebo_monthly else pd.DataFrame())

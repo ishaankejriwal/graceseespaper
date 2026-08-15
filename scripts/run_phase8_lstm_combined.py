@@ -38,6 +38,20 @@ CONTRASTS = [
     ("lstmres_own_s1", "lstm_own_era5_s1"),
     ("lstmres_corr_top1_s0", "lstmres_own_s0"),
     ("lstmres_corr_top1_s1", "lstmres_own_s1"),
+    # Out-of-fold stage-2 residuals (audit repair, 2026-08-15): the correction and the
+    # own-state diagnostic re-estimated without the in-sample-residual mechanism
+    ("lstmres_oof_corr_top1_s0", "lstm_own_era5_s0"),
+    ("lstmres_oof_corr_top1_s1", "lstm_own_era5_s1"),
+    ("lstmres_oof_corr_top1_s0", "lstmres_corr_top1_s0"),
+    ("lstmres_oof_corr_top1_s1", "lstmres_corr_top1_s1"),
+    ("lstmres_oof_own_s0", "lstm_own_era5_s0"),
+    ("lstmres_oof_own_s1", "lstm_own_era5_s1"),
+    # Delivery-equalized correction: stage 2 fed the input arm's exact 12-month
+    # neighbor representation — the clean "same information, different delivery" pair
+    ("lstmres_corr_top1_hist12_s0", "lstm_own_era5_s0"),
+    ("lstmres_corr_top1_hist12_s1", "lstm_own_era5_s1"),
+    ("lstmres_corr_top1_hist12_s0", "lstmres_corr_top1_s0"),
+    ("lstmres_corr_top1_hist12_s1", "lstmres_corr_top1_s1"),
 ]
 
 
