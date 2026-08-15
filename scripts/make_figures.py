@@ -493,11 +493,230 @@ def fig08_stratification():
 
 
 # ---------------------------------------------------------------------------
+# F3 -- per-basin neighbor-effect map (choropleth on the mask grid; no cartopy)
+# ---------------------------------------------------------------------------
+
+def fig03_neighbor_map():
+    print("F3 fig03_neighbor_map")
+    import sys
+    import xarray as xr
+    sys.path.insert(0, str(ROOT / "src"))
+    from gracefc.basins import load_basin_masks
+
+    fdr = pd.read_csv(RESULTS / "phase5_perbasin_fdr_h1.csv")
+    fdr = fdr[fdr["comparison"] == "corr_top1_vs_own_ridge"].set_index("name")
+    masks = load_basin_masks(ROOT / "HydroShed+Mascon_Basins_L3.nc")
+    meta = masks["meta"]
+    dm = xr.open_dataset(ROOT / "HydroShed+Mascon_Basins_L3.nc", decode_times=False)
+    lat, lon = dm["lat"].values, dm["lon"].values
+    dm.close()
+
+    grid = np.full(lat.size * lon.size, np.nan)
+    for b, name in enumerate(meta["name"]):
+        if name in fdr.index and np.isfinite(fdr.loc[name, "dm_stat"]):
+            # sign flipped: positive = neighbor helps
+            grid[masks["indices"][b]] = -float(fdr.loc[name, "dm_stat"])
+    grid = grid.reshape(lat.size, lon.size)
+
+    # Roll 0..360 -> -180..180 for a conventional world map
+    shift = lon.size // 2
+    grid = np.roll(grid, shift, axis=1)
+    lon_c = np.where(lon >= 180, lon - 360, lon)
+    lon_plot = np.sort(lon_c)
+
+    fig, ax = plt.subplots(figsize=(17 * CM, 9.2 * CM))
+    pm = ax.pcolormesh(lon_plot, lat, np.clip(grid, -3, 3),
+                       cmap=cm.vik_r, vmin=-3, vmax=3, rasterized=True, shading="nearest")
+    pm.cmap.set_bad("0.94")
+    ax.set_facecolor("0.94")
+    ax.set_ylim(-60, 84)
+    ax.set_aspect(1.0)
+    ax.tick_params(labelsize=6.5)
+
+    # FDR-significant basins: filled dot = helped, open = hurt (21 = 13 + 8)
+    cent = pd.read_csv(ROOT / "data/processed/basin_meta.csv").set_index("name")
+    sig = fdr[fdr["significant"]]
+    n_h = int(sig["a_better"].sum())
+    n_u = int((~sig["a_better"]).sum())
+    assert (n_h, n_u) == (13, 8), f"FDR roster changed: {n_h} helped / {n_u} hurt"
+    for name, row in sig.iterrows():
+        la = cent.loc[name, "centroid_lat"]
+        lo = cent.loc[name, "centroid_lon"]
+        lo = lo - 360 if lo > 180 else lo
+        if row["a_better"]:
+            ax.plot(lo, la, "o", ms=3.4, mfc="k", mec="k", mew=0.5, zorder=5)
+        else:
+            ax.plot(lo, la, "o", ms=3.8, mfc="none", mec="k", mew=0.9, zorder=5)
+    for name, label, dy in (("R_Yenisey_River", "Yenisey", 3), ("R_Parana_River", "Paraná", -6),
+                            ("R_Yangtze_River", "Yangtze", -6), ("R_Amur_River", "Amur", 4),
+                            ("R_Niger_River", "Niger", -6), ("R_Sao_Francisco_River", "São Francisco", 4)):
+        la = cent.loc[name, "centroid_lat"]
+        lo = cent.loc[name, "centroid_lon"]
+        lo = lo - 360 if lo > 180 else lo
+        ax.annotate(label, xy=(lo, la), xytext=(lo + 2, la + dy), fontsize=6.2,
+                    arrowprops=dict(arrowstyle="-", lw=0.5, color="0.25"))
+    cb = fig.colorbar(pm, ax=ax, orientation="horizontal", fraction=0.055, pad=0.11, aspect=42)
+    cb.set_label("per-basin DM statistic, lead 1 (positive = neighbor helps)", fontsize=7)
+    ax.annotate(f"filled: FDR-significant helped (n={n_h})   open: hurt (n={n_u})   q=0.10",
+                xy=(0.01, 1.02), xycoords="axes fraction", fontsize=6.6, color="0.25")
+    save(fig, "fig03_neighbor_map")
+
+
+# ---------------------------------------------------------------------------
+# F4 -- the control battery (placebos + surrogates, distance profile, conditioning)
+# ---------------------------------------------------------------------------
+
+def fig04_controls():
+    print("F4 fig04_controls")
+    summ = pd.read_csv(RESULTS / "phase3b_summary.csv")
+    s1 = summ[summ["horizon"] == 1].set_index("model")
+
+    # (a) 50 random-graph placebo pooled RMSEs at h1 vs the real arm
+    plac = pd.read_csv(RESULTS / "phase3b_placebo_monthly.csv")
+    p1 = plac[(plac["horizon"] == 1)
+              & plac["model"].str.startswith("corr_top1_rand")]
+    pooled = (p1.groupby("model")[["sum", "count"]].sum()
+              .assign(rmse=lambda d: np.sqrt(d["sum"] / d["count"])))["rmse"]
+    real_rmse = float(s1.loc["kalman_corr_top1", "rmse_std"])
+    assert len(pooled) == 50 and (real_rmse < pooled).all(), "placebo panel: expected 50/50"
+
+    surr = pd.read_csv(RESULTS / "phase4_surrogate_summary.csv")
+    su1 = surr[surr["horizon"] == 1].iloc[0]
+
+    fig, axes = plt.subplots(1, 3, figsize=(17 * CM, 5.6 * CM),
+                             gridspec_kw={"width_ratios": [1.25, 1.0, 1.0], "wspace": 0.42})
+    axa, axb, axc = axes
+
+    axa.hist(pooled.values, bins=14, color=cm.batlow(0.55), edgecolor="white", lw=0.4)
+    axa.axvline(real_rmse, color="k", lw=1.4)
+    axa.annotate("real graph\n(beats 50/50)", xy=(real_rmse, axa.get_ylim()[1] * 0.94),
+                 xytext=(4, -2), textcoords="offset points", fontsize=6.4, va="top")
+    axa.set_xlabel("pooled lead-1 RMSE (std. units)")
+    axa.xaxis.set_major_locator(plt.MaxNLocator(4))
+    axa.set_ylabel("random graphs")
+    axa.set_title("(a) placebo + surrogate nulls", loc="left", fontsize=7.5)
+    axa.annotate(f"IAAFT surrogates: real skill {100 * su1['skill_vs_own']:+.2f}%"
+                 f" beats 99/99\n(surrogate mean {100 * su1['surr_skill_vs_own_mean']:+.2f}%,"
+                 f" $p_{{rank}}$=0.01)",
+                 xy=(0.02, -0.52), xycoords="axes fraction", fontsize=6.4)
+
+    # (b) distance profile (corrected values; placebo counts from the summary)
+    prof = [("no restr.", "kalman_corr_top1"), ("≥300 km", "kalman_corr_min300_top1"),
+            ("≥500 km", "kalman_corr_min500_top1"), ("≥1000 km", "kalman_corr_min1000_top1")]
+    xs = np.arange(len(prof))
+    vals = [100 * float(s1.loc[m, "skill_vs_own_ridge"]) for _, m in prof]
+    beat = [f"{int(s1.loc[m, 'placebo_beaten'])}/{int(s1.loc[m, 'placebo_n'])}" for _, m in prof]
+    assert_ledger("F4 distance profile", vals, [0.31, 0.32, 0.16, -0.60])
+    axb.bar(xs, vals, width=0.62, color=[cm.batlow(v) for v in (0.25, 0.42, 0.60, 0.78)])
+    axb.axhline(0, color="k", lw=0.7)
+    for x, v, b in zip(xs, vals, beat):
+        axb.annotate(b, xy=(x, v), xytext=(0, 4 if v >= 0 else -11),
+                     textcoords="offset points", ha="center", fontsize=6.4)
+    axb.set_xticks(xs)
+    axb.set_xticklabels([p[0] for p in prof], fontsize=6.2, rotation=18, ha="right")
+    axb.set_ylabel("lead-1 skill vs own ridge (%)")
+    axb.set_title("(b) source-distance exclusion", loc="left", fontsize=7.5)
+
+    # (c) conditioning invariance, bootstrap CIs
+    import sys
+    sys.path.insert(0, str(ROOT / "src"))
+    from gracefc.stats import block_bootstrap_skill_ci
+    era5 = pd.read_csv(RESULTS / "phase6_era5_headline.csv")
+
+    def head_row(ch, ref):
+        r = era5[(era5["challenger"] == ch) & (era5["reference"] == ref) & (era5["horizon"] == 1)].iloc[0]
+        return r["skill_pct"], r["ci_lo_pct"], r["ci_hi_pct"]
+
+    cond_pred = pd.read_csv(RESULTS / "phase4_conditioned_predictions.csv",
+                            parse_dates=["issue_date", "target_date"])
+    pt, lo, hi = block_bootstrap_skill_ci(cond_pred, "kalman_corr_top1", "kalman_own_ridge", 1)
+    rows = [("uncond.", *head_row("ridge_corr_top1", "ridge_own")),
+            ("ENSO+IOD", 100 * pt, 100 * lo, 100 * hi),
+            ("full ERA5", *head_row("ridge_corr_top1_era5", "ridge_own_era5"))]
+    xs = np.arange(len(rows))
+    for x, (lab, v, l, h) in zip(xs, rows):
+        axc.errorbar(x, v, yerr=[[v - l], [h - v]], fmt="o", ms=4, color=cm.vik(0.15),
+                     ecolor="0.45", elinewidth=1.0, capsize=2.5)
+    axc.axhline(0, color="k", lw=0.7)
+    axc.set_xticks(xs)
+    axc.set_xticklabels([r[0] for r in rows], fontsize=6.2, rotation=18, ha="right")
+    axc.set_xlim(-0.6, len(rows) - 0.4)
+    axc.set_ylabel("lead-1 skill vs own reference (%)")
+    axc.set_title("(c) conditioning invariance", loc="left", fontsize=7.5)
+    save(fig, "fig04_controls")
+
+
+# ---------------------------------------------------------------------------
+# F6 -- ERA5 gain vs neighbor gain complementarity
+# ---------------------------------------------------------------------------
+
+def fig06_complementarity():
+    print("F6 fig06_complementarity")
+    from scipy.stats import spearmanr
+
+    pred = pd.read_csv(RESULTS / "phase6_era5_predictions.csv")
+    h1 = pred[pred["horizon"] == 1]
+
+    def perbasin(a, b):
+        out = {}
+        sub = h1[h1["model"].isin([a, b])]
+        for name, g in sub.groupby("name"):
+            j = g[g["model"] == a].merge(g[g["model"] == b], on=["name", "target_date"],
+                                         suffixes=("_a", "_b"))
+            if len(j) < 10:
+                continue
+            out[name] = 100 * (1 - ((j["target_a"] - j["pred_a"]) ** 2).mean()
+                               / ((j["target_b"] - j["pred_b"]) ** 2).mean())
+        return pd.Series(out)
+
+    era5_gain = perbasin("ridge_own_era5", "ridge_own")
+    nbr_gain = perbasin("ridge_corr_top1_era5", "ridge_own_era5")
+    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")[["name", "continent"]]
+    df = (pd.concat([era5_gain.rename("era5"), nbr_gain.rename("nbr")], axis=1)
+          .dropna().reset_index(names="name").merge(meta, on="name"))
+    rho, p = spearmanr(df["era5"], df["nbr"])
+    assert_ledger("F6 rho", [rho], [-0.22], tol=0.005)
+
+    fig, ax = plt.subplots(figsize=(12 * CM, 8.6 * CM))
+    conts = ["africa", "asia", "australia", "europe", "north_america", "south_america"]
+    labels = ["Africa", "Asia", "Australia/Oceania", "Europe", "N. America", "S. America"]
+    colors = [cm.batlowS(i) for i in range(len(conts))]
+    n_off = 0
+    for cont, lab, col in zip(conts, labels, colors):
+        g = df[df["continent"] == cont]
+        big = cont == "africa"
+        x = g["era5"].clip(-30, 40)
+        n_off += int(((g["era5"] < -30) | (g["era5"] > 40)).sum())
+        ax.scatter(x, g["nbr"].clip(-12, 12), s=16 if big else 8,
+                   color=col, edgecolor="k" if big else "none", linewidth=0.4,
+                   label=lab, zorder=5 if big else 3, alpha=0.95 if big else 0.8)
+    ax.axhline(0, color="0.6", lw=0.6)
+    ax.axvline(0, color="0.6", lw=0.6)
+    ax.set_xlabel("per-basin ERA5 gain, lead 1 (%)")
+    ax.set_ylabel("per-basin ERA5-conditioned neighbor gain, lead 1 (%)")
+    ax.legend(loc="upper right", frameon=False, ncol=2, columnspacing=0.9)
+    ax.annotate(f"Spearman $\\rho$ = {rho:+.2f} ($p$ = {p:.0e}), 234 basins"
+                + (f"; {n_off} points clipped" if n_off else ""),
+                xy=(0.02, 0.02), xycoords="axes fraction", fontsize=6.8)
+    med = df.groupby("continent")[["era5", "nbr"]].median().round(1)
+    txt = "median (ERA5, nbr) %\n" + "\n".join(
+        f"{lab:<12} {med.loc[c, 'era5']:+.1f}, {med.loc[c, 'nbr']:+.1f}"
+        for c, lab in zip(conts, ["Africa", "Asia", "Aus/Oc", "Europe", "N. Am", "S. Am"]))
+    ax.annotate(txt, xy=(0.02, 0.97), xycoords="axes fraction", va="top", fontsize=6.2,
+                family="monospace",
+                bbox=dict(boxstyle="round,pad=0.35", fc="white", ec="0.7", lw=0.6))
+    save(fig, "fig06_complementarity")
+
+
+# ---------------------------------------------------------------------------
 
 def main():
     fig01_benchmark_ladder()
     win_str = fig02_crossing()
+    fig03_neighbor_map()
+    fig04_controls()
     fig05_delivery()
+    fig06_complementarity()
     fig08_stratification()
     print("all figures built; all ledger asserts passed")
     print(f"F2 caption win counts (of 227): {win_str}")
