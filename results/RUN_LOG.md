@@ -966,3 +966,60 @@ applied; REWRITE_NOTES.md has the change log); the two INTERACTIONS-CSV todos ar
 filled with the verified values. MiKTeX installed (user-scope); first compile of the
 corrected manuscript succeeded (27 pp). Remaining todos: \todo{RERUN} markers awaiting
 the control-phase chain (surrogates/phase5/hybrid/basin-analysis).
+
+## 2026-08-15 — External-audit repair batch (code + geometry + manuscript) and corrected chain launch
+
+- Trigger: external audit of the full codebase/manuscript, verified claim-by-claim by five
+  parallel agents (all five blockers confirmed; verification details in the session record).
+- Git provenance BEGINS here: repo initialized, baseline commit `c70b7e5` = state before any
+  repair; every repair is a tracked commit. data/, archive/, and results files >5 MB are
+  gitignored (archive is manifest-pinned; live big files get SHA256_MANIFEST_LIVE.csv after
+  the chain).
+- **Official CSR geometry (blocker 1):** CSR RL06.3 DOES publish a native-mascon-ID mapping
+  (`CSR_GRACE_GRACE-FO_RL0603_mascons_mapping_file.nc`) and v02 land/ocean masks
+  (doi:10.15781/cgq9-nh24) — the manuscript's "no external assignment field exists" was wrong.
+  Downloaded to `data/raw/csr_ancillary/` (note: the page's displayed mask filenames 404;
+  the real files carry `v02_`). `run_resolution_sensitivity.py` rebuilt on official geometry:
+  **fingerprint recovery agrees EXACTLY** (42,107 = 42,107 tiles, purity 1.0 both directions,
+  ARI 1.0, contamination Spearman 1.0000, max abs diff 0.0000) → all contamination-based
+  results stand, now externally validated. New: `csr_geometry_validation.csv`,
+  `resolution_cross_2x2_200k.csv` (CSR caution threshold: resolved×cont_high +1.10% p=.033;
+  resolved×cont_lowmid −0.80% p=.014 significantly negative; subres×cont_lowmid weakens to
+  +0.69% p=.057).
+- **Placebo seed repair (blocker 3):** all six experiment engines now fit placebo heads with
+  the REAL arm's model seed (was 1000+draw = init/shuffle/early-stop split confounded with
+  graph identity); placebo labels carry `_s{s}`; draws seeded per (fold, horizon) cell so
+  leads are independent draws (deletes the reused-draws limitation). GBM placebos were
+  already seed-matched — convention generalized.
+- **Other code repairs:** bootstrap block = max(3, horizon) (stats.py + inline copy in
+  run_phase5_stats); IAAFT now FFTs the gap-interpolated full monthly grid (NaNs re-imposed;
+  full-record span + real-graph reuse documented as intentional null design); ERA5 zip
+  responses merged back to flat per-year .nc + year-contiguity assertion in ingestion
+  (latent bug, nothing currently lost); maritime-SE-Asia continent box (Java, Nusa Tenggara,
+  Sulawesi, Timor, Maluku → asia; basin_meta.csv refreshed, 5 rows).
+- **New experiments:** `run_r0_ablation.py` (r=0 forces gain 1 → damped persistence with MLE
+  rho; decomposes the benchmark margin into noise-filtering vs rho-estimation terms — decides
+  the title's mechanism claim); combined engine gains OOF stage-2 residuals (3 contiguous
+  issue-month blocks, `lstmres_oof_*` arms + seed-matched placebos), the delivery-equalized
+  `lstmres_corr_top1_hist12` arm (stage 2 fed the input arm's 12-month history), and the LSTM
+  engine gains flat-12-month ridge/MLP twins (deconfounds sequence modeling from history
+  length). All three engines smoke-tested PASS.
+- **Chain:** `scripts/run_chain.py` (declared inputs/outputs, fail-fast, per-step logs)
+  launched with 14 steps: predlag, conditioned (corr:1 corr_min300:1, nino34+dmi), surrogates
+  (repaired IAAFT), r0_ablation, phase5_nonlinear, phase5_stats, basin_analysis (both missing
+  deps now produced upstream), phase6_era5, phase8 h1-3, phase8b h4-6, merge, stratification,
+  phase7_resmlp, phase7_lstm. phase7_gnn defined but excluded (real arms unaffected by the
+  seed repair; placebo ranks not quoted anywhere).
+- **Manuscript surgery (partial, commits `3525539`/`bd45cb7`):** geometry paragraph rewritten
+  around official products + exact validation; CSR 200k caution + 200k 2×2 added; 2×2
+  headline softened; "ruled out by stratification" → "no detected concentration under this
+  proxy"; delivery section discloses the 12-month-history vs propagated-scalar representation
+  confound; abstract/Methods state per-lead issue windows (83→78, last issue 2026-04→2025-11);
+  \graphicspath fixed, F1/F2/F5/F8 wired; jump-screen todos filled. PENDING on chain output:
+  title/abstract noise-framing decision (r0 ablation), remaining 16 todos, F3/F4/F6, table
+  refreshes, limitation rewrites (OOF, reused draws).
+- **Tests:** `tests/` pytest suite pinning the repaired invariants (14 pass, 1 skips until
+  r0 predictions exist). pytest==9.1.1 appended to requirements-lock.
+- Stale pre-audit analyses/audits (12 docs incl. phase6_analysis.md, which the external audit
+  missed) + smoke files → `archive/superseded_preaudit_docs/`; results/README.md documents
+  the provenance rules.
