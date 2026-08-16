@@ -90,8 +90,12 @@ determined by where the water already is, so getting a clean read on the current
 most. Six months out, the current state has washed out and what matters is what the weather is
 going to do.
 
-The striking detail: their lead-1 forecast is 11% *worse* than damped persistence. A whole
-weather-driven modeling system, beaten at short range by "next month looks like this month."
+The striking detail: at lead 1 their forecast scores 11% *worse* than damped persistence — a
+whole weather-driven modeling system, edged out at short range by "next month looks like this
+month." Treat that one as suggestive rather than settled: p = 0.057, and at the individual-basin
+level it's a coin flip (they beat damped persistence in 115 of 227 basins). The pooled deficit
+comes from losing badly in the basins where they lose, not from losing everywhere. The
+crossing itself is solid; that particular number is the softest part of it.
 
 ### Finding 3: Neighbouring basins help — but only if you use the information the right way
 
