@@ -93,15 +93,19 @@ mascon-weighted signal that comes from land outside the basin places what
 pooled effect there is entirely in shared-footprint basins
 ($+1.16\,\%$, $p = 0.0045$, among those large enough for GRACE
 to resolve; $-0.50\,\%$ elsewhere) -- a leakage signature, independent of
-basin size. Delivered instead as a dedicated
-residual-correction stage on a deep sequence model, the same neighbor signal adds
+basin size. Supplied instead as a state propagated to the forecast target
+time and applied as a residual correction on a deep sequence model, the same
+neighbor signal adds
 % source: results/phase8b_h16_ensemble_headline.csv, lstmres_corr_top1_ens vs lstm_own_era5_ens
 $+0.9$ to $+2.0\,\%$ at every lead 1--6 (all
 $p \le 3.2\times10^{-8}$), beats 20 of 20 degree-matched random-graph
 % source: results/phase8_stratification.csv (positive in all 60 stratum x lead cells; resolved x cont_lowmid +0.89..+2.00%)
 placebos in every lead--seed cell, and is positive in all 60 strata-by-lead
 cells with no concentration in shared-footprint basins -- so the leakage
-explanation that fits the linear pocket does not fit it. Short-lead TWSA forecasting is a filtering
+explanation that fits the linear pocket does not fit it. The propagation, not
+the correction stage, is what makes it usable: given the neighbor's raw
+% source: results/phase8b_h16_ensemble_headline.csv, lstmres_corr_top1_hist12_ens (ns at every lead)
+12-month history instead, the identical correction stage recovers nothing. Short-lead TWSA forecasting is a filtering
 problem; beyond two to three months it becomes a forcing problem, and the two
 skill sources are complementary rather than competing.
 \end{abstract}
@@ -207,8 +211,10 @@ resolution stratification, and full ERA5 local-meteorology conditioning. The
 answer is two-sided, and the two sides must be kept apart: at the linear
 tier the incremental effect is a null, while the same neighbor signal does
 deliver skill through a dedicated nonlinear correction stage. We therefore
-also show that the \emph{delivery mechanism} decides whether the signal is
-usable by a deep model at all.
+also show what governs whether the signal is usable by a deep model at all,
+and it is not the architecture but the \emph{representation}: the neighbor
+helps only when it arrives as a state already propagated to the forecast
+target time, and is inert as raw history however it is delivered.
 
 The contributions, in order:
 
@@ -236,7 +242,7 @@ different at lead 2, and loses
 leads 3--6 by 13--30\,\%. The two systems are complementary, not competing:
 short leads are a filtering problem, long leads a forcing problem.
 \item \textbf{Cross-basin information: a linear null, a nonlinear signal, and
-a delivery mechanism.} The result is two-sided and we report both sides.
+a representation that decides both.} The result is two-sided and we report both sides.
 \emph{At the linear tier it is a null.} The registered capacity-matched
 % source: results/phase3b_predictions.csv via post_rerun_audit.md sect. 2 (h1 +0.308%, p=0.199; h2-h6 negative, ns)
 contrast adds $+0.31\,\%$ at lead 1 ($p = 0.199$) and is negative and
@@ -265,13 +271,19 @@ in the small basins an artifact would favour. Meanwhile the
 same neighbor's state fed to the same encoder as an input channel (there as
 a 12-month history; Sect.~\ref{sec:results_delivery}) yields no robust
 ensemble gain ($+0.36\,\%$, $p = 0.090$, at lead 1; negative at leads
-2--6). The claim is therefore that cross-basin information exists but is
-invisible to standard linear methods and to naive deep-model inputs; we
-exhibit a delivery that finds it, a null-model control showing that what
-is found is the neighbor's \emph{information} rather than the two-stage
+2--6). A representation-matched arm identifies which difference is doing the
+work: the correction stage fed that same 12-month history instead of the
+propagated scalar also recovers nothing (not significant at any lead, and
+% source: results/phase8b_h16_ensemble_headline.csv, lstmres_corr_top1_hist12_ens
+$-0.87$ to $-2.24\,\%$ against the scalar correction at every lead), so it
+is the representation and not the delivery that separates the arms. The
+claim is therefore that cross-basin information exists, is invisible to
+standard linear methods and to raw-history deep-model inputs, and becomes
+usable once the neighbor is propagated to the forecast target time by its
+own estimated dynamics; we add a null-model control showing that what is
+found is the neighbor's \emph{information} rather than the two-stage
 architecture, and a stratification showing it is not the footprint-sharing
-artifact that explains the linear pocket -- a delivery result we connect to
-gradient starvation in joint training \citep{pezeshki2021gradient}.
+artifact that explains the linear pocket.
 \end{enumerate}
 
 Section~\ref{sec:data} describes the data, Sect.~\ref{sec:methods} the
@@ -1380,19 +1392,21 @@ forcing enters the model ($-0.67$, $-0.62$, $-0.55\,\%$, all $p < 0.05$).
 It supports the reading that cross-basin information matters most where
 forcing data are absent.
 
-\subsection{Delivery decides: unreliable as an input channel, consistent as a correction stage}
+\subsection{Representation decides: the neighbor is usable only as a propagated state}
 \label{sec:results_delivery}
 
 This experiment holds the information \emph{source} fixed -- the same
-selected neighbor's Kalman-filtered state -- and varies how it is delivered.
-One caveat must be stated up front: the two deliveries also differ in
-representation. The input-channel arm receives the neighbor's 12-month
-filtered-state history as a full encoder channel, while the correction stage
-receives a single number per forecast, the neighbor's $\rho^{h}$-propagated
-current state. Delivery and representation are therefore confounded in the
-headline pair, and we do not call the comparison information-identical; a
-representation-matched variant (the correction stage fed the identical
-12-month history) is reported alongside it.
+selected neighbor's Kalman-filtered state -- and varies how it reaches the
+model. Two things vary in the headline pair, and separating them turns out
+to matter more than we expected. The input-channel arm receives the
+neighbor's 12-month filtered-state history as a full encoder channel, while
+the correction stage receives a single number per forecast, the neighbor's
+$\rho^{h}$-propagated current state. Delivery and representation are
+therefore confounded in that pair, so we ran the arm that separates them:
+the correction stage fed the identical 12-month history.
+% source: src/gracefc/experiment_lstm_combined.py (input arm _state_channel 12-month window vs stage-2 propagated_neighbor_features k=1 scalar; hist12 arm added in the 2026-08-15 repair)
+The answer is that representation, not delivery, is the operative
+variable, and the rest of this section is organized around that.
 % source: src/gracefc/experiment_lstm_combined.py (input arm _state_channel 12-month window vs stage-2 propagated_neighbor_features k=1 scalar; hist12 arm added in the 2026-08-15 repair)
 Feeding the neighbor's filtered-state history to the LSTM as one more
 encoder input channel yields no robust ensemble gain
@@ -1407,9 +1421,28 @@ useless, and it is not shown to be damaging: the
 per-seed picture is unstable enough that at lead 2 the two seeds disagree in
 sign, which is exactly why the ensemble is the reported quantity and why an
 earlier single-seed reading of this experiment was an artifact.
-\todo{RERUN: representation-matched correction (lstmres\_corr\_top1\_hist12,
-stage 2 fed the input arm's 12-month history) -- report its increment next to
-the propagated-scalar correction to separate delivery from representation.}
+The representation-matched arm settles what that failure is about. Giving
+the correction stage the input arm's 12-month history in place of the
+propagated scalar -- same stage, same capacity, same stage-1 network, only
+the representation changed -- removes essentially the whole effect: the
+two-seed ensemble scores $+0.05$, $+0.35$, $-0.42$, $-0.88$, $-0.78$, and
+$+0.25\,\%$ at leads 1--6, not significant at any lead, and its placebo
+ranks collapse (2 of 20 beaten at lead 3 in one seed). Against the
+propagated-scalar correction directly it loses at every lead
+($-0.87$ to $-2.24\,\%$, all $p \le 1.5\times10^{-3}$, both seeds).
+% source: results/phase8b_h16_ensemble_headline.csv (lstmres_corr_top1_hist12_ens vs
+% lstm_own_era5_ens, and vs lstmres_corr_top1_ens); per-seed and placebo ranks in
+% results/phase8_lstm_combined_summary.csv + phase8b_lstm_h46_summary.csv
+That is the same place the input-channel arm sits. Handed the neighbor's raw
+history, neither architecture extracts anything; handed the
+$\rho^{h}$-propagated state, the correction stage extracts $+0.9$ to
+$+2.0\,\%$. We therefore do not claim that the correction stage is what
+finds the signal. What the neighbor contributes is usable only once it has
+been propagated to the forecast target time, and the propagation is supplied
+by the filter of Sect.~\ref{sec:results_benchmark}, not learned here. The
+honest statement of the delivery experiment is that a deep encoder given
+12 months of a neighbor's history does not recover, at this sample size,
+the alignment that one line of AR(1) propagation provides for free.
 
 The stacked system trains the identical LSTM (own state + ERA5, no
 neighbor) and then fits a small MLP to the stage-1 \emph{training}
@@ -1632,23 +1665,42 @@ from zero where footprints overlap. Naive concatenation imports noise except
 where the neighbor is partly the same measurement; only the dedicated stage
 turns neighbor state into gains that are positive across every stratum.
 
-Why does the same neighbor signal succeed as a correction and fail to
-deliver reliably as an
-input? The pattern matches gradient starvation
-\citep{pezeshki2021gradient}: in joint training, a strong feature set (the
-forcing sequence) starves the gradient signal of a weak, partially
-correlated feature (the neighbor state), so the weak channel is either
-ignored or fit to noise. A dedicated residual stage gives the weak feature
-its own objective. The residual-MLP experiments of
-Sect.~\ref{sec:results_neighbor} show the same delivery principle at the
-GRACE-only information set, where a neighbor-only residual MLP over the plain
+Why does the same neighbor signal succeed in one form and not the other? Our
+first reading was gradient starvation \citep{pezeshki2021gradient}: in joint
+training a strong feature set (the forcing sequence) starves the gradient
+signal of a weak, partially correlated feature (the neighbor state), so the
+weak channel is ignored or fit to noise, and a dedicated residual stage
+rescues it by giving the weak feature its own objective. The
+representation-matched arm rules that out as the whole story. A dedicated
+stage fed the neighbor's raw 12-month history has its own objective and
+nothing else to fit, and it still recovers nothing
+(Sect.~\ref{sec:results_delivery}); if training dynamics were the binding
+constraint, that arm should have worked. Gradient starvation may still
+contribute to the input channel's instability, but it cannot explain a
+failure that survives the separation of objectives.
+
+What distinguishes the arms that work is that the neighbor arrives already
+propagated to the forecast target time. $\rho_j^{h} x_j(t)$ is not a
+compression of the history; it is the neighbor's state carried forward by
+its own estimated dynamics, so the downstream model is handed a quantity
+that is temporally aligned with what it must predict. Recovering that
+alignment from 12 raw monthly values is a learning problem in its own right,
+and at this sample size -- a few thousand rows per fold, one weak predictor
+among many -- it is evidently not solved. The reading we can support is
+that the filter does more than clean the target: it also puts cross-basin
+information into the only form in which our models can use it. That places
+the propagation, not the architecture, at the center of the third
+contribution, and it is a claim about sample size and inductive bias rather
+than about optimization pathology. The residual-MLP experiments of
+Sect.~\ref{sec:results_neighbor} are consistent with it: they also feed
+propagated states, never raw history, where a neighbor-only residual MLP over the plain
 % source: results/phase7_corrected_analysis.md Q2(a), Q3 (ens +0.81/+2.15/+2.17; 12/12 seed x horizon cells beat 20/20 placebos)
 ridge beats its ridge twin on identical features by $+0.81$ to $+2.17\,\%$
 while beating all 20 placebos in every seed--horizon cell -- and it does so
 despite the \emph{linear} neighbor contrast on that same information set
 being a null. Two architectures, two information sets, one conclusion:
-the cross-basin signal is there, and it is only reachable through a stage
-that is given nothing else to fit.
+the cross-basin signal is there, and it is reachable only when the neighbor
+is presented as a propagated state.
 % TODO-RERUN: internal replication of the delivery contrast (correction stacked on a neighbor-ingesting encoder) on the corrected pipeline.
 \todo{RERUN: the double-counting check -- the stage-2 correction applied on
 top of an encoder that already ingests the neighbor -- which in the
@@ -1875,24 +1927,30 @@ claim our benchmark formalizes.
 \label{sec:disc_limitations}
 
 \begin{enumerate}
-\item \textbf{Stage-2 residuals are in-sample.} The stacked correction is
-trained on the LSTM's training-set residuals. The \emph{evaluation} is
-honest (shared stage-1 network, no test information reaches the MLP), but
-the LSTM overfits its training set, so the learned correction is plausibly
-attenuated relative to one trained on out-of-fold residuals. This is a
-statement of likely direction, not a proof of conservatism. It is also not
-% source: results/phase8_corrected_audit.md sect. 2a (own-state control's correction anti-correlated with stage-1 error; 79-85% of its harm is wrong-direction, from the in-sample residual protocol)
-harmless: it is the mechanism by which the own-state control learns a
-systematically wrong-direction correction (Sect.~\ref{sec:results_delivery}).
-An out-of-fold stage-2 residual is the ranked next experiment.
-\item \textbf{Placebo draws are shared, so the leads are not independent
-events.} The 20 degree-matched random graphs are reused across all five folds
-% source: results/phase8_corrected_audit.md sect. 4c (same graph per draw index in every fold and at every horizon)
-\emph{and} all six horizons -- draw $k$ is the identical graph everywhere --
-so the twelve lead--seed cells of Table~\ref{tab:stack} are correlated
-re-scorings of 20 realizations rather than twelve independent tests. The
-rank statistic is additionally pinned at its $1/21$ floor, which is why we
-report placebo standard deviations instead.
+\item \textbf{Stage-2 residuals are in-sample, and this is now measured
+rather than assumed.} The headline stacked correction is trained on the
+LSTM's training-set residuals. The \emph{evaluation} was always honest
+(shared stage-1 network, no test information reaches the MLP), but because
+the LSTM overfits its training set we could only argue that the learned
+correction was plausibly attenuated. We have since rerun the correction on
+out-of-fold residuals, fitting stage 2 on three contiguous blocks of issue
+% source: results/phase8b_h16_ensemble_headline.csv, lstmres_oof_corr_top1_ens vs
+% lstm_own_era5_ens (+1.14..+2.28%) and vs lstmres_corr_top1_ens (+0.20..+0.34%, all p<0.05)
+months held out of the stage-1 fit. The out-of-fold correction is
+\emph{larger} at every lead ($+1.14$ to $+2.28\,\%$, against $+0.91$ to
+$+1.96\,\%$ in-sample; the direct contrast is $+0.20$ to $+0.34\,\%$,
+significant at all six leads) and beats 20 of 20 placebos in every cell.
+The in-sample protocol was therefore conservative, and the headline numbers
+we report understate the effect. The residual caveat that remains is the one
+this mechanism explains rather than inflates: it is why the own-state
+control learns a systematically wrong-direction correction
+(Sect.~\ref{sec:results_delivery}).
+\item \textbf{The rank statistic is pinned at its floor.} With 20 placebo
+draws per cell the rank $p$ cannot fall below $1/21$, which is why we report
+placebo standard deviations alongside it. Draws are now redrawn
+independently per fold and horizon, so the twelve lead--seed cells of
+Table~\ref{tab:stack} are no longer correlated re-scorings of one set of 20
+realizations, as they were before the 2026-08-15 repair.
 \item \textbf{Controls not yet ported to the stacked system.} The
 $\ge$300\,km exclusion and meteorology conditioning that bound the leakage
 and shared-climate confounds were run for the linear estimate, not for the
