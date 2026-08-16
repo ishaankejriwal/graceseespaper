@@ -379,6 +379,23 @@ by design it takes no GRACE lags as input \citep{li2026fcast}. We evaluate
 both their full-signal product and their non-seasonal variant
 (Sect.~\ref{sec:methods_li}).
 
+Two features of that choice bear on how our comparison should be read.
+GRACE-FCast is released as three products, built on the JPL, CSR and GSFC
+mascon solutions, and the skill figures reported in \citet{li2026fcast} are
+for the average of the three; the CSR member we use is the one their own
+training-residual diagnostic ranks least certain ($3.0$ versus $2.8$\,cm).
+We nonetheless compare against CSR-FCast alone because our own system is
+built on CSR mascons, so this is the mascon-matched contrast and the only
+one in which the two systems share a gravity solution --- but it means our
+numbers characterize that member, not the product their headline scores
+describe. Second, their decomposition removes a linear trend as well as the
+seasonal cycle, so their non-seasonal variant and our deseasonalized target
+are defined on the same footing (Sect.~\ref{sec:methods_target}); the
+functional form of their seasonal and trend fit follows \citet{li2020wrr}
+and is not restated in the forecast paper, which is why we also report the
+full-signal variant, where any such convention difference is absorbed by
+subtracting our own climatology.
+
 \section{Methods}
 \label{sec:methods}
 
@@ -979,6 +996,21 @@ sample: our system scores $+11.1$ to $+16.6\,\%$ at every lead 1--6, whereas
 theirs is nominally \emph{worse} than damped persistence at lead 1
 ($-11.1\,\%$, $p = 0.057$ -- suggestive rather than established) before
 rising to $+14.8$, $+23.3$, $+29.0$, $+31.7$, and $+34.1\,\%$ at leads 2--6.
+That lead-1 deficit is the weakest claim in the comparison and we do not
+lean on it: besides the $p$-value, it is a pooled-magnitude effect rather
+than a broad one, since their product still beats damped persistence in 115
+of the 227 matched basins.
+% source: results/phase8b_li_comparison_predictions.csv, per-basin MSE at h1
+% (li_lstm_full better than damped_persistence_rho in 115/227 = 50.7% of basins)
+Two framing points also belong with it. Damped persistence at lead 1 is not
+a baseline available to their intended user: mascon releases carry a
+2--3\,month latency, which is the stated motivation for their product, so a
+forecast conditioned on last month's storage assumes an observation that
+user does not yet have. And \citet{li2026fcast} never benchmark against
+persistence, climatology, or any naive reference at any lead, so this is not
+a result their paper contradicts --- it is a floor they did not test
+against. The comparison remains meaningful as a scientific skill floor, and
+the crossing itself does not rest on the lead-1 sign.
 Their exogenous-forcing design captures precipitation-driven variability at
 leads where the initial-condition signal has decayed; by lead 6 their skill
 over damped persistence is $0.34$ versus $0.14$ for our best system. The
