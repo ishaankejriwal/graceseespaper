@@ -4,9 +4,7 @@
 few months from now, and we found that the method everyone in the field uses as their
 comparison point is leaving easy accuracy on the table.
 
-If you've never touched this project before, read this whole page first. It assumes you know
-nothing about satellites, hydrology, or forecasting. Nothing here is beyond a first-year
-programming class.
+
 
 ---
 
