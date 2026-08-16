@@ -1010,12 +1010,26 @@ validated forecast product: the splice points would be chosen on the same
 test sample, several variants were examined without multiplicity control,
 and pooled DM differentials over all leads are diluted by the shared
 long-lead segment.
-% TODO-RERUN: phase-6 hybrid splice on the corrected pipeline.
-\todo{RERUN: row-pooled skill against damped persistence for our system
-alone, their system alone, and the splice variants, plus the lead-1 splice
-gain over their product.} The per-lead tests in Table~\ref{tab:crossing}
+Row-pooled over leads 1--6 on the matched sample, our system alone gains
+$+11.6\,\%$ against damped persistence and their product alone $+23.8\,\%$,
+while the splices reach $+24.4\,\%$ (filtered-state short leads,
+$p = 3.0 \times 10^{-8}$) and $+24.8\,\%$ (ERA5-conditioned short leads,
+$p = 1.8 \times 10^{-9}$); restricting the handover to lead 1 alone gives
+$+25.4$ and $+25.7\,\%$. The dilution the caveat above anticipates is
+visible in exactly those numbers: the pooled splice clears their product by
+well under a percentage point, because four of the six leads it pools over
+\emph{are} their product. The gain lives where the splice actually differs
+from them --- at lead 1, where it improves on their forecast by
+$+14.5\,\%$ (CI $+3.8$ to $+24.4$, $p = 0.004$) using our filtered state,
+or $+17.3\,\%$ (CI $+4.6$ to $+28.4$, $p = 0.003$) using the
+ERA5-conditioned variant. The per-lead tests in Table~\ref{tab:crossing}
 are the evidence either way; the splice only illustrates what a
 filtering-plus-forcing hybrid could deliver.
+% source: results/phase6_hybrid_summary.csv (horizon="all" rows: kalman_corr_top1
+% +11.63%, li_lstm_full +23.76%, hybrid_kalman_li +24.38%, hybrid_era5_li +24.76%,
+% *_h1 variants +25.37/+25.69%) and results/phase6_hybrid_headline.csv (pooled DM p,
+% and h1 vs li_lstm_full: +14.47% CI +3.81..+24.42 p=0.0041; +17.35% CI +4.63..+28.43
+% p=0.0025). Skill is 1-(RMSE_a/RMSE_b)^2 throughout, matching the ladder convention.
 
 \subsection{Cross-basin information at the linear tier: a null result with a footprint-sharing pocket}
 \label{sec:results_neighbor}
@@ -1186,7 +1200,7 @@ archived source files are listed in Appendix~\ref{app:repro}.}
 \end{table*}
 
 \begin{figure*}[t]
-% \includegraphics[width=12cm]{fig04_controls.pdf} % to be generated; spec: paper/notes/FIGURE_PLAN.md (F4)
+\includegraphics[width=12cm]{fig04_controls.pdf}
 % source (caption numbers): results/phase3b_summary.csv h1 (min300 +0.32%, min500 +0.16%, min1000 -0.60% vs own ridge); results/phase6_era5_headline.csv (+0.308% vs +0.322%)
 \caption{The lead-1 neighbor estimate against its null models. (a) Pooled RMSE
 of the real correlation graph (line) against the distributions of 50
@@ -1205,7 +1219,7 @@ confidence intervals cross zero, which is the point of the section.}
 \end{figure*}
 
 \begin{figure*}[t]
-% \includegraphics[width=12cm]{fig03_neighbor_map.pdf} % to be generated; spec: paper/notes/FIGURE_PLAN.md (F3)
+\includegraphics[width=12cm]{fig03_neighbor_map.pdf}
 \caption{Geography of the lead-1 neighbor estimate. Global choropleth of the
 per-basin Diebold--Mariano statistic for the neighbor ridge versus
 its own-feature twin (234 basins; blue: neighbor helps, red: neighbor
@@ -1214,11 +1228,15 @@ hatched following \citet{wilks2016stippling}. The map is two-sided by
 construction and should be read alongside the pooled null result of
 Sect.~\ref{sec:results_neighbor}: a stable geography of helped and hurt
 basins is compatible with no pooled effect.
-% TODO-RERUN: per-basin FDR counts on the corrected pipeline.
-\todo{RERUN: counts of significantly helped and hurt basins, and the identity
-of the extremes.}}
-% figure build note: generate from the corrected-pipeline per-basin FDR table and basin analysis; spec FIGURE_PLAN.md (F3)
-% source: pending corrected-pipeline phase-6 basin analysis
+Twenty-one of the 234 basins survive FDR control: the neighbor helps
+significantly in 13 and hurts significantly in 8. The extremes are as
+divided as the pooled null implies. Among the helped are the East Brazil
+South Atlantic coast ($\mathrm{DM} = -3.80$), the endorheic Tarim He--Lop
+Nur basin ($-3.57$), and the South Hudson Strait--Ungava Bay coast
+($-3.38$); among the hurt are the Yenisey ($+4.26$), the South Gulf of
+Oman--West Arabian Sea coast ($+4.00$), and Madagascar ($+3.78$).}
+% source: results/phase5_perbasin_fdr_h1.csv, comparison corr_top1_vs_own_ridge
+% (234 basins, 21 significant at BH q=0.10: 13 helped, 8 hurt; extremes as quoted)
 \label{fig:map}
 \end{figure*}
 
@@ -1764,8 +1782,7 @@ points the same way (Sect.~\ref{sec:results_neighbor}).
 % source: computed 2026-08-15 from phase6_era5_predictions.csv (rho -0.220 p=.0007; Africa pooled +0.850% p=.148 uncond, +0.849% p=.149 index-cond, +1.568% p=.0035 ERA5-cond, 38 basins; continent medians africa era5 +0.66%/nbr +3.09%, europe +7.55%/-1.93%); results/chain_basin_analysis.log (africa median skill +1.59%)
 
 \begin{figure*}[t]
-% \includegraphics[width=12cm]{fig06_complementarity.pdf} % to be generated; spec: paper/notes/FIGURE_PLAN.md (F6)
-% TODO-RERUN: every quantitative element of this caption comes from the phase-6 basin analysis, pending rerun.
+\includegraphics[width=12cm]{fig06_complementarity.pdf}
 \caption{Do the two information sources cover each other's dead zones?
 Scatter of per-basin lead-1 ERA5 gain against per-basin lead-1
 ERA5-conditioned neighbor gain (234 basins, colored by continent), with
