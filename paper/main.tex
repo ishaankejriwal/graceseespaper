@@ -1562,10 +1562,21 @@ correction is worth $+0.91$ to $+1.96\,\%$ against its own stage-1 network
 and $+0.92$ to $+1.96\,\%$ against the placebo median. Independent
 constructions landing on the same interval is the strongest single property
 of this result.
-% TODO-RERUN: per-fold decomposition and per-basin FDR/geography for the corrected stack.
-\todo{RERUN: fold-level decomposition of the correction (is it positive in
-every fold--lead cell?) and the per-basin FDR map and its rank correlation
-with the linear neighbor map, from the corrected-pipeline phase-8 analysis.}
+Fifth, \textbf{the correction is positive in every fold as well as every
+stratum}: decomposing the ensemble increment over the five evaluation folds
+gives a positive value in all 30 fold--lead cells (minimum $+0.25\,\%$, in
+the earliest-freeze fold at lead 1; maximum $+2.63\,\%$), so no single
+evaluation period carries the result.
+% source: computed 2026-08-16 from phase8_lstm_combined_predictions.csv +
+% phase8b_lstm_h46_predictions.csv, ensemble RMSE by (fold, lead); 30/30 positive
+At the basin level, 22 of 234 basins pass FDR control at lead 1 -- 20
+helped, 2 hurt, against 13 and 8 for the linear estimate -- and the stack's
+per-basin DM map rank-correlates with the linear neighbor map at
+$\rho = +0.49$ ($p = 1.4\times10^{-15}$): the two tiers largely agree on
+\emph{where} the neighbor helps, and differ in how much of it they convert
+into skill.
+% source: results/phase8_perbasin_fdr_h1.csv (computed 2026-08-16; ensemble stack
+% vs shared stage-1, h1, BH q=0.10; Spearman vs phase5_perbasin_fdr_h1.csv corr_top1 rows)
 
 Fourth, \textbf{horizon stability that no other component has.} The stage-1
 sequence gain is gone by leads 5--6, where the LSTM is indistinguishable from
@@ -1702,10 +1713,16 @@ despite the \emph{linear} neighbor contrast on that same information set
 being a null. Two architectures, two information sets, one conclusion:
 the cross-basin signal is there, and it is reachable only when the neighbor
 is presented as a propagated state.
-% TODO-RERUN: internal replication of the delivery contrast (correction stacked on a neighbor-ingesting encoder) on the corrected pipeline.
-\todo{RERUN: the double-counting check -- the stage-2 correction applied on
-top of an encoder that already ingests the neighbor -- which in the
-pre-correction run was dominated by the clean two-stage design.}
+A double-counting check completes the picture: stacking the correction on
+top of an encoder that \emph{already ingests} the neighbor history yields
+$-0.46\,\%$ at lead 1 before drifting weakly positive at long leads
+($+0.23$ to $+0.83\,\%$), never approaching the $+0.91$ to $+1.96\,\%$ the
+same correction earns over a neighbor-free encoder -- consistent with the
+representation account: once the encoder has consumed the raw history, a
+second helping of the propagated state has little left to add, and the
+clean two-stage design remains the better construction.
+% source: results/phase8b_h16_headline.csv, lstmres_nbrin_corr_top1_s0 vs
+% lstm_corr_top1_era5_s0 (-0.46*/+0.23*/+0.22/+0.17/+0.56*/+0.83*)
 
 \paragraph{Required disclosure on model ranking and selection.} The stacked
 system is the
@@ -1723,10 +1740,12 @@ ERA5 features beats its ridge twin by $+3.35$, $+3.58$, and $+2.84\,\%$ at
 leads 1--3. Two-stage nonlinear correction is therefore worth more, in
 absolute terms, than the neighbor correction is, and a cross-architecture
 ranking cannot separate the two.
-% TODO-RERUN: cross-architecture contrast between the stack and the neighbor-free resMLP-ERA5 ensemble on the corrected pipeline.
-\todo{RERUN: the head-to-head contrast between the stacked system and the
-neighbor-free resMLP-ERA5 ensemble at lead 1, which in the pre-correction run
-was a statistical tie.}
+On the corrected pipeline the direct contrast confirms it: the stacked
+system and the neighbor-free resMLP-ERA5 ensemble are a statistical tie at
+all three shared leads ($-0.30$, $+0.19$, $-0.10\,\%$; DM $p = 0.49$,
+$0.63$, $0.81$).
+% source: computed 2026-08-16 from phase8_lstm_combined_predictions.csv (2-seed
+% stack ens) vs phase7_resmlp_predictions.csv (3-seed resmlp_own_era5 ens), matched rows
 The evidence that the neighbor adds skill is the
 controlled contrast of Table~\ref{tab:stack} -- same
 stage-1 network, placebo-verified increment -- not the cross-architecture
