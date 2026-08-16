@@ -283,7 +283,7 @@ def fig05_delivery():
 
     # --- ledger section 5 ---
     assert_ledger("F5 ensemble correction", corr, [0.91, 1.45, 1.33, 1.32, 1.42, 1.96])
-    assert_ledger("F5 ensemble CI lower", corr_lo, [0.64, 1.07, 1.02, 0.98, 1.11, 1.67])
+    assert_ledger("F5 ensemble CI lower", corr_lo, [0.64, 1.07, 1.02, 0.96, 1.06, 1.66])
     # DISCREPANCY (flagged in BUILD_NOTES): REWRITE_LEDGER.md sect. 5 says
     # "All p <= 1.2e-10", but the CSV (sole source, cross-checked against
     # phase8_stratification.csv 'all' rows) has max dm_p = 3.14e-08 at h4
@@ -334,12 +334,14 @@ def fig05_delivery():
     n_draws = pl.groupby("horizon").size()
     assert (n_draws == 40).all(), "expected 20 draws x 2 seeds per horizon"
 
-    # ledger checks: per-cell means -0.27..-0.05 %, and 20/20 beaten in all
-    # 12 lead x seed cells
+    # ledger checks: per-cell means -0.26..-0.07 %, and 20/20 beaten in all
+    # 12 lead x seed cells. Bounds moved from -0.27..-0.05 on 2026-08-16: draws are
+    # now redrawn per (fold, horizon) rather than reused, so the placebo distribution
+    # is resampled rather than one shared set re-scored.
     cell_means = pl.groupby(["seed", "horizon"]).incr.mean()
-    assert abs(cell_means.min() - (-0.27)) <= TOL and abs(cell_means.max() - (-0.05)) <= TOL, (
+    assert abs(cell_means.min() - (-0.26)) <= TOL and abs(cell_means.max() - (-0.07)) <= TOL, (
         f"placebo per-cell means {cell_means.min():+.3f}..{cell_means.max():+.3f} "
-        "do not match ledger -0.27..-0.05"
+        "do not match ledger -0.26..-0.07"
     )
     real = {"0": s0, "1": s1}
     for seed, grp in pl.groupby("seed"):

@@ -157,7 +157,10 @@ unmoved → not a shared-weather proxy), but **both arms are non-significant**. 
 | **+0.91** | **+1.45** | **+1.33** | **+1.32** | **+1.42** | **+1.96** |
 All p ≤ 3.14e-08 (max at h4; h1 = 1.10e-10, h6 = 1.21e-13 — the old "all p ≤ 1.2e-10" was
 a transcription slip from the h1 value, caught by the figure build 2026-08-15);
-CI lower bounds +0.64/+1.07/+1.02/+0.98/+1.11/+1.67 (exclude zero everywhere).
+CI lower bounds +0.64/+1.07/+1.02/**+0.96/+1.06/+1.66** (exclude zero everywhere);
+uppers +1.22/+1.91/+1.69/+1.76/+1.84/+2.36. (h4–h6 bounds updated 2026-08-16 from the
+fresh `phase8b_lstm_h46` run — point estimates and per-seed values are unchanged, only
+the bootstrap bounds moved.)
 Per-seed: s0 +0.64/+1.33/+1.29/+1.26/+1.51/+1.90; s1 +1.19/+1.56/+1.36/+1.37/+1.28/+1.93.
 vs strongest linear system with identical information (ridge_corr_top1_era5):
 +2.75/+3.86/+2.92/+2.52/+1.78/+2.23% (p ≤ 6.5e-8, max at h1 — the old "≤ 1.5e-9" quoted
