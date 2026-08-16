@@ -434,3 +434,18 @@ the same size; only its attributed cause moved.
 - Remaining todos: ERA5 variable ablation (needs new LOFO-by-variable experiment) and
   the cm-unit Li comparison (needs unit back-conversion pass). J.Hydrology citation
   todo stays unresolvable (commented out).
+
+### 10f. Physical-unit (cm) Li comparison, matched sample (2026-08-16)
+
+Errors rescaled by per-(basin,fold) train-window residual std; leads 1–3, 227×60 matched.
+- **Pooled RMSE (cm):** ours 5.03/5.60/5.81 vs theirs 7.62/7.62/7.74 — flatters us
+  (Arctic high-amplitude basins dominate; their product is weakest there). Their pooled
+  error is nearly lead-flat, consistent with the forcing-only architecture.
+- **Per-basin median RMSE (cm), the honest form:** ours 2.39/3.11/3.27 vs theirs
+  2.70/2.78/2.93 — we win h1, they win h2–3. **In median cm the handover arrives one
+  lead earlier than in the standardized metric** (typical basin better served by their
+  product from lead 2). Written into §comparability as sharpening complementarity:
+  the filtering advantage is concentrated at h1 and in the high-amplitude basins the
+  pooled number overweights.
+- Remaining RERUN todo: ERA5 variable ablation only. (J.Hydrology citation todo is
+  commented out, unresolvable.)
