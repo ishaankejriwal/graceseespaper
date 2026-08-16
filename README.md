@@ -4,8 +4,6 @@
 few months from now, and we found that the method everyone in the field uses as their
 comparison point is leaving easy accuracy on the table.
 
-
-
 ---
 
 ## 1. What are we even measuring?
