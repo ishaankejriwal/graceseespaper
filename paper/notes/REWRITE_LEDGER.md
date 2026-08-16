@@ -373,3 +373,44 @@ Neighbour-free control `lstmres_own` vs `lstm_own_era5` = -1.03/-1.45/-1.84 (s0)
 hurts, so the gain is not a free-parameter artifact.
 
 **Do not finalize the reframing until h4--6 land** (`phase8b_lstm_h46`, running).
+
+### 10d. Leads 4--6 confirm; two-seed ensemble, all six leads (2026-08-16)
+
+Source: `results/phase8b_h16_ensemble_headline.csv` (hist12/oof ensemble pairs added to
+`run_phase8b_merge.py` in this batch so they are quoted on the same footing as the headline).
+
+| contrast | h1 | h2 | h3 | h4 | h5 | h6 |
+|---|---|---|---|---|---|---|
+| scalar correction vs baseline | **+0.91\*** | **+1.45\*** | **+1.33\*** | **+1.32\*** | **+1.42\*** | **+1.96\*** |
+| hist12 correction vs baseline | +0.05 | +0.35 | −0.42 | −0.88 | −0.78 | +0.25 |
+| input channel vs baseline | +0.36 | −0.42\* | −0.43 | −0.61\* | −0.37 | −0.38 |
+| hist12 vs scalar correction | −0.87\* | −1.11\* | −1.78\* | −2.24\* | −2.23\* | −1.74\* |
+| **OOF** scalar vs baseline | **+1.14\*** | **+1.70\*** | **+1.54\*** | **+1.66\*** | **+1.62\*** | **+2.28\*** |
+| OOF vs in-sample scalar | +0.24\* | +0.25\* | +0.21\* | +0.34\* | +0.20\* | +0.33\* |
+| no-neighbour control vs baseline | −1.16\* | −1.46\* | −1.90\* | −2.12\* | −1.84\* | −1.80\* |
+
+The two raw-history arms are indistinguishable from each other and from zero at every lead;
+only the propagated scalar works. hist12-vs-scalar is significant in **12/12 seed×lead cells**.
+
+**Framing changes MADE in main.tex on this evidence (2026-08-16):**
+- Sect. title "Delivery decides…" → **"Representation decides: the neighbor is usable only as
+  a propagated state"**; contribution-3 bullet and intro sentence reworded to match; abstract
+  now says the propagation, not the correction stage, is what makes the neighbour usable.
+- **Gradient starvation (Pezeshki 2021) demoted**, not deleted. It predicts a dedicated stage
+  with its own objective should rescue the weak feature; the hist12 arm HAS its own objective
+  and nothing else to fit and still recovers nothing, so training dynamics cannot be the
+  binding constraint. Now written as "may contribute to the input channel's instability but
+  cannot explain a failure that survives the separation of objectives."
+- New positive claim, and it links contribution 3 back to contribution 1: rho^h x_j(t) is the
+  neighbour carried forward by its own estimated dynamics, i.e. temporally aligned with the
+  target. Recovering that alignment from 12 raw monthly values is itself a learning problem
+  and is not solved at this sample size. **The filter does not only clean the target; it also
+  puts cross-basin information into the only form our models can use.** Framed as a claim
+  about sample size and inductive bias, NOT about optimization pathology.
+- **In-sample stage-2 limitation REWRITTEN as resolved-and-favourable** (OOF is larger at all
+  six leads); **shared-placebo-draws limitation DELETED** (draws are now per fold×horizon),
+  replaced by a narrower note that the rank statistic is pinned at its 1/21 floor.
+
+**What did NOT change:** the headline +0.91..+1.96 numbers, the 20/20 placebo claim, the
+stratification/leakage result, and the two-sided linear-vs-nonlinear structure. The finding is
+the same size; only its attributed cause moved.

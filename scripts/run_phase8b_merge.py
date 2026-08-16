@@ -76,8 +76,12 @@ def main() -> None:
     # per-seed contrasts were being shipped (phase 8 audit, 2026-08-15).
     full = pd.concat([pd.read_csv(OUT / f"{t}_predictions.csv", parse_dates=["issue_date", "target_date"])
                       for t in (TAG_H13, TAG_H46)], ignore_index=True)
+    # hist12 and oof were added in the 2026-08-15 repair; they need ensemble rows too,
+    # because Sect. results_delivery reports two-seed ensembles and the representation
+    # and out-of-fold contrasts have to be quoted on the same footing as the headline.
     ens_fams = ["lstmres_corr_top1", "lstm_own_era5", "lstmres_own", "lstm_corr_top1_era5",
-                "lstmres_nbrin_corr_top1"]
+                "lstmres_nbrin_corr_top1", "lstmres_corr_top1_hist12",
+                "lstmres_oof_corr_top1", "lstmres_oof_own"]
     ens_rows = add_ensembles(
         full[full["model"].str.rsplit("_s", n=1).str[0].isin(ens_fams)], fams=ens_fams)
     ens_only = ens_rows[ens_rows["model"].str.endswith("_ens")]
@@ -88,6 +92,14 @@ def main() -> None:
         ("lstmres_own_ens", "lstm_own_era5_ens"),
         ("lstmres_corr_top1_ens", "ridge_corr_top1_era5"),
         ("lstm_corr_top1_era5_ens", "lstm_own_era5_ens"),
+        # Representation held against delivery: same correction stage, the input arm's
+        # 12-month history instead of the propagated scalar
+        ("lstmres_corr_top1_hist12_ens", "lstm_own_era5_ens"),
+        ("lstmres_corr_top1_hist12_ens", "lstmres_corr_top1_ens"),
+        # Out-of-fold stage-2 residuals: does the in-sample-residual caveat bite?
+        ("lstmres_oof_corr_top1_ens", "lstm_own_era5_ens"),
+        ("lstmres_oof_corr_top1_ens", "lstmres_corr_top1_ens"),
+        ("lstmres_oof_own_ens", "lstm_own_era5_ens"),
     ]
     present = set(ens_pred["model"])
     rows = []
