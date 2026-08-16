@@ -317,3 +317,59 @@ measurement noise". Keep the identification-caveat paragraph and the limitation.
 IAAFT surrogates, jump screen, phase-5 fusion/coupled/nonlinear, phase-6 basin analysis
 (Africa, LOFO, geography, RF covariates), phase-6 hybrid splice. **Leave explicit
 `\todo{RERUN}` markers for these; do not carry pre-audit values forward.**
+
+---
+
+## 10. Phase-8 corrected rerun, leads 1--3 (landed 2026-08-16 01:41). h4--6 PENDING.
+
+Source: `results/phase8_lstm_combined_headline.csv` + `_summary.csv`, seed-matched
+per-cell placebo draws. **Read this section before touching the delivery framing.**
+
+### 10a. The headline survives the placebo-seed repair, unchanged
+
+`lstmres_corr_top1` vs `lstm_own_era5`, per seed at h1/h2/h3:
+s0 **+0.64 / +1.33 / +1.29**, s1 **+1.19 / +1.56 / +1.36**, every p <= 1.8e-5.
+Seed mean +0.92 / +1.45 / +1.32 -- matches the quoted ensemble +0.91/+1.45/+1.33.
+Placebos: **20/20 beaten in all six (seed x lead) cells**, p_rank 0.0476. The claim is intact.
+
+### 10b. In-sample stage-2 caveat resolves FAVOURABLY -- rewrite that limitation
+
+`lstmres_oof_corr_top1` (out-of-fold stage-2 residuals) vs `lstm_own_era5`:
+s0 +0.91 / +1.64 / +1.57, s1 +1.40 / +1.69 / +1.47, all p <= 4.3e-12; 20/20 placebos.
+Direct OOF vs in-sample: **+0.27/+0.32/+0.29 (s0), +0.22/+0.13/+0.11 (s1)**, significant
+in 5 of 6 cells. The correction is BIGGER once the in-sample-residual mechanism is removed,
+exactly the direction the limitation predicted. So the in-sample design was CONSERVATIVE and
+the headline is if anything an underestimate. Delete the hedge; cite the OOF number.
+
+### 10c. The representation-matched arm CONTRADICTS the pure "delivery" reading
+
+This is the important one. All three arms scored against the same baseline (`lstm_own_era5`):
+
+| arm | representation | delivery | h1 | h2 | h3 |
+|---|---|---|---|---|---|
+| `lstmres_corr_top1` | propagated **scalar** | correction stage | +0.64\* / +1.19\* | +1.33\* / +1.56\* | +1.29\* / +1.36\* |
+| `lstmres_corr_top1_hist12` | **12-month history** | correction stage | -0.78\* / +0.10 | -0.18 / +0.13 | -1.03 / -0.44 |
+| `lstm_corr_top1_era5` | **12-month history** | input channel | +0.31 | -1.45\* | -1.06\* |
+
+(s0 / s1 where both exist; \* p<0.05.)
+
+Direct contrast, holding delivery fixed at "correction stage" and varying only representation:
+`hist12` vs scalar = **-1.43 / -1.53 / -2.35 (s0)** and **-1.10 / -1.46 / -1.82 (s1)**,
+every p <= 1.5e-3. Placebos for hist12 are erratic (s0: 18/20, 20/20, **2/20**).
+
+**Implication:** once representation is equalized, the correction stage stops outperforming the
+input channel -- both 12-month-history arms are ns-to-negative. The separating variable is the
+**propagated scalar representation**, NOT the correction-stage delivery. The manuscript's
+disclosed representation confound is therefore REAL and material, and any wording that reads
+"the same information delivered as a correction works, as an input channel does not" is no
+longer supportable as stated. Recommended reframing: the neighbour signal helps only when it
+arrives as a single rho-propagated state aligned to the forecast target; handed over as raw
+history it is not usable by either architecture.
+
+**What still holds:** the information is genuinely the neighbour's, not stage-2 capacity.
+Neighbour-free control `lstmres_own` vs `lstm_own_era5` = -1.03/-1.45/-1.84 (s0),
+-1.30/-1.45/-1.98 (s1), all significant NEGATIVE; the OOF twin `lstmres_oof_own` likewise
+(-1.04/-0.93/-1.59, -1.24/-1.40/-1.83). A second stage with no neighbour information actively
+hurts, so the gain is not a free-parameter artifact.
+
+**Do not finalize the reframing until h4--6 land** (`phase8b_lstm_h46`, running).
