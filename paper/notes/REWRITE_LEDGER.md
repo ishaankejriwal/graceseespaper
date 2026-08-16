@@ -209,6 +209,29 @@ Crossing point remains between leads 2 and 3.
 - **Sharpest single statement in the study**, vs damped persistence: ours +11.14/+11.78/+13.38/
   +16.59/+15.55/+14.16% at h1–h6, while **theirs is −11.09% at h1** (worse than damped
   persistence, p=0.057) before rising to +14.76/+23.30/+28.97/+31.70/+34.14%.
+- **Scope the h1 deficit; do NOT harden it** (added 2026-08-15 after a provenance check).
+  p=0.057, and per-basin it is a near-tie: their product still beats damped persistence in
+  **115 of 227** matched basins (50.7%), so the pooled −11.09% is magnitude in the losing
+  basins, not breadth. Source: `results/phase8b_li_comparison_predictions.csv`, per-basin MSE
+  at h1. Three supporting checks, all clean:
+  (a) NOT a deseasonalization-convention artifact — calendar month explains only **0.12%** of
+  their h1 error variance, *less* than damped persistence's own 0.38%; a seasonal-convention
+  mismatch would leave an annual signature and does not;
+  (b) trend handling agrees — their non-seasonal is de-seasoned *and* de-linearized
+  (Li et al. 2020 WRR, doi:10.1029/2019WR026551) and our decomposition also removes a linear
+  slope, so the two targets match in definition;
+  (c) mechanism matches their architecture — their LSTM ingests no GRACE lags, so at h1 it has
+  no access to the strongest available predictor. Their RMSE grows only 13.2% from h1→h6 while
+  damped grows 47.1%; near-lead-independent error is exactly what a forcing-only model predicts.
+- **Two framing obligations attached to that number** (now in main.tex §data\_li and §crossing):
+  (i) Li & Kusche **never benchmark against persistence/climatology at any lead** — this is a
+  floor they did not test, not a result we contradict; (ii) damped persistence at h1 is not
+  operationally available to their user, since mascon latency is 2–3 months and that latency is
+  the stated motivation for their product.
+- **Product-identity caveat:** their published skill figures are for the **mean of three**
+  FCast products (JPL/CSR/GSFC); we use CSR-FCast alone because our system is CSR-based
+  (mascon-matched), but it is the member their own training-residual diagnostic ranks least
+  certain (3.0 vs 2.8 cm). Our numbers characterize that member, not their headline product.
 - Keep saying "empirical crossing **consistent with**" the IC/forcing crossover — the two
   systems differ in many ways at once, so this is not a causal source decomposition.
 
