@@ -417,3 +417,20 @@ only the propagated scalar works. hist12-vs-scalar is significant in **12/12 see
 **What did NOT change:** the headline +0.91..+1.96 numbers, the 20/20 placebo claim, the
 stratification/leakage result, and the two-sided linear-vs-nonlinear structure. The finding is
 the same size; only its attributed cause moved.
+
+### 10e. Post-phase-7-resmlp fills (2026-08-16 afternoon)
+
+- **Fold decomposition (ens, vs shared stage-1):** positive in **30/30 fold×lead cells**,
+  min +0.25% (f3 h1), max +2.63% (f1 h2). Full 5×6 table reproducible from the two
+  predictions files; quoted min/max in Sect. results (tab:stack discussion, "Fifth").
+- **Per-basin FDR at h1 (ens, BH q=0.10):** 22/234 significant — **20 helped, 2 hurt**
+  (linear: 13/8). Spearman of stack DM map vs linear DM map **ρ=+0.491, p=1.4e-15** →
+  written as "the two tiers agree on WHERE, differ in conversion". New file:
+  `results/phase8_perbasin_fdr_h1.csv`.
+- **Double-counting check (nbrin):** correction on a neighbour-ingesting encoder:
+  −0.46*/+0.23*/+0.22/+0.17/+0.56*/+0.83* — never near the clean-design +0.91..+1.96.
+- **Stack vs neighbour-free resMLP-ERA5 (3-seed ens): statistical tie** at h1–3
+  (−0.30/+0.19/−0.10%, p=0.49/0.63/0.81) — pre-correction conclusion unchanged.
+- Remaining todos: ERA5 variable ablation (needs new LOFO-by-variable experiment) and
+  the cm-unit Li comparison (needs unit back-conversion pass). J.Hydrology citation
+  todo stays unresolvable (commented out).
