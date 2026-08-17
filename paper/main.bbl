@@ -1,4 +1,4 @@
-\begin{thebibliography}{44}
+\begin{thebibliography}{45}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \providecommand{\urlprefix}{}
@@ -292,6 +292,12 @@ Yossef, N.~C., Winsemius, H., Weerts, A., van Beek, R., and Bierkens, M. F.~P.:
   Skill of a global seasonal streamflow forecasting system, relative roles of
   initial conditions and meteorological forcing, Water Resources Research, 49,
   4687--4699, \doi{10.1002/wrcr.20350}, 2013.
+
+\bibitem[{Zhang et~al.(2025)Zhang, Shen, Ji, Wang, and Chen}]{zhang2025ipa}
+Zhang, L., Shen, Y., Ji, K., Wang, F., and Chen, Q.: An integrated
+  postprocessing approach for extracting time variable signals from {GRACE}
+  monthly gravity field models, Journal of Hydrology, 661, 133\,552,
+  \doi{10.1016/j.jhydrol.2025.133552}, 2025.
 
 \bibitem[{Zhu et~al.(2019)Zhu, Yuan, and Wood}]{zhu2019elasticity}
 Zhu, E., Yuan, X., and Wood, A.~W.: Benchmark decadal forecast skill for
