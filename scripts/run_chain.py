@@ -142,6 +142,13 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      [DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase6_era5_headline.csv", RESULTS / "phase6_era5_predictions.csv"]),
 
+    ("era5_attribution",
+     ["scripts/run_phase6_era5_attribution.py"],
+     [DATA / "era5_basin_month.csv", RESULTS / "phase6_era5_predictions.csv",
+      RESULTS / "kalman_fold_params.pkl"],
+     [RESULTS / "phase6_era5_attribution.csv", RESULTS / "phase6_era5_attribution_folds.csv",
+      RESULTS / "phase6_era5_attribution_continent.csv", RESULTS / "phase6_era5_attribution_fdr.csv"]),
+
     ("hybrid",
      ["scripts/run_phase6_hybrid.py"],
      [RESULTS / "phase6_li_comparison_predictions.csv", RESULTS / "phase6_era5_predictions.csv"],
@@ -203,6 +210,12 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      ["scripts/run_phase7_gnn.py"],
      [DATA / "era5_basin_month.csv"],
      [RESULTS / "phase7_gnn_summary.csv"]),
+
+    ("flat12_train85",
+     ["scripts/run_flat12_train85_sensitivity.py"],
+     [DATA / "era5_basin_month.csv", RESULTS / "phase7_lstm_predictions.csv",
+      RESULTS / "kalman_fold_params.pkl"],
+     [RESULTS / "flat12_train85_sensitivity.csv"]),
 
     ("ladder",
      ["scripts/build_paper_ladder.py"],
