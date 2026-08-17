@@ -1280,3 +1280,23 @@ litter removed. Chain is now 32 steps / 31 default; declared inputs verified pre
   Zenodo DOI remains the only submission blocker. Availability statement still says
   "upon acceptance" — replace with the minted DOI before submission (Copernicus wants
   it reviewable at submission).
+
+## 2026-08-17 — HESS house-style pass: dash/bold reduction, US spelling, journal-spec check
+
+- Verified HESS/Copernicus submission specs from the live official pages: rolling
+  submission (no deadline; scheduled-special-issue page currently lists none, so a
+  regular research article is the only route); no word/page limit (flat APC EUR 1800
+  net since 2025, EGU members EUR 1620); Copernicus LaTeX package v7.14 (matches ours);
+  figures min 8 cm wide, 300 dpi, one font family, CVD-safe, panels labeled (a)/(b) —
+  all already satisfied; competing-interests null wording already exact; data/code
+  policy expects FAIR-repository DOIs citable at submission (Zenodo DOI remains the
+  one blocker). Copernicus English guidelines prefer spaced en dashes over em dashes
+  for breaks, sentence-case headings (already true), consistent spelling variety.
+- Prose pass on paper/main.tex, punctuation/formatting only: all ~95 spaced-dash
+  parentheticals in rendered text rewritten (commas, parentheses, colons, or sentence
+  breaks; 0 remain), the lone em dash removed; every \textbf in running prose removed
+  (contribution/property/limitation lead-ins now \emph; table \mathbf values kept;
+  four bolded table-cell verdicts in tab:controls now plain); a handful of stray
+  \emph intensifiers dropped. Spelling unified to US (Neighbouring/unmodelled/favour x2).
+- Verification: git word-diff numeral multiset identical before/after (no quantitative
+  content touched); PDF recompiled clean, 39 pp, 0 undefined refs/citations.
