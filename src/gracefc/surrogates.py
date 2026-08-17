@@ -6,9 +6,11 @@ scripts/run_phase4_surrogates.py:
 - The surrogate is built from the FULL record, test months included. It is a null draw
   of the DATA, not a forecast system: no information flows into the real arm, and a
   truncated-support surrogate could not supply the test-month neighbor values the
-  evaluation needs. Sharing the real series' full-record marginal and spectrum makes the
-  null maximally similar to the real arm, which is the conservative direction for the
-  positive claim.
+  evaluation needs. Because the surrogate's distribution and spectrum are estimated
+  with test-period observations, this is a disclosed transductive sensitivity, not a
+  fold-pure prospective control. Sharing the real series' full-record marginal and
+  spectrum makes the null closely matched to the real arm — a design argument, not a
+  proof that the test is conservative (external audit 2026-08-17).
 - The FFT runs on the full monthly grid. GRACE gap months are linearly interpolated
   before the transform and the NaN mask is re-imposed after, so the preserved spectrum
   is that of the true monthly time axis. (Before audit 2026-08-15 the transform ran on

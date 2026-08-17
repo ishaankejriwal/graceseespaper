@@ -75,8 +75,10 @@ it. You mostly won't edit these unless you're adding a new model.
 
 ### Start here
 
-`run_chain.py` runs every stage in the correct order, checking dependencies as it goes. If you
-want to reproduce anything, this is the file. `--list` shows the plan without running it.
+`run_chain.py` runs every stage in the correct order, checking dependencies as it goes — from
+building the processed tables out of the raw downloads all the way to figures and the checksum
+manifest. Only the downloads themselves (network/credentials) stay manual. If you want to
+reproduce anything, this is the file. `--list` shows the plan without running it.
 
 ### Getting data in
 
