@@ -5,7 +5,10 @@ round DONE (2026-08-17 evening): manuscript rewritten to published-paper registe
 ~280 words / 0 p-values, title 12 words, audit-trail voice purged, stats de-duplicated, new
 ERA5 attribution table, terminology unified — "footprint-sharing score", "variant", "lead")
 and all 7 figures rebuilt to an Okabe–Ito house style (fixed cross-figure color semantics,
-cartopy Robinson map, F4/F6 redesigned, print-width bug fixed). PDF 39 pp, 0 undefined refs,
+cartopy Robinson map, F4/F6 redesigned, print-width bug fixed). HESS house-style pass DONE
+(2026-08-17 night): all spaced-dash parentheticals and prose bolding removed, US spelling
+unified, HESS specs verified against the live Copernicus pages (rolling submission, no
+length limit, figure specs already met). PDF 39 pp, 0 undefined refs,
 17/17 tests. Remaining before submission: mint the Zenodo DOI (availability statement still
 says "upon acceptance"). The "small basins" framing is RETIRED -- footprint sharing is the
 real stratifier, with one flagged exception cell (see the corrected findings below).
