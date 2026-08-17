@@ -75,9 +75,10 @@ published skill of learned models over persistence is therefore attainable by
 three-parameter state-space filtering alone. Exogenous forcing is what beats this benchmark:
 % source: results/phase6_era5_headline.csv, ridge_own_era5 vs ridge_own h1 (+4.62%, p=1.0e-4); h2 +1.39% p=0.092 ns
 ERA5-Land predictors add 4.6\,\% at lead 1 and nothing detectable beyond it,
-% source: results/phase7_corrected_analysis.md Q1 (2-seed ensemble +2.17/+2.36/+1.43)
-while sequence modeling of the forcing history adds a further 1.4--2.4\,\% at
-leads 1--3. A head-to-head comparison
+% source: computed 2026-08-16 from phase7_lstm_predictions.csv (ridge_own_era5_flat12 vs ridge_own_era5 +3.34/+5.01/+3.49)
+while extending the forcing window to twelve months adds a further
+3.3--5.0\,\% at leads 1--3 -- read \emph{linearly}: a ridge over the
+flattened history beats every sequence model we trained on it. A head-to-head comparison
 with the GRACE-FCast system of Li and Kusche (2026) on 227 matched basins
 % source: results/phase8b_li_comparison_headline.csv, lstmres_corr_top1_ens vs li_lstm_full
 locates the classic initial-conditions-versus-forcing crossover on
@@ -230,9 +231,9 @@ against
 persistence, a substantial share of published ``ML skill'' on deseasonalized
 TWSA is reproduced by three-parameter state-space filtering alone. We frame this
 constructively: the interesting question becomes what \emph{does} beat the
-filter, and the answer -- exogenous forcing, nonlinear sequence integration
-of that forcing, and a small spatial correction -- is a map of where genuine
-information lives.
+filter, and the answer -- exogenous forcing, a longer window of that
+forcing read linearly, and a small spatial correction -- is a map of where
+genuine information lives.
 \item \textbf{The initial-conditions/forcing crossover, located on observed
 TWSA.} Against the published GRACE-FCast hindcast \citep{li2026fcast,
 li2025pangaea} on 227 matched basins under a common protocol, our best system
@@ -866,7 +867,7 @@ not grow. What the corrections did change is the significance of the
 lead-4 contrast against the per-basin ridge and the reading of the pooled
 ridge, both of which are stated above in their corrected form.
 
-\subsection{What beats the filter: forcing, and sequence integration of forcing}
+\subsection{What beats the filter: forcing, and a longer window of forcing}
 \label{sec:results_era5}
 
 \paragraph{Exogenous forcing is the largest single skill source, and it is a
@@ -903,25 +904,33 @@ lead 1 ($-0.53\,\%$, $p = 0.30$) and significantly worse at leads 2--3
 ($-2.56\,\%$ and $-3.14\,\%$, $p \le 7.2\times10^{-5}$). This is the
 within-study analogue of \citet{nie2025linear}, and the corrected pipeline
 puts it on firmer ground than our earlier evaluation did.
-The exception is temporal: an LSTM over 12-month windows of filtered state
-plus ERA5 channels beats the ridge on identical information by
+The apparent exception was temporal, and dissecting it changed our reading
+of it. An LSTM over 12-month windows of filtered state plus ERA5 channels
+beats the ridge by
 % source: results/phase7_corrected_analysis.md Q1 (2-seed ensemble +2.17/+2.36/+1.43; ens DM p 4.6e-5/3.4e-9/1.5e-5)
 $+2.17\,\%$, $+2.36\,\%$, and $+1.43\,\%$ at leads 1--3 (two-seed ensemble,
-DM $p \le 4.6\times10^{-5}$). We quote the ensemble because the effect nearly
-halves from the better to the worse seed ($+2.35$ vs. $+1.27\,\%$ at lead 1);
-% source: results/phase7_corrected_analysis.md Q1 (s0 +2.35/+2.85/+1.68; s1 +1.27/+1.32/+0.87, sign-stable everywhere)
-single-seed numbers overstate it, though the sign is stable in every cell.
-The sequence gain decays with lead: the ensemble falls to $+0.81\,\%$ at lead
-% source: results/phase8_corrected_audit.md sect. 3 ensemble table (lstm_own_era5_ens vs ridge_own_era5: +0.808 h4, -0.044 ns h5, -0.113 ns h6)
-% source: results/phase8b_h16_headline.csv, lstm_own_era5_s0 vs ridge_own_era5 h4 (+0.88, p=1.6e-4), h5 (+0.32, p=.15), h6 (+0.06, p=.77)
-4 (seed 0 $+0.88\,\%$, $p = 1.6\times10^{-4}$) and is indistinguishable from
-the ridge at leads 5--6 ($-0.04\,\%$, $-0.11\,\%$). Without ERA5, the LSTM
+DM $p \le 4.6\times10^{-5}$) -- but that ridge sees only issue-time lag
+features, so the pair confounds the architecture with the amount of history
+it reads. Equalizing the information settles the attribution. A ridge over
+the identical 12-month history, flattened to a plain feature vector, gains
+% source: computed 2026-08-16 from phase7_lstm_predictions.csv (ridge_own_era5_flat12 vs ridge_own_era5 +3.34/+5.01/+3.49, all p<0.05)
+$+3.34$, $+5.01$, and $+3.49\,\%$ over the lag-feature ridge -- more than
+the LSTM's entire margin -- and head-to-head the LSTM \emph{loses} to it at
+% source: computed 2026-08-16, lstm_own_era5 2-seed ens vs ridge_own_era5_flat12 (-1.20 p=.037 / -2.80 p=1.8e-10 / -2.13 p=3.8e-9)
+every lead ($-1.20\,\%$, $p = 0.037$; $-2.80\,\%$, $p = 1.8\times10^{-10}$;
+$-2.13\,\%$, $p = 3.8\times10^{-9}$). An MLP on the same flattened history
+% source: computed 2026-08-16, mlp_own_era5_flat12_s0 vs ridge_own_era5_flat12 (-3.08/-2.70/-2.26, all p<0.05)
+loses to the flat ridge as well ($-3.08$ to $-2.26\,\%$). What we had been
+calling a sequence-modeling gain is a history-length gain: twelve months of
+forcing carries real information, the linear reader extracts the most of
+it, and the sequence architecture pays a premium for re-learning what the
+flattening gives away for free. Without ERA5, the LSTM
 % source: results/phase7_corrected_analysis.md Q1 (lstm_own vs ridge_own ens: +0.32 p=.10 / +0.93 p=1.5e-4 / -1.03 p=.008)
 does not durably beat the ridge: $+0.32\,\%$ at lead 1 ($p = 0.10$),
 $+0.93\,\%$ at lead 2 ($p = 1.5\times10^{-4}$), and significantly
 \emph{worse} at lead 3 ($-1.03\,\%$, $p = 0.008$) -- the filter has already
 extracted most of the temporal structure of the TWSA series itself, and the
-sequence gain lives in the forcing history, not in the TWSA history.
+usable history is the forcing's, not the TWSA's.
 A one-layer graph attention network never beats its ridge twin at any seed,
 % source: results/phase7_corrected_analysis.md Q4 (gnn_corr_top1 vs ridge_corr_top1 ens -0.90/-0.24/-0.61; sole nominal win gnn_corr_top2_era5_ens h2 +0.65 p=.035, no seed support, placebo ranks 2-14/20)
 lead, or graph variant ($-0.90$, $-0.24$, $-0.61\,\%$ at leads 1--3 against
@@ -1590,9 +1599,10 @@ into skill.
 % vs shared stage-1, h1, BH q=0.10; Spearman vs phase5_perbasin_fdr_h1.csv corr_top1 rows)
 
 Fourth, \textbf{horizon stability that no other component has.} The stage-1
-sequence gain is gone by leads 5--6, where the LSTM is indistinguishable from
+gain over the lag-feature ridge is gone by leads 5--6, where the LSTM is
+indistinguishable from
 % source: results/phase8_corrected_audit.md sect. 3 (lstm_own_era5_ens vs ridge_own_era5: h5 -0.044 ns, h6 -0.113 ns)
-the ridge on identical features ($-0.04\,\%$, $-0.11\,\%$). The correction
+that ridge ($-0.04\,\%$, $-0.11\,\%$). The correction
 % source: results/phase8b_h16_ensemble_headline.csv (h5 +1.42, h6 +1.96 -- the largest values in the column)
 does the opposite: it is \emph{largest} at leads 5--6 ($+1.42$, $+1.96\,\%$).
 At long leads it is the only architectural gain in the study that has not
@@ -1737,12 +1747,17 @@ clean two-stage design remains the better construction.
 
 \paragraph{Required disclosure on model ranking and selection.} The stacked
 system is the
-nominal best model in the study at every lead (lowest pooled RMSE among all
-% source: results/phase8b_h16_summary.csv (lstmres_corr_top1 seeds lowest rmse_std at every lead)
-models at leads 1--6), and against the strongest linear system with identical
+nominal best model at leads 4--6 among all arms evaluated there, and
+against the lag-feature linear system with the same predictor \emph{types}
 % source: results/phase8b_h16_ensemble_headline.csv (lstmres_corr_top1_ens vs ridge_corr_top1_era5: +2.75/+3.86/+2.92/+2.52/+1.78/+2.23, p<=6.5e-8 max at h1)
-information it gains $+2.75$, $+3.86$, $+2.92$, $+2.52$, $+1.78$, and
-$+2.23\,\%$ at leads 1--6 (ensemble, $p \le 6.5\times10^{-8}$). A
+it gains $+2.75$ to $+3.86\,\%$ at every lead. It is \emph{not} the best
+model at short leads once history length is equalized: the flat 12-month
+ridge of Sect.~\ref{sec:results_era5} ties it at lead 1 ($-0.29\,\%$,
+$p = 0.58$) and beats it at leads 2--3 ($-1.31\,\%$, $p = 8.3\times10^{-4}$;
+$-0.77\,\%$, $p = 0.032$), and that arm exists only at leads 1--3, so the
+long-lead ranking is untested against it.
+% source: computed 2026-08-16, lstmres_corr_top1 2-seed ens vs ridge_own_era5_flat12, matched rows
+A
 leaderboard position is not the evidence, however, and one comparison in
 particular must be kept in view: the largest architectural number anywhere in
 % source: results/phase7_corrected_analysis.md Q2(c) (resmlp_own_era5 vs ridge_own_era5 ens +3.35/+3.58/+2.84, p<=4.6e-9)
@@ -2068,9 +2083,10 @@ question becomes what information beats state-space filtering.
 
 The answer has three parts. Exogenous forcing beats it -- ERA5 predictors
 % source: results/phase6_era5_headline.csv (+4.62% h1, p=1.0e-4; h2 ns); results/phase7_corrected_analysis.md Q1 and phase8_corrected_audit.md sect. 3 (LSTM ens gain to h4)
-add $+4.6\,\%$ at lead 1, and although a linear head cannot carry that
-information beyond one month, sequence modeling of the forcing history
-extends the gain to lead 4 -- and a published system built entirely on
+add $+4.6\,\%$ at lead 1 from issue-time features alone, a twelve-month
+window of the same forcing -- read linearly -- adds $+3.3$ to $+5.0\,\%$
+more at leads 1--3, beating every sequence model we trained on the identical
+history -- and a published system built entirely on
 exogenous forcing \citep{li2026fcast} overtakes our best system beyond lead
 2, locating an empirical crossing consistent with the classic
 initial-conditions-versus-forcing crossover on
@@ -2081,11 +2097,12 @@ two-sided part. At the linear tier it is a null -- $+0.31\,\%$ at lead 1
 null looks like an instrument artifact: stratifying on how much of a basin's
 mascon signal comes from outside the basin places the estimate in
 shared-footprint basins at leads 1--2 across the size range, and turns it
-negative in the 142 resolved basins with clean footprints. Delivery is what
-% source: results/phase8b_h16_ensemble_headline.csv (input channel +0.36% p=0.090 at h1, negative h2-h6; correction stage +0.91..+1.96%, all p<=3.14e-08, max at h4, 20/20 placebos in all 12 cells)
-changes the answer: fed to a deep encoder as
-an input channel the same neighbor signal yields no robust ensemble gain, while
-as a dedicated residual-correction stage it contributes $+0.91$ to
+negative in the 142 resolved basins with clean footprints. Representation is
+what changes the answer: handed over as raw 12-month history the same
+neighbor signal yields nothing -- whether as an encoder input channel or as
+a dedicated correction stage -- while as a single state propagated to the
+% source: results/phase8b_h16_ensemble_headline.csv (input channel +0.36% p=0.090 at h1, negative h2-h6; hist12 correction ns at every lead; scalar correction +0.91..+1.96%, all p<=3.14e-08, 20/20 placebos in all 12 cells)
+forecast target time by the filter it contributes $+0.91$ to
 $+1.96\,\%$ at every lead 1--6, beating 20 of 20 degree-matched random-graph
 placebos in every lead--seed cell and growing rather than decaying with lead.
 Two controls carry that claim, and neither is the leaderboard: the placebo

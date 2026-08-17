@@ -1083,3 +1083,36 @@ figure, and no manuscript number changed.** The corrected-pipeline chain was mid
   this journal); `.pytest_cache/` ignored; notebook outputs cleared so pre-audit numbers in
   stored cells cannot be mistaken for current results.
 - **Remote:** repository published to `https://github.com/ishaankejriwal/graceseespaper.git`.
+
+---
+
+## 2026-08-16 23:48 — corrected rerun chain COMPLETE (14/14 steps, exit 0)
+
+`scripts/run_chain.py`, launched 2026-08-15 ~17:15, finished 2026-08-16 23:47 (~30.5 h).
+Step times: predlag 6.1 / conditioned 2.7 / surrogates 32.1 / r0_ablation 4.4 /
+phase5_nonlinear 134.6 / phase5_stats 0.9 / basin_analysis 3.5 / phase6_era5 180.2 /
+phase8_h13 327.3 / phase8_h46 298.1 / phase8b_merge 1.9 / phase8_strat 3.3 /
+phase7_resmlp 480.5 / phase7_lstm 541.9 min. Every output verified fresh by the runner.
+
+**Integrity:** `results/SHA256_MANIFEST_LIVE.csv` written over the 23 gitignored result
+files (1.85 GB); verify later with `scripts/make_manifest.py --check`.
+
+**Headline outcomes of the corrected rerun** (details + exact numbers in ledger §10a–10g):
+- Benchmark, crossing, ERA5-lead-1, conditioning, surrogates, jump screen: reproduced.
+- Stacked neighbour correction: intact (+0.91..+1.96%, 20/20 placebos, 30/30 fold×lead
+  cells positive, 60/60 strata cells positive). OOF stage-2 makes it LARGER (headline was
+  conservative).
+- NEW, claim-changing (hist12 arm): representation, not delivery, separates the arms →
+  §results_delivery retitled, gradient starvation demoted, abstract reworded.
+- NEW, claim-changing (flat12 twins): the "sequence modeling" gain was history length.
+  A flat-12-month ridge beats the LSTM on identical information at all three leads and
+  beats the FULL STACK at h2–3 (tie h1). §results_era5 retitled, nominal-best disclosure
+  rescoped. The Nie-convergence theme is now stronger than pre-audit, not weaker.
+- Per-basin FDR (stack, h1): 20 helped / 2 hurt of 234; ρ=+0.49 vs linear map.
+  New file `results/phase8_perbasin_fdr_h1.csv`.
+- cm-unit Li comparison: pooled 5.0–5.8 vs 7.6–7.7 cm (flatters us); per-basin median
+  2.39/3.11/3.27 vs 2.70/2.78/2.93 cm — handover one lead earlier than standardized.
+
+**Manuscript:** 39 pp, 0 undefined refs, all 7 figures wired and ledger-asserted.
+ONE RERUN todo remains: ERA5 variable-ablation attribution (needs a new LOFO-by-variable
+experiment; nothing in the current text depends on it).
