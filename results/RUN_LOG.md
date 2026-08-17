@@ -1116,3 +1116,41 @@ files (1.85 GB); verify later with `scripts/make_manifest.py --check`.
 **Manuscript:** 39 pp, 0 undefined refs, all 7 figures wired and ledger-asserted.
 ONE RERUN todo remains: ERA5 variable-ablation attribution (needs a new LOFO-by-variable
 experiment; nothing in the current text depends on it).
+
+---
+
+## 2026-08-17 — external-audit code repairs (stats pairing, cache fingerprint, full chain)
+
+Acting on the code-level findings of the 2026-08-17 external audit; manuscript edits
+deferred to the paper pass.
+
+- **`stats._paired_losses` row-set assertion:** the join now raises when both models
+  have rows but their (name, target_date) key sets differ — an inner join there would
+  silently score each model on a subset it wasn't asked about. A model wholly absent
+  from a slice (not run at that horizon) still returns an empty frame: that is
+  coverage, not a pairing defect. Two regression tests added (suite now 17).
+  Smoke: `build_paper_ladder`, `run_phase5_stats`, `run_phase8b_merge` reran clean
+  under the assertion; `make_manifest.py --check` 23/23 files unchanged.
+- **Stale artifact found by the smoke:** `paper_baseline_contrasts.csv` still carried
+  h4–6 bootstrap CIs computed before the 2026-08-15 `block=max(3,h)` repair. Refreshed:
+  point estimates and DM p-values identical, only h4–6 CI bounds moved. Any manuscript
+  quote of those CI bounds needs re-checking against the refreshed file.
+- **Kalman cache fingerprint widened** (`src/gracefc/cache.py`): now also hashes
+  `basin_meta.csv` bytes (the keep-cohort deciding WHICH basins get fit), `kalman.py`
+  source bytes (model semantics + fit hyperparameters), and numpy/scipy versions (the
+  MLE optimizer). `kalman_fold_params.pkl` was refit from scratch under current code
+  before restamping: all 5 folds × 234 basins reproduce rho/q/r with max|diff| = 0.0.
+- **`run_chain.py` completed to the whole pipeline:** 30 steps from the table builds
+  (basin/ERA5/Li) through phase2/kalman/phase3b, jump screen, all controls,
+  fusion/coupled, Li comparison, hybrid, basin analysis, resolution sensitivity,
+  phases 7/8, the paper ladder, figures, and the checksum manifest. Only downloads
+  (network/credentials) stay manual. This also fixed a latent ordering bug:
+  `basin_analysis` ran BEFORE `phase6_era5`, whose predictions file it reads. Every
+  declared input/output verified present on disk; README §7 and CODE_MAP synced.
+- **Surrogate docstrings rescoped:** "the conservative choice" → disclosed transductive
+  sensitivity (surrogate distribution/spectrum estimated with test-period observations);
+  closely-matched-null is a design argument, not a proof of conservatism.
+- **Deferred:** manuscript claim fixes (four false statements, delivery framing,
+  placebo-draw text, issue dates, noise-mechanism language, Chen et al. 2025 citation);
+  basin-mask provenance (user: ignore for now); ERA5-coverage disclosure; the
+  flat12-vs-LSTM 85 %-train caveat (matched sensitivity already run, direction holds).

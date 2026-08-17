@@ -321,14 +321,17 @@ Run the whole thing:
 .venv/Scripts/python scripts/run_chain.py
 ```
 
-Heads up: a full run takes roughly **30 hours** on a laptop. The neural network stages dominate.
-Run just part of it with `--steps name1 name2`. Each stage writes its own log to
-`results/chain_<name>.log`.
+Heads up: a full run takes on the order of **30–40 hours** on a laptop. The neural network
+stages dominate. Run just part of it with `--steps name1 name2`. Each stage writes its own log
+to `results/chain_<name>.log`.
 
-Building from completely raw data the first time, the order is:
-`build_basin_series.py` → `download_era5.py` → `build_era5_basin_table.py` →
-`download_indices.py` → `run_phase2_baselines.py` → `run_kalman_baseline.py` → then
-`run_chain.py` for everything after that.
+The default step list is the whole study: building the basin/ERA5/Li tables from raw files,
+the baselines, every experiment phase, the paper's number ladder, the figures, and the
+checksum manifest. The only things it does *not* do are the downloads themselves, because
+those need a network or credentials: the CSR satellite and ancillary files, the basin mask,
+`scripts/download_era5.py`, the Li 2026 archive, and `scripts/download_indices.py` (section 4
+covers where each comes from). Once those are on disk, `run_chain.py` with no arguments is
+the reproduction recipe.
 
 **Figures:** `scripts/make_figures.py` builds the paper's charts. It deliberately *crashes* if
 any plotted value disagrees with the recorded numbers in `paper/notes/REWRITE_LEDGER.md`. That's

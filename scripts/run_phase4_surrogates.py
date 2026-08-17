@@ -6,8 +6,9 @@ if surrogates match the real arm, neighbor features were only spectrum-shaped re
 Real Kalman params are applied to surrogate series (IAAFT preserves autocorrelation, so
 per-basin (rho, q, r) remain well-matched).
 
-Null design notes (audit 2026-08-15): the surrogate is generated from the full record —
-see src/gracefc/surrogates.py for why that is the conservative choice — and the REAL
+Null design notes (audits 2026-08-15/17): the surrogate is generated from the full
+record — see src/gracefc/surrogates.py for the rationale and why that makes this a
+transductive sensitivity rather than a fold-pure prospective control — and the REAL
 selected graph is reused for every draw. The tested null is therefore "the selected
 neighbor's time-alignment carries no information", not "selection plus alignment"; the
 degree-matched random-graph placebos in phases 3b-8 cover selection.
