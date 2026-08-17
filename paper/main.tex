@@ -44,10 +44,10 @@ noise-filtering problem}
 %% ------------------------------------------------------------------
 
 \begin{abstract}
-Forecasts of GRACE and GRACE-FO terrestrial water storage anomalies (TWSA)
-are routinely benchmarked against persistence. Persistence of a noisy
-observation, however, carries the anchor month's measurement noise into
-every forecast. We propose a stronger member of the same reference class:
+When forecasts of GRACE and GRACE-FO terrestrial water storage anomalies
+(TWSA) are benchmarked at all, the reference is climatology or persistence
+of the raw observation. Persistence of a noisy observation carries the
+anchor month's measurement noise into every forecast. We propose a stronger member of the same reference class:
 persistence of the filtered state, obtained from a three-parameter
 AR(1)-plus-observation-noise model fit per basin. On 234 basins worldwide
 over five expanding-window test folds, this filter beats
@@ -57,8 +57,8 @@ damped persistence by 5.0 and 8.8\,\% at leads of one and two months and
 per-basin ridge regression at five of six leads. Refitting the same model
 with the noise variance fixed at zero removes the entire margin, so the gain
 is the noise filtering itself, not the autoregressive structure. Much
-of the published skill of learned models over persistence is therefore
-attainable by filtering alone. What beats the filter is exogenous forcing:
+of the skill a learned model can demonstrate over persistence-class
+references is therefore attainable by filtering alone. What beats the filter is exogenous forcing:
 % source: results/phase6_era5_headline.csv, ridge_own_era5 vs ridge_own h1 (+4.62%, p=1.0e-4)
 ERA5-Land predictors add 4.6\,\% at lead one, and a twelve-month forcing
 history extends the gain through lead three, read linearly: a ridge
@@ -108,10 +108,19 @@ for latency-filling \citep{mo2025nrt}; statistical time-series methods have
 been applied per basin \citep{ahi2021prediction}; benchmark predictability
 has been quantified at decadal scale \citep{zhu2019elasticity}; and
 physically based systems forecast TWS with seasonal meteorological forcing
-\citep{li2026fldas, getirana2020groundwater}. Nearly all of these studies quantify their skill
-against some form of persistence or climatology, and the implicit logic is
-that whatever beats persistence has extracted predictive structure beyond
-simple memory.
+\citep{li2026fldas, getirana2020groundwater}. Few of these studies score
+against any reference forecast at all: skill is typically reported as
+correlation or Nash--Sutcliffe efficiency against the observations, whose
+implicit reference is the observed mean (a climatology), or against
+another forecast system, as \citet{li2026fcast} do against SEAS5; we found
+none that scores against damped persistence.
+% source: baseline survey 2026-08-17 (RUN_LOG entry): li2026fcast full text (SEAS5/GLDAS/WGHM only);
+% li2026fldas full text (no reference forecast; lag-autocorrelation diagnostic only); zhu2019 full text
+% (elasticity IHC+DCF benchmark); nie2025 full text (AR info excluded by design); steidl2025 (climatology
+% + ConvLSTM); li2024grl (seasonal long-term mean); mo2025nrt, ahmed2019narx (metrics vs observations
+% per phase8_related_benchmarks.md; full texts paywalled); ahi2021 abstract-level.
+The implicit logic is nonetheless that a model shown to have skill has
+extracted predictive structure beyond simple memory.
 
 This paper starts from an observation that undermines that logic for GRACE
 specifically. Basin-average TWSA is not a state variable observed cleanly; it
@@ -202,9 +211,10 @@ three-parameter Kalman filter (AR(1) signal plus observation noise) beats
 damped persistence by 5.0--8.8\,\% at leads 1--2 and per-basin ridge
 regression at five of six leads (DM $p \le 0.013$; lead 4, $p = 0.078$, is
 not significant), making the filtering class
-the strongest own-basin reference at every lead. Benchmarked against
-persistence, a substantial share of published ``ML skill'' on deseasonalized
-TWSA is therefore reproduced by three-parameter state-space filtering alone.
+the strongest own-basin reference at every lead. A substantial share of
+what would register as ``ML skill'' over persistence-class references on
+deseasonalized TWSA is therefore reproduced by three-parameter state-space
+filtering alone.
 The interesting question becomes what \emph{does} beat the filter; the
 answer (exogenous forcing, a longer window of that forcing read linearly,
 and a small spatial correction) maps where genuine information lives.
@@ -434,6 +444,16 @@ always score against the stronger variant at each lead; a pooled ridge on
 own-basin lagged anomalies ($\alpha = 1$, lags 0, 1, 2, 5, 11 months); the
 same ridge with climate-index lags; and a per-basin ridge.
 % source: results/paper_baseline_ladder.csv (model list); lag set per project feature construction
+The distinction between the two persistence references matters throughout
+this paper. Raw persistence carries the last observed anomaly forward
+unchanged; damped persistence multiplies it by a per-basin shrinkage
+factor that decays the anomaly toward climatology with lead, which is the
+optimal linear extrapolation of a noise-free AR(1) anomaly. The two are
+not interchangeable as benchmarks: they differ by $16$--$23\,\%$ in
+pooled skill on our sample (Table~\ref{tab:ladder}), so which member of
+the persistence class a study scores against sets the bar its model must
+clear.
+% source: results/paper_baseline_ladder.csv, persistence rows (-15.80 to -22.68 vs damped = 0)
 
 The benchmark this paper argues for models each basin's deseasonalized
 residual $y_t$ as an AR(1) latent signal $x_t$ observed with additive white
@@ -805,7 +825,7 @@ is nearly free: it adds no data requirements and two lines of state-space
 code, so we propose it as the default persistence-class reference for
 deseasonalized GRACE basin forecasting. The reading is constructive: the
 ladder does not say learned models are useless; it says the bar they must
-clear sits higher than the field's standard reference, and the rest of this
+clear sits higher than any reference in current use, and the rest of this
 section is a map of what clears it.
 
 \paragraph{Protocol sensitivity.} The margin is insensitive to the two
@@ -1764,13 +1784,22 @@ forecasting method. Persistence-type references are supposed to represent
 persistence class's own headroom unexploited, and that headroom
 on deseasonalized GRACE basin series is 5.0--8.8\,\% at the leads where most
 % source: results/paper_baseline_ladder.csv, kalman_ar1 h1-h2 (+4.98, +8.79)
-data-driven papers claim their skill. Any study that benchmarks against
-persistence, damped persistence, or climatology on observed TWSA (most of
-the literature cited in Sect.~\ref{sec:intro}) overstates the
-information its model has extracted by roughly this margin, whatever mixture
-of measurement error and unmodeled dynamics the filter is exploiting
-(Sect.~\ref{sec:methods_kalman}). The fix costs
-three parameters per basin. This is the same benchmark-hygiene move that
+data-driven papers claim their skill. The inflation compounds down the
+reference ladder: a study scoring against damped persistence concedes this
+$5.0$--$8.8\,\%$; one scoring against raw persistence concedes a further
+$16$--$23\,\%$; one scoring against climatology far more
+(Table~\ref{tab:ladder}). In practice the forecasting studies cited in
+Sect.~\ref{sec:intro} sit at the bottom of that ladder or off it entirely:
+where a reference forecast exists it is a climatology, often implicit in
+Nash--Sutcliffe skill, or another forecast system
+\citep[SEAS5 in][]{li2026fcast}, and none that we examined scores against
+damped persistence. Reported skill on observed TWSA therefore cannot be
+read as information beyond what three-parameter filtering extracts,
+whatever mixture of measurement error and unmodeled dynamics the filter is
+exploiting (Sect.~\ref{sec:methods_kalman}). The fix costs
+three parameters per basin.
+% source: ladder gaps from results/paper_baseline_ladder.csv (persistence -15.80..-22.68 vs damped;
+% climatology -33.6..-125.6); baseline survey as sourced in the Sect. 1 comment This is the same benchmark-hygiene move that
 \citet{niraula2021seaice} made for the sea-ice edge via spatial damping,
 executed here via signal/noise separation, and it converges with three
 independent lines: persistence-class methods underrated at the
@@ -2042,8 +2071,8 @@ than an independent replication.
 \conclusions
 \label{sec:conclusions}
 
-For basin-average, deseasonalized GRACE TWSA, the field's standard
-persistence benchmark is weaker than its own reference class: a
+For basin-average, deseasonalized GRACE TWSA, the standard persistence
+benchmark is weaker than its own reference class: a
 three-parameter per-basin state-space filter applied to the same
 % source: results/paper_baseline_ladder.csv, kalman_ar1 rows; paper_baseline_contrasts.csv
 observations beats damped persistence by 5.0--8.8\,\% at leads 1--2 and
