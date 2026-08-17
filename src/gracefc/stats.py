@@ -61,15 +61,26 @@ def _paired_losses(
 
     Aggregating each model separately and intersecting only target dates lets
     unbalanced basin coverage bias the differential (audit 2026-08-13, P1-5);
-    pairing on rows and asserting target equality closes that hole.
+    pairing on rows and asserting both target equality and row-set equality
+    (audit 2026-08-17) closes that hole.
     """
     tcol, pcol = value_cols
     keys = ["name", "target_date"]
     a = sub[sub["model"] == model_a][keys + [tcol, pcol]]
     b = sub[sub["model"] == model_b][keys + [tcol, pcol]]
+    if len(a) == 0 or len(b) == 0:
+        # A model absent from this slice (e.g. not run at this horizon) is not a
+        # pairing defect; callers get an empty frame and NaN stats downstream.
+        return a.iloc[:0].assign(loss_a=[], loss_b=[])
     j = a.merge(b, on=keys, suffixes=("_a", "_b"), validate="one_to_one")
-    if len(j) == 0:
-        return j.assign(loss_a=[], loss_b=[])
+    if len(j) != len(a) or len(j) != len(b):
+        # Both models have rows but their key sets differ: an inner join here
+        # would silently score each model on a subset it wasn't asked about
+        # (external audit 2026-08-17). Callers must pre-match rows explicitly.
+        raise AssertionError(
+            f"row sets differ on paired keys: {model_a} has {len(a)} rows, "
+            f"{model_b} has {len(b)}, join keeps {len(j)}"
+        )
     if not np.allclose(j[f"{tcol}_a"], j[f"{tcol}_b"], atol=1e-8):
         raise AssertionError(f"targets differ on paired rows: {model_a} vs {model_b}")
     j["loss_a"] = (j[f"{tcol}_a"] - j[f"{pcol}_a"]) ** 2
