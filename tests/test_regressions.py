@@ -59,6 +59,30 @@ def test_paired_losses_rejects_target_disagreement():
         stats._paired_losses(rows, "a", "b")
 
 
+def test_paired_losses_rejects_row_set_mismatch():
+    """Audit 2026-08-17: both models present but on different rows must raise,
+    not silently score each on the intersection."""
+    rows = pd.DataFrame({
+        "model": ["a", "a", "b"], "name": ["X", "Y", "X"],
+        "target_date": [pd.Timestamp("2020-01-01")] * 3,
+        "target": [1.0, 1.0, 1.0], "pred": [0.0, 0.0, 0.0],
+    })
+    with pytest.raises(AssertionError, match="row sets differ"):
+        stats._paired_losses(rows, "a", "b")
+
+
+def test_paired_losses_empty_model_is_not_an_error():
+    """A model absent from the slice (not run at this horizon) yields an empty
+    frame — that is coverage, not a pairing defect."""
+    rows = pd.DataFrame({
+        "model": ["a"], "name": ["X"],
+        "target_date": [pd.Timestamp("2020-01-01")],
+        "target": [1.0], "pred": [0.0],
+    })
+    j = stats._paired_losses(rows, "a", "b")
+    assert len(j) == 0
+
+
 def test_bootstrap_block_scales_with_horizon():
     """Audit 2026-08-15: CI block length must cover lag-(h-1) overlap dependence."""
     import inspect
