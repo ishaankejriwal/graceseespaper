@@ -1193,3 +1193,44 @@ paper/notes/REWRITE_LEDGER.md §10h; scripts added to the chain.
 - **Builds**: all 7 figures rebuilt, every ledger assert passed; PDF compiled clean
   (40 pp, 0 undefined references, 0 bibtex warnings, no placeholder text in the
   rendered PDF, verified programmatically).
+
+---
+
+## 2026-08-17 — three-agent audit round on the repaired state, findings fixed
+
+Per the standing audit cadence, three independent subagents audited the finished state:
+a paper-claims-vs-data verifier (adversarial recompute), a cold-reader repo auditor
+(fresh-clone stance), and a code auditor on the two new experiment scripts.
+
+**Code audit (new scripts):** no blockers; the attribution script's construction was
+verified to reproduce the published arm's rows to machine precision (19,422 rows, max
+|pred diff| 8.9e-16). Fixed on its findings: t2m/swvl1 negative unique terms now stated
+(not "ns"), evap p quoted with the 11-test family context (survives Bonferroni), fold
+p bound 0.001→0.002, stats.py empty-model path now returns full schema (per_basin_dm_fdr
+and bootstrap no longer crash; regression test extended), chain inputs completed.
+
+**Paper-claims audit:** all of today's edits verified against the CSVs (2x2 cells, 9/9,
+attribution, flat85, ensemble contrast, coverage, controls table — clean). Fixed on its
+findings: tab:crossing h4-6 CI bounds refreshed to the block=max(3,h) values (points/p
+unchanged); limitations item 10 and intro contribution 3 scoped to match the abstract
+(exception cell no longer glossed); "Five properties" enumeration was actually six with
+a duplicated "Fifth" — renumbered; "largest at leads 5-6" corrected (h2 +1.45 > h5
++1.42; largest is lead 6 alone); hist12 p bound 1.5e-3→5.0e-3; r0 bound 1e-15→1e-13;
+precip unique 0.572pp → "as much as 0.6"; fusion p 1e-4→6e-5; Africa p .88→.87; fig8
+caption "negative elsewhere" precision; conclusions' residual "stage built for it" →
+"usable only in propagated-state form".
+
+**Cold-reader audit:** found ONE fresh-clone BLOCKER the batch audits could not see —
+phase8_strat reads phase7_resmlp_predictions.csv but ran before phase7_resmlp and never
+declared it. Fixed: phase7_resmlp/phase7_lstm moved ahead of the phase-8 steps, the
+input declared, and torch-phase outputs now include their predictions files. Also fixed:
+README data table completed (indices, Li/PANGAEA 973113, CSR ancillary rows added),
+"15 passed"→17 with fresh-clone skip note, five-of-six qualifier, figure-verify
+mechanism described honestly (asserts are transcribed into make_figures.py, not read
+from the ledger), runtime restated (~1.5-2 days; the 2026-08-16 entry's "~30.5 h" vs
+its own step sum of 33.6 h was a misrecorded launch time — step times are authoritative),
+stale "winner" framing in CODE_MAP/README rescoped to "best at leads 4-6", stale
+STUDY_CONTEXT header rewritten, stale make_figures DISCREPANCY comment cleared,
+--list now prints declared I/O, .gitignore README-section pointer fixed, stackdump
+litter removed. Chain is now 32 steps / 31 default; declared inputs verified present;
+17/17 tests; PDF recompiled clean (40 pp).
