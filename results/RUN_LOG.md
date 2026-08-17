@@ -1300,3 +1300,31 @@ litter removed. Chain is now 32 steps / 31 default; declared inputs verified pre
   \emph intensifiers dropped. Spelling unified to US (Neighbouring/unmodelled/favour x2).
 - Verification: git word-diff numeral multiset identical before/after (no quantitative
   content touched); PDF recompiled clean, 39 pp, 0 undefined refs/citations.
+
+## 2026-08-17 — Baseline survey of cited TWSA-forecasting studies; claim surgery on "benchmarked against persistence"
+
+- User question: do the cited forecasting studies actually score against DAMPED persistence?
+  Verified per paper: **li2026fcast** (local full text): benchmark = SEAS5 + GLDAS-NOAH +
+  WGHM-GLWS2.0, no persistence of any kind. **li2026fldas** (HESS full text): no reference
+  forecast at all — evaluated vs GRACE and reanalysis; lag-autocorrelation persistence
+  argument is a diagnostic, not a baseline. **zhu2019** (full text): benchmark = their own
+  elasticity IHC+DCF framework, explicitly contrasted with ESP; not persistence.
+  **nie2025** (full text, earlier audit): autoregressive info excluded by design, no
+  persistence/AR baseline. **steidl2025** (earlier full read): climatology + ConvLSTM only.
+  **li2024grl** (search-level): improvement quoted vs seasonal long-term mean. **mo2025nrt**,
+  **ahmed2019narx**: full texts inaccessible today (Wiley/MDPI 403); phase8_related_benchmarks.md
+  notes record metrics vs observations (NSE/CC/RMSE) with no reference forecast. **ahi2021**:
+  abstract-level only. CONCLUSION: none of the cited forecasting studies scores against damped
+  persistence; most use no persistence-class reference at all (climatology implicit in NSE,
+  another system, or nothing).
+- Manuscript surgery (all quantitative content untouched): abstract opener "routinely
+  benchmarked against persistence" → "when benchmarked at all, the reference is climatology
+  or persistence of the raw observation"; intro survey sentence now states the finding with
+  a source comment; Discussion 5.1 "any study that benchmarks against persistence ...
+  overstates by roughly this margin" → reference-ladder compounding statement (damped 5.0–8.8%,
+  raw +16–23%, climatology far more) + "none that we examined scores against damped
+  persistence"; "published skill over persistence" phrasings → "skill a model can demonstrate
+  over persistence-class references" (abstract + contribution 1); "field's standard reference"
+  softened. NEW Methods paragraph after the ladder list: raw vs damped persistence defined,
+  16–23% gap, "which member of the persistence class a study scores against sets the bar".
+- PDF recompiled clean, 39 pp, 0 undefined refs.
