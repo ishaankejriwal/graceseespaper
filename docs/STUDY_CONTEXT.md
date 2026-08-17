@@ -1,13 +1,16 @@
 # Project Context — Global TWSA Forecasting Study
 
-Last updated: 2026-08-17. Status: **corrected rerun COMPLETE for every phase (14/14 chain
-steps, 2026-08-16); all 7 figures built and assert-checked; manuscript repaired against the
-2026-08-17 external audit (four false statements fixed, last RERUN todo filled by a new
-ERA5 variable-attribution experiment, metadata complete) and compiles clean at 40 pp with
-zero undefined references. Remaining before submission: mint the Zenodo DOI. The "small
-basins" framing is RETIRED -- footprint contamination is the real stratifier, with one
-flagged exception cell (see the corrected findings below). "Delivery decides" is also
-RETIRED -- representation (the propagated state) is what separates the arms.**
+Last updated: 2026-08-17. Status: **corrected rerun COMPLETE for every phase; publication-polish
+round DONE (2026-08-17 evening): manuscript rewritten to published-paper register (abstract
+~280 words / 0 p-values, title 12 words, audit-trail voice purged, stats de-duplicated, new
+ERA5 attribution table, terminology unified — "footprint-sharing score", "variant", "lead")
+and all 7 figures rebuilt to an Okabe–Ito house style (fixed cross-figure color semantics,
+cartopy Robinson map, F4/F6 redesigned, print-width bug fixed). PDF 39 pp, 0 undefined refs,
+17/17 tests. Remaining before submission: mint the Zenodo DOI (availability statement still
+says "upon acceptance"). The "small basins" framing is RETIRED -- footprint sharing is the
+real stratifier, with one flagged exception cell (see the corrected findings below).
+"Delivery decides" is also RETIRED -- representation (the propagated state) is what
+separates the variants.**
 
 > Naming note: `docs/history/africa_pilot_jpl.md` and `docs/history/africa_pilot_csr.md` are the older Africa-only
 > work (JPL and CSR respectively). This file covers the current global study. For code layout

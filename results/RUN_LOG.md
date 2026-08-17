@@ -1234,3 +1234,49 @@ STUDY_CONTEXT header rewritten, stale make_figures DISCREPANCY comment cleared,
 --list now prints declared I/O, .gitignore README-section pointer fixed, stackdump
 litter removed. Chain is now 32 steps / 31 default; declared inputs verified present;
 17/17 tests; PDF recompiled clean (40 pp).
+
+## 2026-08-17 — Publication-polish round: prose audit + figure house style
+
+- Why: user judged the manuscript's writing and figures visibly below the register of
+  the published papers it engages (Li & Kusche 2026 and typical HESS papers): abstract
+  a ~560-word result inventory with 9 inline p-values, lab-notebook/audit-trail voice in
+  rendered text, default-matplotlib figures with inconsistent color semantics and a
+  print-scaling bug. Two review agents ran (cold-referee prose audit against
+  Gopen & Swan / Farquhar / Lipton standards; per-figure critique against AGU/EGU norms),
+  findings then applied.
+- Manuscript (`paper/main.tex`): title cut 24→12 words (subtitle dropped); abstract
+  rewritten ~560→~280 words, 6 numbers, 0 p-values; contribution 3 cut 45→8 lines;
+  conclusions rewritten without nested em-dash chains; all ~20 audit-trail/journey-voice
+  passages purged from rendered text (protocol-sensitivity content retained, confessional
+  framing removed; internal dates now only in % source comments); statistics de-duplicated
+  (headline numbers at full precision once; qualitative elsewhere); new ERA5 attribution
+  table (tab:attribution) built digit-for-digit from phase6_era5_attribution{,_continent}.csv
+  replaces the ~25-number prose dump; terminology unified (lead not horizon;
+  "footprint-sharing score" with one-line note that archives name it `contamination`;
+  "variant" not "arm"; GRACE-FCast with CSR member named once; "pre-specified" not
+  "registered"; all five "honest X" tics removed); crossing section rewritten to interpret
+  Table 3 instead of re-reading it; splice and physical-units paragraphs compressed;
+  worst 25 sentences from the audit broken up. Appendix Table A2 (results/*.csv paths)
+  moved out of the manuscript to docs/ARCHIVE_MANIFEST.md for the Zenodo README; Table A1
+  (name→identifier) retained. Caption contradictions fixed (F3 "hatched"→muted fill +
+  filled/open dots; F8 "ribbons"→intervals); includegraphics width bug fixed (17 cm builds
+  now \textwidth, was 12 cm = fonts at ~4.5 pt print).
+- Figures (`scripts/make_figures.py`, styling only, ledger asserts untouched, data
+  identical): Okabe–Ito palette with fixed cross-figure color semantics (Kalman blue,
+  stacked ensemble near-black, ridge-on-states vermillion, input-channel orange,
+  placebos gray; vik retained only as the F3 map colormap); house rcParams (8/7 pt,
+  no top/right spines, inward ticks, y-grid, capsize 0, fonttype 42); filled=DM p<0.05
+  convention annotated on F2/F5/F8. F1 broken axis + direct labels (legend deleted);
+  F3 cartopy Robinson + coastlines, non-FDR basins muted, extend="both" colorbar
+  (cartopy 0.25/pyproj/shapely added to venv and requirements-lock.txt, regenerated
+  88→95 pins); F4 rebuilt (null-distribution strips absorbing the floating IAAFT
+  annotation + signed bars + caterpillar); F6 rebuilt (gray cloud, Africa/Europe
+  highlighted, Theil–Sen line, quadrant labels, clip triangles; median table and
+  on-data legend deleted); F8 de-whiskered, terciles one-hue (darkest=high),
+  figure text says "footprint sharing" matching the paper. Known deviations recorded
+  in the script: F5 single-seed markers dropped (seed-1 channel contrast absent from
+  phase8b_h16_headline.csv); F4 IAAFT row uses summary marks (no per-surrogate file).
+- State: PDF 39 pp (was 40; abstract cut), 0 undefined refs, 17/17 tests pass.
+  Zenodo DOI remains the only submission blocker. Availability statement still says
+  "upon acceptance" — replace with the minted DOI before submission (Copernicus wants
+  it reviewable at submission).
