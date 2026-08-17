@@ -19,10 +19,12 @@ import matplotlib
 
 matplotlib.use("Agg")
 
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from cmcrameri import cm
+from matplotlib.patheffects import withStroke
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
@@ -31,22 +33,67 @@ FIGURES = ROOT / "figures"
 CM = 1.0 / 2.54  # cm -> inch
 H = np.array([1, 2, 3, 4, 5, 6])
 
-plt.rcParams.update(
-    {
-        "font.size": 8,
-        "axes.labelsize": 8,
-        "axes.titlesize": 8,
-        "xtick.labelsize": 7.5,
-        "ytick.labelsize": 7.5,
-        "legend.fontsize": 6.8,
-        "axes.linewidth": 0.7,
-        "xtick.major.width": 0.7,
-        "ytick.major.width": 0.7,
-        "lines.markersize": 4.0,
-        "pdf.fonttype": 42,  # embed TrueType (editable text in the PDF)
-        "savefig.bbox": "tight",
-    }
-)
+# ---------------------------------------------------------------------------
+# House style
+# ---------------------------------------------------------------------------
+
+OI = {"blue": "#0072B2", "vermillion": "#D55E00", "green": "#009E73",
+      "orange": "#E69F00", "sky": "#56B4E9", "purple": "#CC79A7",
+      "yellow": "#F0E442", "black": "#000000"}
+plt.rcParams.update({
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+    "font.size": 8, "axes.labelsize": 8, "axes.titlesize": 8,
+    "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
+    "axes.linewidth": 0.6,
+    "axes.spines.top": False, "axes.spines.right": False,
+    "xtick.direction": "in", "ytick.direction": "in",
+    "xtick.major.size": 3, "ytick.major.size": 3,
+    "xtick.major.width": 0.6, "ytick.major.width": 0.6,
+    "axes.grid": True, "axes.grid.axis": "y",
+    "grid.linewidth": 0.4, "grid.color": "0.88",
+    "lines.linewidth": 1.4, "lines.markersize": 4.0,
+    "legend.frameon": False, "legend.handlelength": 2.2,
+    "errorbar.capsize": 0,
+    "pdf.fonttype": 42, "savefig.bbox": "tight", "savefig.dpi": 300,
+})
+
+# fixed color semantics (see BUILD_NOTES): Kalman family = OI blue;
+# stacked ensemble / correction stage = near-black; ridge-on-filtered-states =
+# OI vermillion dashed; per-basin / pooled ridge = OI green / OI sky;
+# neighbor-as-input-channel = OI orange dashed; persistence / zero lines =
+# gray 0.45; placebo nulls = gray 0.75; Li nonseasonal = OI purple dotted.
+NEARBLACK = "0.1"
+REFGRAY = "0.45"
+NULLGRAY = "0.75"
+
+
+def tint(color, f):
+    """Blend a color toward white by fraction f (0 = unchanged, 1 = white)."""
+    c = np.asarray(mcolors.to_rgb(color))
+    return tuple(c + (1.0 - c) * f)
+
+
+def shade(color, f):
+    """Blend a color toward black by fraction f."""
+    c = np.asarray(mcolors.to_rgb(color))
+    return tuple(c * (1.0 - f))
+
+
+def sig_markers(ax, x, y, p, marker, color, ms=4.0, z=6):
+    """Significance convention: filled marker = DM p<0.05, open = ns."""
+    x, y, p = np.asarray(x), np.asarray(y), np.asarray(p)
+    sig = p < 0.05
+    ax.plot(x[sig], y[sig], ls="none", marker=marker, mfc=color, mec=color,
+            markersize=ms, zorder=z)
+    ax.plot(x[~sig], y[~sig], ls="none", marker=marker, mfc="white", mec=color,
+            markersize=ms, zorder=z)
+
+
+def dm_note(ax, x=0.02, y=0.03):
+    ax.annotate("filled: DM $p<0.05$", xy=(x, y), xycoords="axes fraction",
+                fontsize=7, color=REFGRAY, zorder=7)
+
 
 # ---------------------------------------------------------------------------
 # Ledger assertions
@@ -139,39 +186,62 @@ def fig01_benchmark_ladder():
     # contrast point estimates must agree with the ladder curve being drawn
     assert_ledger("F1 kalman contrast == ladder", kd.skill.to_numpy() * 100.0, kal)
 
-    c = cm.batlow
-    fig, ax = plt.subplots(figsize=(12 * CM, 8.5 * CM))
+    # broken axis: raw persistence lives at -16..-23 %, far below the field
+    fig = plt.figure(figsize=(12 * CM, 8.5 * CM))
+    gs = fig.add_gridspec(2, 1, height_ratios=[3, 1], hspace=0.06,
+                          left=0.11, right=0.72, top=0.97, bottom=0.11)
+    axt = fig.add_subplot(gs[0])
+    axb = fig.add_subplot(gs[1], sharex=axt)
 
-    ax.axhline(0.0, color="0.35", lw=1.0, zorder=1)
-    ax.plot(H, per, ls=":", marker="v", color=c(0.80), lw=1.0,
-            label="persistence", zorder=3)
-    ax.plot(H, plr, ls="-.", marker="^", color=c(0.60), lw=1.0,
-            label="pooled ridge (own lags)", zorder=3)
-    ax.plot(H, pbr, ls="--", marker="s", color=c(0.40), lw=1.0,
-            label="per-basin ridge", zorder=3)
-    ax.fill_between(H, ci_lo, ci_hi, color=c(0.02), alpha=0.15, lw=0, zorder=2)
-    ax.plot(H, kal, ls="-", marker="o", color=c(0.02), lw=1.8,
-            label="Kalman (filtered-state persistence)", zorder=5)
-    ax.plot(H, kor, ls="--", marker="D", color=c(0.20), lw=1.8,
-            label="ridge on filtered states", zorder=4)
+    axt.axhline(0.0, color=REFGRAY, lw=0.8, zorder=1)
+    axt.fill_between(H, ci_lo, ci_hi, color=OI["blue"], alpha=0.15, lw=0, zorder=2)
+    axt.plot(H, plr, ls="-.", marker="^", color=OI["sky"], lw=1.2, zorder=3)
+    axt.plot(H, pbr, ls="--", marker="s", color=OI["green"], lw=1.2, zorder=3)
+    axt.plot(H, kal, ls="-", marker="o", color=OI["blue"], lw=1.5, zorder=5)
+    axt.plot(H, kor, ls="--", marker="D", color=OI["vermillion"], lw=1.5, zorder=4)
+    axb.plot(H, per, ls=":", marker="v", color=REFGRAY, lw=1.0, zorder=3)
+
+    # direct labels at the right edge (no floating legend)
+    for txt, y, col in [
+        ("ridge on filtered states", kor[-1], OI["vermillion"]),
+        ("Kalman (filtered-state\npersistence)", kal[-1], OI["blue"]),
+        ("pooled ridge (own lags)", plr[-1], OI["sky"]),
+        ("per-basin ridge", pbr[-1], OI["green"]),
+    ]:
+        axt.annotate(txt, xy=(6.15, y), ha="left", va="center", fontsize=7,
+                     color=col, annotation_clip=False)
+    axb.annotate("persistence", xy=(6.15, per[-1]), ha="left", va="center",
+                 fontsize=7, color=REFGRAY, annotation_clip=False)
 
     # zero-line label (the reference itself)
-    ax.annotate("damped persistence\n(stronger variant)", xy=(1.0, 0), xytext=(0.95, -2.2),
-                ha="left", va="top", fontsize=6.8, color="0.35")
+    axt.annotate("damped persistence (stronger variant)", xy=(1.0, 0),
+                 xytext=(0.98, -0.35), ha="left", va="top", fontsize=6.5,
+                 color=REFGRAY)
 
     # bracket at h1-h2: corrected noise-propagation gap +5.0-8.8 %
-    yb = max(kal[0], kal[1]) + 1.4
-    ax.plot([1, 1, 2, 2], [kal[0] + 0.7, yb, yb, kal[1] + 0.7],
-            color="0.15", lw=0.8, zorder=6)
-    ax.annotate("+5.0–8.8%", xy=(1.5, yb), xytext=(1.5, yb + 0.5),
-                ha="center", va="bottom", fontsize=7.5, color="0.15", zorder=6)
+    yb = max(kal[0], kal[1]) + 1.0
+    axt.plot([1, 1, 2, 2], [kal[0] + 0.6, yb, yb, kal[1] + 0.6],
+             color="0.15", lw=0.8, zorder=6)
+    axt.annotate("+5.0–8.8%", xy=(1.5, yb), xytext=(1.5, yb + 0.25),
+                 ha="center", va="bottom", fontsize=7, color="0.15", zorder=6)
 
-    ax.set_xlabel("lead $h$ (months)")
-    ax.set_ylabel("skill vs damped persistence (%)")
-    ax.set_xticks(H)
-    ax.set_xlim(0.75, 6.25)
-    ax.set_ylim(-25.5, 13.5)
-    ax.legend(loc="center right", frameon=False, ncol=1, handlelength=2.4)
+    # broken-axis cosmetics
+    axt.set_ylim(-1.5, 11.0)
+    axb.set_ylim(-24.0, -14.0)
+    axt.spines["bottom"].set_visible(False)
+    axt.tick_params(bottom=False, labelbottom=False)
+    d = 0.5  # diagonal break marks at the left spine
+    mark = dict(marker=[(-1, -d), (1, d)], markersize=6, linestyle="none",
+                color="k", mec="k", mew=0.6, clip_on=False)
+    axt.plot([0], [0], transform=axt.transAxes, **mark)
+    axb.plot([0], [1], transform=axb.transAxes, **mark)
+
+    axb.set_xlabel("lead $h$ (months)")
+    axt.set_ylabel("skill vs damped persistence (%)")
+    axt.yaxis.set_label_coords(-0.085, 0.38)
+    axb.set_yticks([-22, -18, -14])
+    axb.set_xticks(H)
+    axb.set_xlim(0.75, 6.25)
     save(fig, "fig01_benchmark_ladder")
 
 
@@ -219,37 +289,33 @@ def fig02_crossing():
     win_str = "/".join(str(int(w)) for w in wins)
     print(f"  per-basin win counts (dm_stat<0, of 227): {win_str}")
 
-    c = cm.batlow
     fig, ax = plt.subplots(figsize=(12 * CM, 8.5 * CM))
 
-    ax.axhline(0.0, color="0.35", lw=1.0, zorder=1)
-    ax.axvline(2.5, color="0.35", lw=0.8, ls="--", zorder=1)
-    ax.annotate("crossover", xy=(2.42, -42.5), ha="right", va="bottom",
-                fontsize=7, color="0.35")
+    ax.axhline(0.0, color=REFGRAY, lw=0.8, zorder=1)
+    ax.axvline(2.5, color=REFGRAY, lw=0.7, ls="--", zorder=1)
+    ax.annotate("crossover", xy=(2.55, 2.0), ha="left", va="center",
+                fontsize=7, color=REFGRAY)
 
-    ax.fill_between(H, mlo, mhi, color=c(0.05), alpha=0.15, lw=0, zorder=2)
+    ax.fill_between(H, mlo, mhi, color=NEARBLACK, alpha=0.12, lw=0, zorder=2)
 
     def draw(y, p, color, ls, marker, lw, label, z):
         ax.plot(H, y, ls=ls, color=color, lw=lw, label=label, zorder=z)
-        sig = p < 0.05
-        ax.plot(H[sig], y[sig], ls="none", marker=marker, color=color,
-                mfc=color, mec=color, zorder=z + 1)
-        ax.plot(H[~sig], y[~sig], ls="none", marker=marker, color=color,
-                mfc="white", mec=color, zorder=z + 1)
+        sig_markers(ax, H, y, p, marker, color, z=z + 1)
 
-    draw(main, mp, c(0.05), "-", "o", 1.8,
+    draw(main, mp, NEARBLACK, "-", "o", 1.6,
          "stacked ensemble vs GRACE-FCast (full)", 5)
-    draw(kal, kp, c(0.45), "--", "s", 1.0,
+    draw(kal, kp, OI["blue"], "--", "s", 1.3,
          "Kalman alone vs GRACE-FCast (full)", 3)
-    draw(nons, np_, c(0.72), ":", "^", 1.0,
+    draw(nons, np_, OI["purple"], ":", "^", 1.3,
          "stacked ensemble vs GRACE-FCast (non-seas.)", 3)
 
+    dm_note(ax)
     ax.set_xlabel("lead $h$ (months)")
     ax.set_ylabel("skill vs GRACE-FCast (%)")
     ax.set_xticks(H)
     ax.set_xlim(0.75, 6.25)
-    ax.set_ylim(-46, 35)
-    ax.legend(loc="upper right", frameon=False, handlelength=2.6)
+    ax.set_ylim(-42, 34)
+    ax.legend(loc="upper right", handlelength=2.6)
     save(fig, "fig02_crossing")
     return win_str
 
@@ -280,6 +346,11 @@ def fig05_delivery():
     s0, _, _, _ = head(per, "lstmres_corr_top1_s0", "lstm_own_era5_s0")
     s1, _, _, _ = head(per, "lstmres_corr_top1_s1", "lstm_own_era5_s1")
     ch0, _, _, _ = head(per, "lstm_corr_top1_era5_s0", "lstm_own_era5_s0")
+    # NOTE (styling decision, 2026-08-17): the input-channel route has no
+    # seed-1 contrast in phase8b_h16_headline.csv (only lstm_corr_top1_era5_s0),
+    # so single-seed markers are dropped from BOTH routes to keep the seed
+    # treatment symmetric; the ensembles carry the figure. s0/s1/ch0 are still
+    # loaded because the ledger and placebo cross-checks below depend on them.
 
     # --- ledger section 5 ---
     assert_ledger("F5 ensemble correction", corr, [0.91, 1.45, 1.33, 1.32, 1.42, 1.96])
@@ -352,45 +423,42 @@ def fig05_delivery():
     band_hi = pl.groupby("horizon").incr.max().reindex(H).to_numpy()
 
     # ---- draw -------------------------------------------------------------
-    blue, red = cm.vik(0.08), cm.vik(0.92)
-    fig, ax = plt.subplots(figsize=(12 * CM, 8.5 * CM))
+    fig, ax = plt.subplots(figsize=(12 * CM, 8.2 * CM))
 
-    ax.axhline(0.0, color="0.35", lw=1.0, zorder=1)
-    ax.fill_between(H, band_lo, band_hi, color="0.72", alpha=0.45, lw=0, zorder=2,
-                    label="random-graph placebo range (40 draws)")
+    ax.axhline(0.0, color=REFGRAY, lw=0.8, zorder=1)
+    ax.fill_between(H, band_lo, band_hi, color=NULLGRAY, alpha=0.35, lw=0, zorder=2,
+                    label="random-graph placebo range")
 
-    # correction stage: ensemble curve + CI ribbon, per-seed light markers
-    ax.fill_between(H, corr_lo, corr_hi, color=blue, alpha=0.18, lw=0, zorder=3)
-    ax.plot(H, corr, ls="-", marker="o", color=blue, lw=1.8, zorder=6,
+    # correction stage: ensemble curve + CI ribbon
+    ax.fill_between(H, corr_lo, corr_hi, color=NEARBLACK, alpha=0.12, lw=0, zorder=3)
+    ax.plot(H, corr, ls="-", color=NEARBLACK, lw=1.6, zorder=6,
             label="as correction stage (2-seed ensemble)")
-    ax.plot(H - 0.09, s0, ls="none", marker="^", color=blue, alpha=0.45,
-            markersize=3.2, zorder=5, label="correction, single seeds")
-    ax.plot(H + 0.09, s1, ls="none", marker="v", color=blue, alpha=0.45,
-            markersize=3.2, zorder=5)
+    sig_markers(ax, H, corr, corr_p, "o", NEARBLACK, z=7)
 
-    # input channel: ensemble curve + CI error bars, seed-0 light markers
+    # input channel: ensemble curve + CI error bars
     ax.errorbar(H, chan, yerr=[chan - chan_lo, chan_hi - chan],
-                ls="--", marker="s", color=red, lw=1.4, elinewidth=0.8,
-                capsize=2.0, zorder=4,
+                ls="--", color=OI["orange"], lw=1.4, elinewidth=0.8,
+                ecolor="0.6", zorder=4,
                 label="as input channel (2-seed ensemble)")
-    ax.plot(H + 0.09, ch0, ls="none", marker="D", color=red, alpha=0.45,
-            markersize=3.0, zorder=4, label="channel, seed 0")
+    sig_markers(ax, H, chan, chan_p, "s", OI["orange"], z=5)
 
-    ax.annotate("identical neighbor information,\ntwo deliveries",
-                xy=(0.95, 2.48), ha="left", va="top", fontsize=7, color="0.15")
+    ax.annotate("identical neighbor information, two deliveries",
+                xy=(0.98, 2.42), ha="left", va="top", fontsize=7, color="0.15")
+    dm_note(ax)
 
     ax.set_xlabel("lead $h$ (months)")
     ax.set_ylabel("skill increment over stage-1 LSTM (%)")
     ax.set_xticks(H)
     ax.set_xlim(0.75, 6.25)
-    ax.set_ylim(-2.8, 2.6)
+    ax.set_ylim(-1.8, 2.6)
     handles, labels = ax.get_legend_handles_labels()
     order = [labels.index(k) for k in [
-        "as correction stage (2-seed ensemble)", "correction, single seeds",
-        "as input channel (2-seed ensemble)", "channel, seed 0",
-        "random-graph placebo range (40 draws)"]]
+        "as correction stage (2-seed ensemble)",
+        "as input channel (2-seed ensemble)",
+        "random-graph placebo range"]]
     ax.legend([handles[i] for i in order], [labels[i] for i in order],
-              loc="lower right", frameon=False, handlelength=2.4)
+              loc="lower left", bbox_to_anchor=(0.0, 1.02), ncol=2,
+              handlelength=2.0, columnspacing=1.2, borderaxespad=0.0)
     save(fig, "fig05_delivery")
     return band_lo, band_hi
 
@@ -439,13 +507,16 @@ def fig08_stratification():
         "stratum n's changed (terciles 78 each; resolved x low/mid 142)"
     )
 
-    c = cm.batlow
+    # one hue at three lightness steps; DARKEST = high tercile (carries the finding)
     STYLE = {  # shared tercile identity across both panels
-        "cont_tercile_low": dict(color=c(0.05), ls="-", marker="o", label="contamination low"),
-        "cont_tercile_mid": dict(color=c(0.38), ls="--", marker="s", label="contamination mid"),
-        "cont_tercile_high": dict(color=c(0.68), ls=":", marker="^", label="contamination high"),
-        "resolved_x_cont_lowmid": dict(color="0.15", ls="-.", marker="D",
-                                       label="resolved × cont. low/mid"),
+        "cont_tercile_low": dict(color=tint(OI["blue"], 0.62), ls=":", marker="o",
+                                 label="low"),
+        "cont_tercile_mid": dict(color=tint(OI["blue"], 0.28), ls="--", marker="s",
+                                 label="mid"),
+        "cont_tercile_high": dict(color=shade(OI["blue"], 0.25), ls="-", marker="^",
+                                  label="high"),
+        "resolved_x_cont_lowmid": dict(color=NEARBLACK, ls="-.", marker="D",
+                                       label="resolved × low/mid sharing"),
     }
     OFFS = {"cont_tercile_low": -0.09, "cont_tercile_mid": -0.03,
             "cont_tercile_high": 0.03, "resolved_x_cont_lowmid": 0.09}
@@ -460,15 +531,15 @@ def fig08_stratification():
         s = STYLE[stratum]
         x = H + OFFS[stratum]
         ax.errorbar(x, y, yerr=[y - lo, hi - y], ls=s["ls"], color=s["color"],
-                    lw=lw, elinewidth=0.7, capsize=1.8, zorder=4,
-                    label=f"{s['label']} ($n$={n})")
+                    lw=lw, elinewidth=0.5, ecolor="0.6", zorder=4,
+                    label=s["label"])
         sig = p < 0.05
         for m, fc in [(sig, s["color"]), (~sig, "white")]:
             ax.plot(x[m], y[m], ls="none", marker=s["marker"], color=s["color"],
                     mfc=fc, mec=s["color"], markersize=3.8, zorder=5)
 
     for ax in (axa, axb):
-        ax.axhline(0.0, color="0.35", lw=1.0, zorder=1)
+        ax.axhline(0.0, color=REFGRAY, lw=0.8, zorder=1)
         ax.set_xticks(H)
         ax.set_xlim(0.6, 6.4)
         ax.set_xlabel("lead $h$ (months)")
@@ -479,26 +550,40 @@ def fig08_stratification():
               "resolved_x_cont_lowmid"]:
         draw(axb, stk[s], s, 1.1)
 
-    axa.set_title("(a) linear arm (ridge, +ERA5)", loc="left", fontsize=7.5)
-    axb.set_title("(b) stacked correction (LSTM ens.)", loc="left", fontsize=7.5)
+    # panel letters inside the axes; legends above the data region
+    axa.text(0.02, 0.975, "(a)", transform=axa.transAxes, va="top",
+             fontweight="bold", fontsize=8)
+    axa.text(0.085, 0.975, "linear tier (ridge, +ERA5)", transform=axa.transAxes,
+             va="top", fontsize=8)
+    axb.text(0.02, 0.975, "(b)", transform=axb.transAxes, va="top",
+             fontweight="bold", fontsize=8)
+    axb.text(0.085, 0.975, "stacked correction (LSTM ensemble)", transform=axb.transAxes,
+             va="top", fontsize=8)
     axa.set_ylabel("skill vs own-only twin (%)")
-    axa.legend(loc="upper right", frameon=False, handlelength=2.4)
-    axb.legend(loc="lower right", frameon=False, handlelength=2.4)
+    ha, la = axa.get_legend_handles_labels()
+    la = ["footprint sharing low" if l == "low" else l for l in la]
+    axa.legend(ha, la, loc="lower left",
+               bbox_to_anchor=(0.0, 1.02), ncol=3, columnspacing=1.0,
+               handlelength=1.8, borderaxespad=0.0)
+    hb, lb = axb.get_legend_handles_labels()
+    keep = [i for i, l in enumerate(lb) if l.startswith("resolved")]
+    axb.legend([hb[i] for i in keep], [lb[i] for i in keep], loc="lower left",
+               bbox_to_anchor=(0.0, 1.02), handlelength=2.0, borderaxespad=0.0)
     axa.set_ylim(-1.9, 2.75)  # shared
 
     # filled = DM p < 0.05, open = ns (stated in caption as well)
-    axa.annotate("filled: DM $p<0.05$", xy=(0.03, 0.03), xycoords="axes fraction",
-                 fontsize=6.5, color="0.35")
+    dm_note(axa, 0.03, 0.03)
     save(fig, "fig08_stratification")
 
 
 # ---------------------------------------------------------------------------
-# F3 -- per-basin neighbor-effect map (choropleth on the mask grid; no cartopy)
+# F3 -- per-basin neighbor-effect map (choropleth on the mask grid)
 # ---------------------------------------------------------------------------
 
 def fig03_neighbor_map():
     print("F3 fig03_neighbor_map")
     import sys
+    import cartopy.crs as ccrs
     import xarray as xr
     sys.path.insert(0, str(ROOT / "src"))
     from gracefc.basins import load_basin_masks
@@ -511,31 +596,50 @@ def fig03_neighbor_map():
     lat, lon = dm["lat"].values, dm["lon"].values
     dm.close()
 
+    sig = fdr[fdr["significant"]]
+    sig_names = set(sig.index)
+
+    # choropleth values plus a significance mask (used for muting only)
     grid = np.full(lat.size * lon.size, np.nan)
+    sig_mask = np.zeros(lat.size * lon.size, dtype=bool)
     for b, name in enumerate(meta["name"]):
         if name in fdr.index and np.isfinite(fdr.loc[name, "dm_stat"]):
             # sign flipped: positive = neighbor helps
             grid[masks["indices"][b]] = -float(fdr.loc[name, "dm_stat"])
+            if name in sig_names:
+                sig_mask[masks["indices"][b]] = True
     grid = grid.reshape(lat.size, lon.size)
+    sig_mask = sig_mask.reshape(lat.size, lon.size)
 
     # Roll 0..360 -> -180..180 for a conventional world map
     shift = lon.size // 2
     grid = np.roll(grid, shift, axis=1)
+    sig_mask = np.roll(sig_mask, shift, axis=1)
     lon_c = np.where(lon >= 180, lon - 360, lon)
     lon_plot = np.sort(lon_c)
 
-    fig, ax = plt.subplots(figsize=(17 * CM, 9.2 * CM))
-    pm = ax.pcolormesh(lon_plot, lat, np.clip(grid, -3, 3),
-                       cmap=cm.vik_r, vmin=-3, vmax=3, rasterized=True, shading="nearest")
-    pm.cmap.set_bad("0.94")
+    pc = ccrs.PlateCarree()
+    fig = plt.figure(figsize=(17 * CM, 9.6 * CM))
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
+    ax.set_extent([-180, 180, -60, 84], crs=pc)
     ax.set_facecolor("0.94")
-    ax.set_ylim(-60, 84)
-    ax.set_aspect(1.0)
-    ax.tick_params(labelsize=6.5)
+    for sp in ax.spines.values():
+        sp.set_linewidth(0.6)
+        sp.set_edgecolor("0.3")
+
+    # single mesh with precomputed RGBA: non-FDR-significant basins are
+    # white-blended (muted) so no alpha compositing stipple appears
+    norm = mcolors.Normalize(vmin=-3, vmax=3)
+    rgba = cm.vik_r(norm(np.clip(grid, -3, 3)))  # NaN cells -> transparent
+    ns = np.isfinite(grid) & ~sig_mask
+    rgba[ns, :3] = 1.0 - 0.45 * (1.0 - rgba[ns, :3])
+    ax.pcolormesh(lon_plot, lat, rgba, rasterized=True, shading="nearest",
+                  transform=pc)
+    sm = plt.cm.ScalarMappable(norm=norm, cmap=cm.vik_r)
+    ax.coastlines(lw=0.3, color="0.4")
 
     # FDR-significant basins: filled dot = helped, open = hurt (21 = 13 + 8)
     cent = pd.read_csv(ROOT / "data/processed/basin_meta.csv").set_index("name")
-    sig = fdr[fdr["significant"]]
     n_h = int(sig["a_better"].sum())
     n_u = int((~sig["a_better"]).sum())
     assert (n_h, n_u) == (13, 8), f"FDR roster changed: {n_h} helped / {n_u} hurt"
@@ -544,20 +648,28 @@ def fig03_neighbor_map():
         lo = cent.loc[name, "centroid_lon"]
         lo = lo - 360 if lo > 180 else lo
         if row["a_better"]:
-            ax.plot(lo, la, "o", ms=3.4, mfc="k", mec="k", mew=0.5, zorder=5)
+            ax.plot(lo, la, "o", ms=3.4, mfc="k", mec="k", mew=0.5, zorder=5,
+                    transform=pc)
         else:
-            ax.plot(lo, la, "o", ms=3.8, mfc="none", mec="k", mew=0.9, zorder=5)
+            ax.plot(lo, la, "o", ms=3.8, mfc="none", mec="k", mew=0.9, zorder=5,
+                    transform=pc)
+    tr = pc._as_mpl_transform(ax)
+    halo = [withStroke(linewidth=1.5, foreground="white")]
     for name, label, dy in (("R_Yenisey_River", "Yenisey", 3), ("R_Parana_River", "Paraná", -6),
                             ("R_Yangtze_River", "Yangtze", -6), ("R_Amur_River", "Amur", 4),
                             ("R_Niger_River", "Niger", -6), ("R_Sao_Francisco_River", "São Francisco", 4)):
         la = cent.loc[name, "centroid_lat"]
         lo = cent.loc[name, "centroid_lon"]
         lo = lo - 360 if lo > 180 else lo
-        ax.annotate(label, xy=(lo, la), xytext=(lo + 2, la + dy), fontsize=6.2,
+        ax.annotate(label, xy=(lo, la), xycoords=tr, xytext=(lo + 2, la + dy),
+                    textcoords=tr, fontsize=6.5, zorder=6, path_effects=halo,
                     arrowprops=dict(arrowstyle="-", lw=0.5, color="0.25"))
-    cb = fig.colorbar(pm, ax=ax, orientation="horizontal", fraction=0.055, pad=0.11, aspect=42)
+    cb = fig.colorbar(sm, ax=ax, orientation="horizontal", shrink=0.7,
+                      pad=0.04, aspect=42, extend="both")
     cb.set_label("per-basin DM statistic, lead 1 (positive = neighbor helps)", fontsize=7)
-    ax.annotate(f"filled: FDR-significant helped (n={n_h})   open: hurt (n={n_u})   q=0.10",
+    cb.ax.tick_params(labelsize=6.5)
+    ax.annotate(f"filled: FDR-significant helped (n={n_h})   open: hurt (n={n_u})   "
+                f"q=0.10   muted fill: not significant",
                 xy=(0.01, 1.02), xycoords="axes fraction", fontsize=6.6, color="0.25")
     save(fig, "fig03_neighbor_map")
 
@@ -587,18 +699,39 @@ def fig04_controls():
                              gridspec_kw={"width_ratios": [1.25, 1.0, 1.0], "wspace": 0.42})
     axa, axb, axc = axes
 
-    axa.hist(pooled.values, bins=14, color=cm.batlow(0.55), edgecolor="white", lw=0.4)
-    axa.axvline(real_rmse, color="k", lw=1.4)
-    axa.annotate("real graph\n(beats 50/50)", xy=(real_rmse, axa.get_ylim()[1] * 0.94),
-                 xytext=(4, -2), textcoords="offset points", fontsize=6.4, va="top")
+    # (a) two null-distribution strips sharing the pooled-RMSE axis.
+    # Per-surrogate RMSEs are not stored (phase4_surrogate_summary.csv keeps
+    # only mean/min/p_rank), so the IAAFT row shows the summary marks.
+    axa.grid(False, axis="y")
+    axa.grid(True, axis="x")
+    rng = np.random.default_rng(7)
+    yj = 1.0 + rng.uniform(-0.15, 0.15, size=len(pooled))
+    axa.scatter(pooled.values, yj, s=6, color=NULLGRAY, edgecolor="none", zorder=3)
+    axa.plot([real_rmse] * 2, [0.70, 1.30], color=OI["blue"], lw=1.4, zorder=4)
+    axa.annotate("real graph\n(beats 50/50)", xy=(real_rmse, 1.32),
+                 xytext=(1, 2), textcoords="offset points", ha="left",
+                 va="bottom", fontsize=6.5, color=OI["blue"], zorder=5)
+    axa.plot([su1["real_rmse"]] * 2, [-0.30, 0.30], color=OI["blue"], lw=1.4, zorder=4)
+    axa.annotate("real\n(beats 99/99, $p_{rank}$=0.01)", xy=(su1["real_rmse"], -0.32),
+                 xytext=(1, -2), textcoords="offset points", ha="left",
+                 va="top", fontsize=6.5, color=OI["blue"], zorder=5)
+    axa.scatter([su1["surr_mean"]], [0.0], s=6, color=NULLGRAY,
+                edgecolor="none", zorder=3)
+    axa.scatter([su1["surr_min"]], [0.0], s=10, facecolor="white",
+                edgecolor="0.55", linewidth=0.6, zorder=3)
+    axa.annotate("mean of 99", xy=(su1["surr_mean"], -0.10), ha="right",
+                 va="top", fontsize=6.5, color="0.45")
+    axa.annotate("best of 99", xy=(su1["surr_min"], 0.08), ha="right",
+                 va="bottom", fontsize=6.5, color="0.45")
+    axa.set_yticks([1.0, 0.0])
+    axa.set_yticklabels(["random\ngraphs", "IAAFT\nsurrogates"], fontsize=7)
+    axa.set_ylim(-0.85, 1.75)
+    pad = 0.00025
+    axa.set_xlim(min(real_rmse, su1["real_rmse"]) - pad,
+                 max(pooled.max(), su1["surr_mean"]) + pad)
     axa.set_xlabel("pooled lead-1 RMSE (std. units)")
     axa.xaxis.set_major_locator(plt.MaxNLocator(4))
-    axa.set_ylabel("random graphs")
-    axa.set_title("(a) placebo + surrogate nulls", loc="left", fontsize=7.5)
-    axa.annotate(f"IAAFT surrogates: real skill {100 * su1['skill_vs_own']:+.2f}%"
-                 f" beats 99/99\n(surrogate mean {100 * su1['surr_skill_vs_own_mean']:+.2f}%,"
-                 f" $p_{{rank}}$=0.01)",
-                 xy=(0.02, -0.52), xycoords="axes fraction", fontsize=6.4)
+    axa.set_title("(a) placebo + surrogate nulls", loc="left")
 
     # (b) distance profile (corrected values; placebo counts from the summary)
     prof = [("no restr.", "kalman_corr_top1"), ("≥300 km", "kalman_corr_min300_top1"),
@@ -607,17 +740,24 @@ def fig04_controls():
     vals = [100 * float(s1.loc[m, "skill_vs_own_ridge"]) for _, m in prof]
     beat = [f"{int(s1.loc[m, 'placebo_beaten'])}/{int(s1.loc[m, 'placebo_n'])}" for _, m in prof]
     assert_ledger("F4 distance profile", vals, [0.31, 0.32, 0.16, -0.60])
-    axb.bar(xs, vals, width=0.62, color=[cm.batlow(v) for v in (0.25, 0.42, 0.60, 0.78)])
-    axb.axhline(0, color="k", lw=0.7)
+    for x, v in zip(xs, vals):
+        if v >= 0:
+            axb.bar(x, v, width=0.62, color=OI["blue"], edgecolor="none", zorder=3)
+        else:
+            axb.bar(x, v, width=0.62, facecolor="0.85", edgecolor="0.5",
+                    linewidth=0.5, hatch="///", zorder=3)
+    axb.axhline(0, color=REFGRAY, lw=0.7, zorder=2)
     for x, v, b in zip(xs, vals, beat):
-        axb.annotate(b, xy=(x, v), xytext=(0, 4 if v >= 0 else -11),
-                     textcoords="offset points", ha="center", fontsize=6.4)
+        axb.annotate(b, xy=(x, v), xytext=(0, 3 if v >= 0 else -9),
+                     textcoords="offset points", ha="center", fontsize=6.5,
+                     clip_on=False, zorder=5)
     axb.set_xticks(xs)
-    axb.set_xticklabels([p[0] for p in prof], fontsize=6.2, rotation=18, ha="right")
+    axb.set_xticklabels([p[0] for p in prof], fontsize=6.5, rotation=18, ha="right")
+    axb.set_ylim(-0.85, 0.48)
     axb.set_ylabel("lead-1 skill vs own ridge (%)")
-    axb.set_title("(b) source-distance exclusion", loc="left", fontsize=7.5)
+    axb.set_title("(b) source-distance exclusion", loc="left")
 
-    # (c) conditioning invariance, bootstrap CIs
+    # (c) conditioning invariance, bootstrap CIs, as a horizontal caterpillar
     import sys
     sys.path.insert(0, str(ROOT / "src"))
     from gracefc.stats import block_bootstrap_skill_ci
@@ -633,16 +773,19 @@ def fig04_controls():
     rows = [("uncond.", *head_row("ridge_corr_top1", "ridge_own")),
             ("ENSO+IOD", 100 * pt, 100 * lo, 100 * hi),
             ("full ERA5", *head_row("ridge_corr_top1_era5", "ridge_own_era5"))]
-    xs = np.arange(len(rows))
-    for x, (lab, v, l, h) in zip(xs, rows):
-        axc.errorbar(x, v, yerr=[[v - l], [h - v]], fmt="o", ms=4, color=cm.vik(0.15),
-                     ecolor="0.45", elinewidth=1.0, capsize=2.5)
-    axc.axhline(0, color="k", lw=0.7)
-    axc.set_xticks(xs)
-    axc.set_xticklabels([r[0] for r in rows], fontsize=6.2, rotation=18, ha="right")
-    axc.set_xlim(-0.6, len(rows) - 0.4)
-    axc.set_ylabel("lead-1 skill vs own reference (%)")
-    axc.set_title("(c) conditioning invariance", loc="left", fontsize=7.5)
+    axc.grid(False, axis="y")
+    axc.grid(True, axis="x")
+    ys = np.array([2, 1, 0])
+    axc.axvline(0, color=REFGRAY, lw=0.8, zorder=2)
+    axc.axvline(np.mean([r[1] for r in rows]), color="0.8", lw=0.6, ls=":", zorder=1)
+    for y, (lab, v, l, h) in zip(ys, rows):
+        axc.errorbar(v, y, xerr=[[v - l], [h - v]], fmt="o", ms=4, color=OI["blue"],
+                     ecolor="0.45", elinewidth=1.0, zorder=4)
+    axc.set_yticks(ys)
+    axc.set_yticklabels([r[0] for r in rows], fontsize=7)
+    axc.set_ylim(-0.6, 2.6)
+    axc.set_xlabel("lead-1 skill vs own reference (%)")
+    axc.set_title("(c) conditioning invariance", loc="left")
     save(fig, "fig04_controls")
 
 
@@ -652,7 +795,7 @@ def fig04_controls():
 
 def fig06_complementarity():
     print("F6 fig06_complementarity")
-    from scipy.stats import spearmanr
+    from scipy.stats import spearmanr, theilslopes
 
     pred = pd.read_csv(RESULTS / "phase6_era5_predictions.csv")
     h1 = pred[pred["horizon"] == 1]
@@ -677,34 +820,68 @@ def fig06_complementarity():
     rho, p = spearmanr(df["era5"], df["nbr"])
     assert_ledger("F6 rho", [rho], [-0.22], tol=0.005)
 
+    XL, YL = (-30.0, 40.0), (-12.0, 12.0)
+    x = df["era5"].to_numpy()
+    y = df["nbr"].to_numpy()
+    clipped = (x < XL[0]) | (x > XL[1]) | (y < YL[0]) | (y > YL[1])
+    n_off = int(clipped.sum())
+
     fig, ax = plt.subplots(figsize=(12 * CM, 8.6 * CM))
-    conts = ["africa", "asia", "australia", "europe", "north_america", "south_america"]
-    labels = ["Africa", "Asia", "Australia/Oceania", "Europe", "N. America", "S. America"]
-    colors = [cm.batlowS(i) for i in range(len(conts))]
-    n_off = 0
-    for cont, lab, col in zip(conts, labels, colors):
+    ax.grid(False)
+    ax.axhline(0, color=REFGRAY, lw=0.6, zorder=1)
+    ax.axvline(0, color=REFGRAY, lw=0.6, zorder=1)
+
+    # all 234 basins, de-emphasized; clipped points pinned as open triangles
+    ax.scatter(x[~clipped], y[~clipped], s=7, color=NULLGRAY,
+               edgecolor="none", zorder=3)
+    for xi, yi in zip(x[clipped], y[clipped]):
+        if xi < XL[0]:
+            m = "<"
+        elif xi > XL[1]:
+            m = ">"
+        elif yi < YL[0]:
+            m = "v"
+        else:
+            m = "^"
+        ax.scatter(np.clip(xi, *XL), np.clip(yi, *YL), s=14, marker=m,
+                   facecolor="none", edgecolor="0.55", linewidth=0.6, zorder=3)
+
+    # highlighted continents with direct labels (white halo)
+    halo = [withStroke(linewidth=1.5, foreground="white")]
+    for cont, lab, col, dx, dy, ha in [
+        ("africa", "Africa", OI["blue"], -2.0, 4.2, "right"),
+        ("europe", "Europe", OI["vermillion"], 2.5, -3.6, "left"),
+    ]:
         g = df[df["continent"] == cont]
-        big = cont == "africa"
-        x = g["era5"].clip(-30, 40)
-        n_off += int(((g["era5"] < -30) | (g["era5"] > 40)).sum())
-        ax.scatter(x, g["nbr"].clip(-12, 12), s=16 if big else 8,
-                   color=col, edgecolor="k" if big else "none", linewidth=0.4,
-                   label=lab, zorder=5 if big else 3, alpha=0.95 if big else 0.8)
-    ax.axhline(0, color="0.6", lw=0.6)
-    ax.axvline(0, color="0.6", lw=0.6)
+        ax.scatter(g["era5"].clip(*XL), g["nbr"].clip(*YL), s=14, color=col,
+                   edgecolor="none", zorder=5)
+        mx, my = g["era5"].median(), g["nbr"].median()
+        ax.text(mx + dx, my + dy, lab, color=col, fontsize=8, ha=ha,
+                va="center", zorder=6, path_effects=halo)
+
+    # Theil-Sen fit with the rank correlation attached to the line's end
+    slope, intercept, _, _ = theilslopes(df["nbr"], df["era5"])
+    xx = np.array(XL)
+    ax.plot(xx, intercept + slope * xx, color="k", lw=1.0, zorder=4)
+    ax.annotate(f"Spearman $\\rho$ = {rho:+.2f} ($p$ = {p:.4f})",
+                xy=(XL[1] - 0.8, intercept + slope * (XL[1] - 0.8)),
+                xytext=(0, -7), textcoords="offset points",
+                ha="right", va="top", fontsize=7, color="k",
+                path_effects=halo, zorder=6)
+
+    # the two off-diagonal quadrants are each other's dead zones
+    ax.text(XL[0] + 1.2, YL[1] - 0.6, "ERA5 dead zone:\nneighbors cover it",
+            fontsize=6.5, color="0.45", ha="left", va="top", zorder=2)
+    ax.text(XL[1] - 1.2, YL[0] + 0.6, "neighbor dead zone:\nERA5 covers it",
+            fontsize=6.5, color="0.45", ha="right", va="bottom", zorder=2)
+
+    ax.annotate(f"234 basins; {n_off} clipped to range (open triangles)",
+                xy=(0.02, 0.045), xycoords="axes fraction", fontsize=6.5,
+                color="0.45")
+    ax.set_xlim(*XL)
+    ax.set_ylim(*YL)
     ax.set_xlabel("per-basin ERA5 gain, lead 1 (%)")
     ax.set_ylabel("per-basin ERA5-conditioned neighbor gain, lead 1 (%)")
-    ax.legend(loc="upper right", frameon=False, ncol=2, columnspacing=0.9)
-    ax.annotate(f"Spearman $\\rho$ = {rho:+.2f} ($p$ = {p:.0e}), 234 basins"
-                + (f"; {n_off} points clipped" if n_off else ""),
-                xy=(0.02, 0.02), xycoords="axes fraction", fontsize=6.8)
-    med = df.groupby("continent")[["era5", "nbr"]].median().round(1)
-    txt = "median (ERA5, nbr) %\n" + "\n".join(
-        f"{lab:<12} {med.loc[c, 'era5']:+.1f}, {med.loc[c, 'nbr']:+.1f}"
-        for c, lab in zip(conts, ["Africa", "Asia", "Aus/Oc", "Europe", "N. Am", "S. Am"]))
-    ax.annotate(txt, xy=(0.02, 0.97), xycoords="axes fraction", va="top", fontsize=6.2,
-                family="monospace",
-                bbox=dict(boxstyle="round,pad=0.35", fc="white", ec="0.7", lw=0.6))
     save(fig, "fig06_complementarity")
 
 
