@@ -449,3 +449,25 @@ Errors rescaled by per-(basin,fold) train-window residual std; leads 1–3, 227�
   pooled number overweights.
 - Remaining RERUN todo: ERA5 variable ablation only. (J.Hydrology citation todo is
   commented out, unresolvable.)
+
+### 10g. flat12 twins (chain final step, 2026-08-16 23:47) — SEQUENCE CLAIM INVERTED
+
+Source: `results/phase7_lstm_predictions.csv`; contrasts computed 2026-08-16 (matched rows).
+
+- `ridge_own_era5_flat12` vs `ridge_own_era5` (lag features): **+3.34/+5.01/+3.49%** at h1–3,
+  all sig — MORE than the LSTM's entire margin over the lag ridge (+2.17/+2.36/+1.43 ens).
+- LSTM 2-seed ens vs `ridge_own_era5_flat12` (same 12-mo info): **−1.20 (p=.037) / −2.80
+  (p=1.8e-10) / −2.13 (p=3.8e-9)** — the LSTM LOSES to the linear reader of its own input.
+- `mlp_own_era5_flat12` vs flat ridge: −3.08/−2.70/−2.26 — fourth nonlinear head to lose
+  to linear on identical features. Nie-convergence now includes the history representation.
+- **Stack (best system) vs flat12 ridge: tie h1 (−0.29, p=.58), LOSES h2–3 (−1.31,
+  p=8.3e-4; −0.77, p=.032).** flat12 exists only at h1–3 → long-lead ranking untested.
+
+**Framing changes MADE:** abstract sentence (now "+3.3–5.0% read linearly, beats every
+sequence model we trained"); contribution-1 bullet ("a longer window of that forcing read
+linearly"); §results_era5 heading ("…and a longer window of forcing") + paragraph rewritten
+(history-length gain, not sequence-modeling gain; "identical information" corrected — the
+old ridge twin saw only lag features); nominal-best disclosure scoped to leads 4–6 with the
+flat12 tie/loss quoted; conclusions updated. "Sequence gain lives in the forcing history"
+survives in corrected form: the usable history is the forcing's, but its best reader is
+linear. BANNED: any sentence attributing the 12-month gain to sequence architecture.
