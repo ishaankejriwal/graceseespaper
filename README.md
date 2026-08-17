@@ -65,7 +65,8 @@ real underlying water level from the measurement noise *first*, then does the sh
 clean estimate.
 
 That change alone buys **+5.0% accuracy at lead 1 and +8.8% at lead 2**. It's better than
-per-basin ridge regression at five of the six leads. And it's not a small technical footnote —
+per-basin ridge regression at five of the six leads (ahead at the sixth too, but not by a
+statistically significant margin). And it's not a small technical footnote —
 it's a free improvement available to anyone in this field who is currently benchmarking the
 usual way.
 
@@ -157,7 +158,8 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements-lock.txt
 .venv/Scripts/python -m pytest tests/ -q
 ```
 
-You should see `15 passed`. If you do, your environment is fine.
+You should see `17 passed` (on a fresh clone without the data downloaded yet, some
+data-dependent tests skip instead — passed-plus-skipped is also fine).
 
 ### Downloading the data
 
@@ -166,8 +168,11 @@ The data files are big, so they aren't in git. You download them once:
 | What | Where it goes | How to get it |
 |---|---|---|
 | GRACE satellite measurements | repo root, `CSR_..._Mascons_....nc` | [CSR mascon page](http://www2.csr.utexas.edu/grace/RL0603_mascons.html) |
+| CSR ancillary files (mascon mapping + land mask) | `data/raw/csr_ancillary/` | same [CSR mascon page](http://www2.csr.utexas.edu/grace/RL0603_mascons.html), "ancillary files" section |
 | River basin boundaries | repo root, `HydroShed+Mascon_Basins_L3.nc` | ships with the project |
 | ERA5 weather data | `data/raw/era5/` | run `scripts/download_era5.py` (needs a free [CDS account](https://cds.climate.copernicus.eu/)) |
+| Climate indices | `data/processed/indices.csv` | run `scripts/download_indices.py` (NOAA PSL, no account needed) |
+| GRACE-FCast hindcast (Li & Kusche 2026) | `data/raw/li2026/CSR-FCast/global_gridded/` | [PANGAEA 973113](https://doi.pangaea.de/10.1594/PANGAEA.973113) |
 
 Curious what's inside those satellite files? `scripts/inspect_inputs.py` prints their structure
 and doesn't change anything.
@@ -224,8 +229,10 @@ land at r ≈ 0. The paper is careful about this wording, and you should be too.
 
 ### How the neural network models use the filter
 
-The best-performing system isn't a replacement for the Kalman filter — it's built on top of it.
-Its final prediction is literally three things added together:
+The stacked system — the carrier of the neighbour-correction result, and our best system at
+leads 4–6 (at leads 1–3 a plain ridge over the same 12-month history matches or beats it;
+that inversion is itself one of the paper's findings) — isn't a replacement for the Kalman
+filter. It's built on top of it. Its final prediction is literally three things added together:
 
 ```
 prediction  =  kalman forecast  +  LSTM correction  +  neighbour correction
@@ -324,9 +331,10 @@ Run the whole thing:
 .venv/Scripts/python scripts/run_chain.py
 ```
 
-Heads up: a full run takes on the order of **30–40 hours** on a laptop. The neural network
-stages dominate. Run just part of it with `--steps name1 name2`. Each stage writes its own log
-to `results/chain_<name>.log`.
+Heads up: a full run is **roughly a day and a half to two days** on a laptop — the recorded
+14-step partial rerun took ~34 hours, and the full default list adds the baselines, phase 3b,
+the Li comparison, and more on top of that. The neural network stages dominate. Run just part
+of it with `--steps name1 name2`. Each stage writes its own log to `results/chain_<name>.log`.
 
 The default step list is the whole study: building the basin/ERA5/Li tables from raw files,
 the baselines, every experiment phase, the paper's number ladder, the figures, and the
@@ -337,8 +345,10 @@ covers where each comes from). Once those are on disk, `run_chain.py` with no ar
 the reproduction recipe.
 
 **Figures:** `scripts/make_figures.py` builds the paper's charts. It deliberately *crashes* if
-any plotted value disagrees with the recorded numbers in `paper/notes/REWRITE_LEDGER.md`. That's
-a feature — it means the figures and the manuscript can't silently drift apart.
+any plotted value disagrees with expected numbers transcribed into the script from
+`paper/notes/REWRITE_LEDGER.md`. That's a feature — a changed result can't silently redraw a
+figure. (The transcriptions live in the script itself, so when a result legitimately changes
+you update the ledger *and* the script's assert next to it.)
 
 ---
 
@@ -349,7 +359,8 @@ A few conventions. Please don't break them — each one exists because something
 - **`results/RUN_LOG.md` is append-only.** It's a diary of what was true when each batch ran.
   Never edit an old entry to match a newer result. Add a new entry instead.
 - **`paper/notes/REWRITE_LEDGER.md` is the only authoritative source for numbers in the paper.**
-  If you change a result, update the ledger, and the figures will re-verify against it.
+  If you change a result, update the ledger and the matching hardcoded assert in
+  `scripts/make_figures.py`; the figure build then re-verifies the plotted values.
 - **Don't touch `archive/`.** It's a frozen snapshot of pre-audit results, checksummed. It exists
   so we can always show what changed and when.
 - **Big result files aren't in git.** They regenerate from the code plus raw data.
@@ -357,6 +368,8 @@ A few conventions. Please don't break them — each one exists because something
 - **The notebooks have their outputs deliberately cleared**, so old numbers sitting in a saved
   cell can't be mistaken for current ones.
 - **Run the tests before you commit.** `pytest tests/ -q`, 15 seconds.
+- **`docs/STUDY_CONTEXT.md` and `docs/CODE_MAP.md` are living docs** — when a milestone lands,
+  update their status lines in the same commit, or the next cold reader inherits a stale map.
 
 ---
 

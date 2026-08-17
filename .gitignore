@@ -1,6 +1,7 @@
 # Environments and caches
 .venv/
 __pycache__/
+*.stackdump
 *.pyc
 .ipynb_checkpoints/
 .pytest_cache/
@@ -10,7 +11,7 @@ __pycache__/
 
 # Raw and archived data: not in git.
 # - data/ holds source datasets (CSR mascons, ERA5, Li 2026, indices) that are
-#   re-downloadable; see README "Getting the data".
+#   re-downloadable; see README "Downloading the data".
 # - archive/ is the frozen pre-audit snapshot, integrity-pinned by its own
 #   SHA256_MANIFEST.csv.
 data/

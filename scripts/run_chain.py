@@ -65,13 +65,14 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 
     ("phase2",
      ["scripts/run_phase2_baselines.py"],
-     [DATA / "basin_month_twsa_global.csv", DATA / "indices.csv"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv", DATA / "indices.csv"],
      [RESULTS / "phase2_baseline_predictions.csv", RESULTS / "phase2_strata.csv",
       RESULTS / "phase2_baseline_summary.csv"]),
 
     ("kalman",
      ["scripts/run_kalman_baseline.py"],
-     [DATA / "basin_month_twsa_global.csv", RESULTS / "phase2_baseline_predictions.csv"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      RESULTS / "phase2_baseline_predictions.csv"],
      [RESULTS / "kalman_predictions.csv"]),
 
     ("phase3b",
@@ -82,7 +83,8 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 
     ("jump_screen",
      ["scripts/run_jump_screen.py"],
-     [RESULTS / "phase3b_predictions.csv", RESULTS / "phase3b_placebo_basin.csv"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      RESULTS / "phase3b_predictions.csv", RESULTS / "phase3b_placebo_basin.csv"],
      [RESULTS / "phase4_jump_screen.csv"]),
 
     ("predlag",
@@ -99,28 +101,33 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 
     ("surrogates",
      ["scripts/run_phase4_surrogates.py"],
-     [RESULTS / "kalman_fold_params.pkl"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase4_surrogate_summary.csv"]),
 
     ("r0_ablation",
      ["scripts/run_r0_ablation.py"],
-     [RESULTS / "kalman_predictions.csv", RESULTS / "phase2_baseline_predictions.csv"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      RESULTS / "kalman_predictions.csv", RESULTS / "phase2_baseline_predictions.csv"],
      [RESULTS / "kalman_r0_predictions.csv", RESULTS / "r0_ablation_summary.csv"]),
 
     ("phase5_fusion",
      ["scripts/run_phase5_fusion.py"],
-     [DATA / "basin_month_twsa_global.csv", RESULTS / "kalman_fold_params.pkl"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase5_fusion_predictions.csv", RESULTS / "phase5_fusion_summary.csv"]),
 
     ("phase5_coupled",
      ["scripts/run_phase5_coupled.py"],
-     [DATA / "basin_month_twsa_global.csv", RESULTS / "kalman_fold_params.pkl"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase5_coupled_predictions.csv", RESULTS / "phase5_coupled_coupling.csv",
       RESULTS / "phase5_coupled_summary.csv"]),
 
     ("phase5_nonlinear",
      ["scripts/run_phase5_nonlinear.py"],
-     [DATA / "basin_month_twsa_global.csv"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase5_nonlinear_predictions.csv"]),
 
     ("phase5_stats",
@@ -132,19 +139,22 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 
     ("li_comparison",
      ["scripts/run_phase6_li_comparison.py"],
-     [DATA / "li2026_csr_basin_forecasts.csv", DATA / "li2026_basin_coverage.csv",
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      DATA / "li2026_csr_basin_forecasts.csv", DATA / "li2026_basin_coverage.csv",
       RESULTS / "phase3b_predictions.csv", RESULTS / "phase2_baseline_predictions.csv"],
      [RESULTS / "phase6_li_comparison_predictions.csv", RESULTS / "phase6_li_comparison_summary.csv",
       RESULTS / "phase6_li_comparison_headline.csv", RESULTS / "phase6_li_comparison_perbasin.csv"]),
 
     ("phase6_era5",
      ["scripts/run_phase6_era5.py"],
-     [DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase6_era5_headline.csv", RESULTS / "phase6_era5_predictions.csv"]),
 
     ("era5_attribution",
      ["scripts/run_phase6_era5_attribution.py"],
-     [DATA / "era5_basin_month.csv", RESULTS / "phase6_era5_predictions.csv",
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      DATA / "era5_basin_month.csv", RESULTS / "phase6_era5_predictions.csv",
       RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase6_era5_attribution.csv", RESULTS / "phase6_era5_attribution_folds.csv",
       RESULTS / "phase6_era5_attribution_continent.csv", RESULTS / "phase6_era5_attribution_fdr.csv"]),
@@ -171,20 +181,38 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      [RESULTS / "resolution_diagnostics.csv", RESULTS / "resolution_cross_2x2.csv",
       RESULTS / "resolution_cross_2x2_200k.csv"]),
 
+    ("phase7_resmlp",
+     ["scripts/run_phase7_resmlp.py"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
+     [RESULTS / "phase7_resmlp_summary.csv", RESULTS / "phase7_resmlp_predictions.csv"]),
+
+    ("phase7_lstm",
+     ["scripts/run_phase7_lstm.py"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
+     [RESULTS / "phase7_lstm_summary.csv", RESULTS / "phase7_lstm_predictions.csv"]),
+
     ("phase8_h13",
      ["scripts/run_phase8_lstm_combined.py", "--horizons", "1-3"],
-     [DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
-     [RESULTS / "phase8_lstm_combined_summary.csv"]),
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
+     [RESULTS / "phase8_lstm_combined_summary.csv",
+      RESULTS / "phase8_lstm_combined_predictions.csv"]),
 
     ("phase8_h46",
      ["scripts/run_phase8_lstm_combined.py", "--horizons", "4-6", "--tag", "phase8b_lstm_h46"],
-     [DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
-     [RESULTS / "phase8b_lstm_h46_summary.csv"]),
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
+     [RESULTS / "phase8b_lstm_h46_summary.csv",
+      RESULTS / "phase8b_lstm_h46_predictions.csv"]),
 
     ("phase8b_merge",
      ["scripts/run_phase8b_merge.py"],
      [RESULTS / "phase8_lstm_combined_predictions.csv",
+      RESULTS / "phase8_lstm_combined_summary.csv",
       RESULTS / "phase8b_lstm_h46_predictions.csv",
+      RESULTS / "phase8b_lstm_h46_summary.csv",
       RESULTS / "phase6_li_comparison_predictions.csv",
       DATA / "li2026_basin_coverage.csv"],
      [RESULTS / "phase8b_h16_headline.csv", RESULTS / "phase8b_h16_ensemble_headline.csv",
@@ -193,27 +221,20 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
     ("phase8_strat",
      ["scripts/run_phase8_stratification.py"],
      [RESULTS / "resolution_diagnostics.csv", RESULTS / "phase8_lstm_combined_predictions.csv",
-      RESULTS / "phase8b_lstm_h46_predictions.csv"],
+      RESULTS / "phase8b_lstm_h46_predictions.csv",
+      RESULTS / "phase7_resmlp_predictions.csv"],
      [RESULTS / "phase8_stratification.csv"]),
-
-    ("phase7_resmlp",
-     ["scripts/run_phase7_resmlp.py"],
-     [DATA / "era5_basin_month.csv"],
-     [RESULTS / "phase7_resmlp_summary.csv"]),
-
-    ("phase7_lstm",
-     ["scripts/run_phase7_lstm.py"],
-     [DATA / "era5_basin_month.csv"],
-     [RESULTS / "phase7_lstm_summary.csv"]),
 
     ("phase7_gnn",
      ["scripts/run_phase7_gnn.py"],
-     [DATA / "era5_basin_month.csv"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase7_gnn_summary.csv"]),
 
     ("flat12_train85",
      ["scripts/run_flat12_train85_sensitivity.py"],
-     [DATA / "era5_basin_month.csv", RESULTS / "phase7_lstm_predictions.csv",
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      DATA / "era5_basin_month.csv", RESULTS / "phase7_lstm_predictions.csv",
       RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "flat12_train85_sensitivity.csv"]),
 
@@ -224,10 +245,14 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 
     ("figures",
      ["scripts/make_figures.py"],
-     [ROOT / "paper" / "notes" / "REWRITE_LEDGER.md", MASK_NC,
-      RESULTS / "paper_baseline_ladder.csv", RESULTS / "phase8b_li_comparison_headline.csv",
-      RESULTS / "phase8b_h16_ensemble_headline.csv", RESULTS / "phase8_stratification.csv",
+     [MASK_NC, DATA / "basin_meta.csv",
+      RESULTS / "paper_baseline_ladder.csv", RESULTS / "paper_baseline_contrasts.csv",
+      RESULTS / "phase8b_li_comparison_headline.csv", RESULTS / "phase8b_li_comparison_perbasin.csv",
+      RESULTS / "phase8b_h16_ensemble_headline.csv", RESULTS / "phase8b_h16_headline.csv",
+      RESULTS / "phase8_stratification.csv", RESULTS / "phase3b_summary.csv",
+      RESULTS / "phase3b_placebo_monthly.csv",
       RESULTS / "phase4_surrogate_summary.csv", RESULTS / "phase5_perbasin_fdr_h1.csv",
+      RESULTS / "phase6_era5_headline.csv",
       RESULTS / "phase6_era5_predictions.csv", RESULTS / "phase4_conditioned_predictions.csv"],
      [FIGURES / f"{stem}.pdf" for stem in
       ("fig01_benchmark_ladder", "fig02_crossing", "fig03_neighbor_map", "fig04_controls",
@@ -272,6 +297,9 @@ def main() -> None:
         for name, cmd, inputs, outputs in STEPS:
             flag = "" if name in DEFAULT else "  [not in default list]"
             print(f"{name}{flag}\n  cmd: {' '.join(cmd)}")
+            for label, paths in (("in", inputs), ("out", outputs)):
+                for p in paths:
+                    print(f"  {label}:  {p.relative_to(ROOT)}")
         return
     chosen = args.steps or DEFAULT
     unknown = [s for s in chosen if s not in by_name]

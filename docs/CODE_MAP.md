@@ -4,7 +4,7 @@ A tour of the code, written for someone who has never opened this project.
 Read the [README](../README.md) first — it explains what the study is actually about. This page
 explains where things live and which file to open when.
 
-Last updated: 2026-08-15.
+Last updated: 2026-08-17.
 
 ---
 
@@ -67,7 +67,7 @@ it. You mostly won't edit these unless you're adding a new model.
 | `experiment_resmlp.py` | Ridge for the basin's own history, plus a small network correcting from neighbours only (phase 7). |
 | `experiment_lstm.py` + `phase7.py` | A neural network that reads 12 months of history in sequence (phase 7). |
 | `experiment_gnn.py` | A graph neural network. Never beat plain ridge — this is what closed the graph question (phase 7). |
-| `experiment_lstm_combined.py` | **The winner.** Kalman + LSTM correction + neighbour correction, stacked (phase 8). |
+| `experiment_lstm_combined.py` | The stacked system: Kalman + LSTM correction + neighbour correction (phase 8). Carrier of the neighbour-correction headline and our best system at leads 4–6; at leads 1–3 a flat 12-month ridge matches or beats it. |
 
 ---
 
@@ -106,7 +106,7 @@ disagrees with the recorded value in `paper/notes/REWRITE_LEDGER.md`.
 | `run_phase6_li_comparison.py` | How do we compare to a published forecast product? (We win lead 1, they win leads 3–6.) |
 | `run_phase6_basin_analysis.py` | *Which* basins benefit, and why? |
 | `run_phase7_*.py` | Three neural architectures on identical inputs, head to head. |
-| `run_phase8_lstm_combined.py`, `run_phase8b_merge.py` | The stacked winner, across all six leads. |
+| `run_phase8_lstm_combined.py`, `run_phase8b_merge.py` | The stacked system and its neighbour correction, across all six leads. |
 | `run_r0_ablation.py` | Which half of the Kalman filter actually earns the win? (The noise removal.) |
 | `run_resolution_sensitivity.py` | Are results contaminated by the satellite's coarse resolution? Builds the leakage metric. |
 | `run_phase8_stratification.py` | Is the neighbour result just leakage in disguise? (No — it's positive everywhere.) |

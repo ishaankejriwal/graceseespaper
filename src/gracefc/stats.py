@@ -70,8 +70,12 @@ def _paired_losses(
     b = sub[sub["model"] == model_b][keys + [tcol, pcol]]
     if len(a) == 0 or len(b) == 0:
         # A model absent from this slice (e.g. not run at this horizon) is not a
-        # pairing defect; callers get an empty frame and NaN stats downstream.
-        return a.iloc[:0].assign(loss_a=[], loss_b=[])
+        # pairing defect; callers get an empty frame with the full paired schema
+        # so every downstream path (groupby, dropna on p) degrades to NaN/empty
+        # instead of crashing (audit 2026-08-17, finding 3).
+        cols = keys + [f"{tcol}_a", f"{pcol}_a", f"{tcol}_b", f"{pcol}_b",
+                       "loss_a", "loss_b"]
+        return pd.DataFrame(columns=cols)
     j = a.merge(b, on=keys, suffixes=("_a", "_b"), validate="one_to_one")
     if len(j) != len(a) or len(j) != len(b):
         # Both models have rows but their key sets differ: an inner join here
@@ -118,6 +122,8 @@ def block_bootstrap_skill_ci(
     la = j.groupby("target_date")["loss_a"].mean().sort_index().values
     lb = j.groupby("target_date")["loss_b"].mean().sort_index().values
     n = len(la)
+    if n < block:
+        return np.nan, np.nan, np.nan
     rng = np.random.default_rng(seed)
     point = 1 - la.mean() / lb.mean()
     draws = np.empty(n_boot)
@@ -141,6 +147,9 @@ def per_basin_dm_fdr(
     for name, grp in j.sort_values("target_date").groupby("name"):
         stat, p = diebold_mariano(grp["loss_a"].values, grp["loss_b"].values, horizon=horizon)
         rows.append({"name": name, "dm_stat": stat, "p": p, "a_better": stat < 0 if np.isfinite(stat) else False})
+    if not rows:
+        return pd.DataFrame(columns=["name", "dm_stat", "p", "a_better",
+                                     "bh_threshold", "significant"])
     df = pd.DataFrame(rows).dropna(subset=["p"]).sort_values("p").reset_index(drop=True)
     m = len(df)
     df["bh_threshold"] = (np.arange(1, m + 1) / m) * q

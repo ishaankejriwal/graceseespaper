@@ -284,12 +284,10 @@ def fig05_delivery():
     # --- ledger section 5 ---
     assert_ledger("F5 ensemble correction", corr, [0.91, 1.45, 1.33, 1.32, 1.42, 1.96])
     assert_ledger("F5 ensemble CI lower", corr_lo, [0.64, 1.07, 1.02, 0.96, 1.06, 1.66])
-    # DISCREPANCY (flagged in BUILD_NOTES): REWRITE_LEDGER.md sect. 5 says
-    # "All p <= 1.2e-10", but the CSV (sole source, cross-checked against
-    # phase8_stratification.csv 'all' rows) has max dm_p = 3.14e-08 at h4
-    # (h1 = 1.10e-10, h6 = 1.21e-13) -- the ledger line looks like a
-    # transcription slip from the h1 value. dm_p is NOT printed on the
-    # figure; we assert the level the CSV supports and report the mismatch.
+    # Max dm_p = 3.14e-08 at h4 (h1 = 1.10e-10, h6 = 1.21e-13). The ledger's
+    # earlier "All p <= 1.2e-10" was a transcription slip from the h1 value,
+    # corrected in the ledger on 2026-08-15; both now agree with the CSV.
+    # dm_p is NOT printed on the figure; we assert the level the CSV supports.
     assert (corr_p < 5e-8).all(), "ensemble correction no longer significant at every lead"
     assert_ledger("F5 per-seed s0", s0, [0.64, 1.33, 1.29, 1.26, 1.51, 1.90])
     assert_ledger("F5 per-seed s1", s1, [1.19, 1.56, 1.36, 1.37, 1.28, 1.93])
