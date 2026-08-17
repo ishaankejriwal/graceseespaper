@@ -85,16 +85,18 @@ publications.copernicus.org on 2026-08-13; documentclass `[hess, manuscript]`).
 18. **All bib entries fetched programmatically** via DOI content negotiation
     or the arXiv bibtex endpoint on 2026-08-13 (see header of
     `references.bib`). No entry written from memory.
-19. **UNVERIFIED — excluded from references.bib**: the 2025 *Journal of
-    Hydrology* integrated Gauss–Markov/Kalman GRACE postprocessing paper
-    (ScienceDirect PII S002216942500890X, known only from the novelty audit).
-    CrossRef bibliographic search (multiple queries, J. Hydrology 2025–2026
-    filter) did not surface it and ScienceDirect blocks scraping, so the DOI
-    could not be established. A `\todo` note marks the intended citation spot
-    in Sect. 5.1. **Action for authors**: open the PII URL in a browser,
-    confirm the paper exists as characterized (Gauss–Markov AR(1) + Kalman
-    signal *extraction* on 22 basins, not forecasting), and add the verified
-    entry.
+19. **RESOLVED 2026-08-17**: the 2025 *Journal of Hydrology* paper (PII
+    S002216942500890X) is Zhang, Shen, Ji, Wang & Chen (2025), "An integrated
+    postprocessing approach for extracting time variable signals from GRACE
+    monthly gravity field models", J. Hydrol. 661, 133552, DOI
+    10.1016/j.jhydrol.2025.133552 — identified via the DOI redirect to the PII
+    and cross-checked against Semantic Scholar (author order confirmed; note
+    first author is Zhang, not Chen). It iteratively separates a stochastic
+    non-seasonal signal from noise in the existing record (22 basins) — signal
+    extraction, not forecasting. Cited in Sect. 5.1 as the closest upstream
+    machinery; the paper's benchmark novelty claim is scoped accordingly. The
+    full text remains paywalled and uninspected; the characterization rests on
+    the abstract-level record.
 20. **Niraula & Goessling (2021), not "Niraula & Notz"**: the project memory
     referred to this JGR Oceans paper as Niraula & Notz; CrossRef metadata
     (DOI 10.1029/2021JC017784) gives authors Niraula, Bimochan and Goessling,

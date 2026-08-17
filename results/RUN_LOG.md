@@ -1154,3 +1154,42 @@ deferred to the paper pass.
   placebo-draw text, issue dates, noise-mechanism language, Chen et al. 2025 citation);
   basin-mask provenance (user: ignore for now); ERA5-coverage disclosure; the
   flat12-vs-LSTM 85 %-train caveat (matched sensitivity already run, direction holds).
+
+---
+
+## 2026-08-17 — manuscript repair pass + two new experiments (attribution, flat85)
+
+Acting on the paper-side findings of the 2026-08-17 external audit. Numbers in
+paper/notes/REWRITE_LEDGER.md §10h; scripts added to the chain.
+
+- **NEW EXPERIMENT `run_phase6_era5_attribution.py`** (leave-one-variable-out + solo
+  ridge refits at lead 1, plus fold/continent/FDR decompositions of the published
+  ridge_own_era5 arm): full arm reproduces +4.62%; evaporation carries the largest
+  unique contribution (+1.45pp, p=.002); swvl1/swvl2 strongest solo (+2.29/+2.22%);
+  t2m/swe nothing. Fold f3 (2022-05..2023-09, triple-dip La Niña) is the sole failure
+  (−3.05%, ns). Continental: NA/EU/Asia +6.0..+7.1%, Africa −0.4% ns. FDR: 23/234 =
+  21 helped / 2 hurt. This filled the manuscript's last RERUN todo with measured values.
+- **NEW EXPERIMENT `run_flat12_train85_sensitivity.py`**: flat12 ridge refit on the
+  LSTM's exact 85% training rows — vs LSTM ens +1.02 (p=.094) / +2.76 / +2.27%; vs
+  full-row flat12 within ±0.2% ns. The flat12 result does not rest on the extra rows;
+  h1 head-to-head weakens to ns under row matching (disclosed in §results_era5).
+- **Manuscript surgery** (all four false statements from the audit fixed): abstract 2×2
+  scoped with the exception cell flagged; resMLP placebo count corrected 12/12 → 9/9
+  (3 seeds × 3 horizons; also fixed in phase7_corrected_analysis.md); §results_era5
+  heading now "A longer window of forcing extends the gain; sequence architecture does
+  not"; design-map sentence rewritten around the 2-seed ensemble (+0.81% h4 p=.0011,
+  gone h5-6; architecture-vs-window untested past h3); "delivery decides" purged
+  (fig05 caption, README Finding 3 → representation decides); placebo-draw text
+  unified with the per-cell redraw reality; issue windows June 2019–April 2026;
+  "growing rather than decaying" → "persistent, largest at lead 6"; r=0 language
+  demoted to ablation-grounded attribution; IAAFT stated transductive; ERA5 coverage
+  disclosed (13/234 <50%, 79 <90%, min 24.5%, verified from era5_basin_coverage.csv);
+  zhang2025ipa (J. Hydrol. 661:133552 — first author ZHANG, not Chen as the external
+  audit had it) cited and the benchmark novelty scoped to forecasting/benchmarking.
+- **Metadata**: author/affiliation finalized (sole author, independent researcher),
+  contributions/acknowledgements/funding written, \todo macro deleted, stale comment
+  blocks removed. REMAINING before submission: mint the Zenodo DOI (needs the
+  author's account) and swap it into the availability statement.
+- **Builds**: all 7 figures rebuilt, every ledger assert passed; PDF compiled clean
+  (40 pp, 0 undefined references, 0 bibtex warnings, no placeholder text in the
+  rendered PDF, verified programmatically).

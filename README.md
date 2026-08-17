@@ -102,16 +102,19 @@ crossing itself is solid; that particular number is the softest part of it.
 The original question was: if I know what's happening in the basins around me, does that help me
 forecast my own?
 
-The answer turns out to depend entirely on *how* you feed that information to the model:
+The answer turns out to depend entirely on *what form* that information arrives in:
 
 - **Wired in as a plain linear term:** nothing. +0.31% at lead 1, not statistically significant.
-- **Fed to a neural network as an extra input:** nothing, or slightly harmful.
-- **Used as a separate correction step, applied after a first model has made its guess:**
+- **Fed to a neural network as raw 12-month history** — whether as an extra input channel or
+  through a dedicated correction step: nothing, or slightly harmful.
+- **Compressed first into a single number** (the neighbour's current state, propagated forward
+  to the forecast month by its own filter) **and then used in a correction step:**
   **+0.91% to +1.96%** across leads 1–6, and overwhelmingly statistically significant
   (p ≤ 3.2e-8 at every lead).
 
-Same information. Same data. Three delivery mechanisms, wildly different outcomes. That's the
-result — *delivery decides*.
+Same information. Same data. The thing that separates success from failure is the
+*representation* — the propagated state — not which pipe the data flows through. That's the
+result — *representation decides*.
 
 We were careful here, because "my model improved" is easy to fool yourself about. See section 6
 on how we checked.
@@ -235,8 +238,8 @@ prediction  =  kalman forecast  +  LSTM correction  +  neighbour correction
   basin and predicts how wrong the answer *still* is.
 
 Every model in this study that works is shaped like "good baseline + small learned correction."
-Models that tried to predict water storage from scratch, ignoring the filter, did worse. That's
-Finding 3 restated: the architecture that delivers information as a correction wins.
+Models that tried to predict water storage from scratch, ignoring the filter, did worse. And the
+correction step only works when it's handed the right representation — see Finding 3.
 
 ---
 

@@ -92,7 +92,8 @@ neighbor null once ERA5 is present.
   variance-reduced 2-3-seed average scored against single-seed placebos — a biased comparison;
   do not headline it.
 - **THE EXCEPTION — resmlp GRACE-only: every seed of resmlp_corr_top1 and _top2 beats 20/20
-  placebos at every horizon (p_rank = .048, 12/12 seed×h cells for top1).** The placebo family
+  placebos at every horizon (p_rank = .048, 9/9 seed×h cells for top1 — 3 seeds × 3 horizons;
+  an earlier draft of this doc miscounted 12/12, corrected 2026-08-17).** The placebo family
   itself pools to ridge_own level (family RMSE 1.0503/1.2018/1.2711 vs ridge_own
   1.0499/1.2014/1.2706), while the real-graph arm sits at 1.0448/1.1899/1.2591. So on the
   corrected pipeline the pre-audit mechanism finding *survives in full*: a junk neighbor
@@ -118,7 +119,7 @@ adds nothing here.
 |---|---|---|---|
 | LSTM ERA5 sequence gain | s0 +2.05/+2.24/+1.60; ens +1.95/+1.99/+1.43 | s0 +2.35/+2.85/+1.68; ens +2.17/+2.36/+1.43 | **survives, slightly larger** |
 | resMLP beats ridge twin (GRACE-only) | s0 +0.50/+1.45/+1.74 | s0 +0.66/+2.00/+2.00; ens +0.81/+2.15/+2.17 | **survives, stronger at h2-h3** |
-| resMLP 20/20 placebo wins, all seeds (GRACE-only) | yes | yes (12/12 cells, p_rank .048) | **survives** |
+| resMLP 20/20 placebo wins, all seeds (GRACE-only) | yes | yes (9/9 cells, p_rank .048; miscount corrected 2026-08-17) | **survives** |
 | placebo family ≈ ridge_own (junk graph adds nothing) | yes | yes (Δ ≤ 0.0005 RMSE) | **survives** |
 | neighbor increment under ERA5 (resMLP) | mixed, ≈0 (−1.2..+0.8 by seed) | ens −0.67/−0.62/−0.55, all p<.05 | **sharpened: now significantly negative** |
 | LSTM neighbor increment | ns / mixed | h1 ns positive; h2-h3 negative, real graph 0/20 vs placebos | **null confirmed, h2-h3 harmful** |

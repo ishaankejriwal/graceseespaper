@@ -471,3 +471,41 @@ old ridge twin saw only lag features); nominal-best disclosure scoped to leads 4
 flat12 tie/loss quoted; conclusions updated. "Sequence gain lives in the forcing history"
 survives in corrected form: the usable history is the forcing's, but its best reader is
 linear. BANNED: any sentence attributing the 12-month gain to sequence architecture.
+
+### 10h. External-audit paper repairs + ERA5 attribution + flat85 sensitivity (2026-08-17)
+
+New sources: `results/phase6_era5_attribution{,_folds,_continent,_fdr}.csv`,
+`results/flat12_train85_sensitivity.csv` (scripts `run_phase6_era5_attribution.py`,
+`run_flat12_train85_sensitivity.py`, both in the chain).
+
+- **ERA5 variable attribution (lead 1, ridge_own_era5 +4.62% vs ridge_own, reproduced):**
+  evaporation largest unique contribution **+1.445pp (drop-test p=.002)**; swvl1/swvl2 the
+  strongest solo variables (**+2.29/+2.22%** alone, p<1e-3); no other variable >0.6pp unique;
+  t2m unique −0.08 (its inclusion nominally harmful), swe +0.06 ns. The gain is spread across
+  collinear moisture variables — quote no single-variable ownership beyond evap's unique term.
+- **Fold-level:** f1 +8.55 / f2 +5.98 / f3 **−3.05 (p=.315)** / f4 +6.40 / f5 +7.88% — the
+  sole failure window is f3 (targets 2022-05..2023-09, triple-dip La Niña).
+- **Continental pooled:** NA +7.05, EU +6.86, Asia +5.99 (all p<1e-3), Australia-Oceania
+  +3.39 (p=.053), S. America +1.48 ns, Africa −0.39 ns. Per-basin FDR (q=.10): 23 of 234 =
+  **21 helped / 2 hurt**.
+- **LSTM ens vs ridge_own_era5 h1–6** (computed from phase8 predictions, 2-seed ens):
+  +2.17/+2.36/+1.43/**+0.81 (p=.0011)**/−0.04 ns/−0.11 ns — "sequence gain to lead 4" is now
+  quoted as the ENSEMBLE with the architecture-vs-window caveat (flat12 exists h1–3 only).
+- **flat12 train-85 sensitivity:** flat ridge refit on the LSTM's exact 85% training rows:
+  vs LSTM ens **+1.02 (p=.094) / +2.76 (p=1e-11) / +2.27% (p=4e-10)**; vs full-row flat12
+  −0.17/+0.04/+0.19 ns. Direction intact; lead 1 weakens to ns — the manuscript now quotes
+  this as the row-matched control and the h1 head-to-head should not be stated as significant
+  under row matching.
+- **Corrections applied:** resMLP placebo cells are **9/9** (3 seeds × 3 horizons), not 12/12
+  (miscount fixed here, in main.tex comments, and in phase7_corrected_analysis.md); abstract
+  2×2 claim scoped (exception cell +0.913 p=.036 flagged, "independent of basin size"
+  retired); issue windows June 2019–April 2026 (targets to May 2026); placebo-draw text
+  unified (redrawn per fold×horizon; two seeds share a cell's draws → 6 independent draw sets
+  scored twice); "growing rather than decaying" → "persistent, largest at lead 6"
+  (0.91/1.45/1.33/1.32/1.42/1.96 is not monotone); r=0 ablation language demoted from
+  causal/intervention to ablation-grounded attribution within the model class; IAAFT stated
+  as transductive sensitivity, not "conservative"; zhang2025ipa cited (novelty scoped);
+  ERA5 coverage disclosed (13/234 <50%, 79 <90%, min 24.5%).
+- **paper_baseline_contrasts.csv h4–6 CI bounds refreshed** (block=max(3,h) landed): point
+  estimates and DM p identical; h4 kalman-vs-perbasin CI still excludes zero (+0.02..+2.20).
+  No CI bound from this file is quoted in the manuscript.
