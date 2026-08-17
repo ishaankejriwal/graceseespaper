@@ -73,14 +73,21 @@ def test_paired_losses_rejects_row_set_mismatch():
 
 def test_paired_losses_empty_model_is_not_an_error():
     """A model absent from the slice (not run at this horizon) yields an empty
-    frame — that is coverage, not a pairing defect."""
+    frame — that is coverage, not a pairing defect — and every stats entry
+    point degrades to NaN/empty on it rather than crashing (audit 2026-08-17)."""
     rows = pd.DataFrame({
-        "model": ["a"], "name": ["X"],
+        "model": ["a"], "name": ["X"], "horizon": [1],
         "target_date": [pd.Timestamp("2020-01-01")],
         "target": [1.0], "pred": [0.0],
     })
     j = stats._paired_losses(rows, "a", "b")
     assert len(j) == 0
+    stat, p = stats.pooled_monthly_dm(rows, "a", "b", 1)
+    assert np.isnan(stat) and np.isnan(p)
+    point, lo, hi = stats.block_bootstrap_skill_ci(rows, "a", "b", 1, n_boot=10)
+    assert np.isnan(point)
+    fdr = stats.per_basin_dm_fdr(rows, "a", "b", 1)
+    assert len(fdr) == 0 and "significant" in fdr.columns
 
 
 def test_bootstrap_block_scales_with_horizon():
