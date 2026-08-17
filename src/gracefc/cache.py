@@ -3,13 +3,26 @@
 A fold-name-keyed pickle silently went stale once already (audit 2026-08-14:
 run_kalman_baseline's resume shortcut served target-date-era predictions into
 an issue-date pipeline). The fix is content addressing: the cache carries a
-hash of the basin table bytes, the fold specification, and a protocol tag,
-and loaders get an empty dict — forcing a refit — whenever any of those
-changed.
+hash of everything the stored params depend on, and loaders get an empty
+dict — forcing a refit — whenever any of it changed. The fingerprint covers
+(external audit 2026-08-17 widened it from the first three):
+
+- the basin table bytes (the series the filters were fit on)
+- basin_meta.csv bytes (the keep-cohort that decides WHICH basins get fit)
+- kalman.py source bytes (model semantics and fit hyperparameters)
+- numpy/scipy versions (the MLE optimizer the params came out of)
+- the fold specification and a manual protocol tag
+
+Hashing source and library versions means comment edits or env updates force
+a ~20 min refit; that is the intended trade — a spurious refit reproduces the
+same params, a spurious cache hit reproduces a retracted result.
 """
 import hashlib
 import pickle
 from pathlib import Path
+
+import numpy
+import scipy
 
 from .evaluate import DEFAULT_FOLDS
 
@@ -18,8 +31,14 @@ _KEY = "__fingerprint__"
 
 
 def data_fingerprint(data_path: Path) -> str:
+    data_path = Path(data_path)
     h = hashlib.sha256()
-    h.update(Path(data_path).read_bytes())
+    h.update(data_path.read_bytes())
+    # Cohort file is required, not optional: a fingerprint that silently skips
+    # a missing component defeats content addressing
+    h.update((data_path.parent / "basin_meta.csv").read_bytes())
+    h.update((Path(__file__).parent / "kalman.py").read_bytes())
+    h.update(f"numpy={numpy.__version__} scipy={scipy.__version__}".encode())
     h.update(repr([(f.name, str(f.test_start), str(f.test_end)) for f in DEFAULT_FOLDS]).encode())
     h.update(PROTOCOL_TAG.encode())
     return h.hexdigest()
