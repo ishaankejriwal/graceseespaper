@@ -1328,3 +1328,35 @@ litter removed. Chain is now 32 steps / 31 default; declared inputs verified pre
   softened. NEW Methods paragraph after the ladder list: raw vs damped persistence defined,
   16–23% gap, "which member of the persistence class a study scores against sets the bar".
 - PDF recompiled clean, 39 pp, 0 undefined refs.
+
+## 2026-08-18 — Humanizer prose pass + conventional-metrics table (audited)
+
+- Prose pass (subagent, humanizer patterns + Li&Kusche register sample, hard no-number
+  constraint): 44 sentence-level edits — "we flag two numbers a reader might juxtapose"
+  and kin rewritten; "The answer is / must be kept in view / It is worth noting /
+  rest no novelty claim" templates removed; two GENUINE BUGS fixed: the sentences
+  "Second, learned and multi-lag models..." (ladder readings) and "This is the same
+  benchmark-hygiene move..." (Discussion) had been sitting inside % source comment
+  lines since the em-dash purge and never rendered. Verified after: numeral multiset
+  of the diff identical, 183/183 source comments intact, clean compile. Follow-up
+  sweep removed reader-addressing phrasings ("Readers will want", "anyone placing
+  values", "Anyone building a basin graph").
+- NEW RESULT: scripts/compute_conventional_metrics.py → results/conventional_metrics_
+  {perbasin,summary}.csv. Per-basin median RMSE (cm EWH), CC, NSE on the deseasonalized
+  anomaly AND the full signal (frozen-climatology + anomaly; cm errors identical in the
+  two spaces by construction) for damped persistence (ladder's stronger variant), the
+  Kalman forecast, and the stacked ensemble, leads 1–6, 234 basins. Headline: median
+  full-signal CC at h1 is 0.86 and NSE 0.72 for DAMPED PERSISTENCE ALONE (anomaly-space
+  0.62/0.33) — the benchmark-inflation argument restated in the literature's metrics.
+  Kalman pooled h1 5.128 cm (matches the ~5 cm anchor); stack median h1 2.56 cm.
+- AUDIT (subagent): PASS WITH NOTES — every audited cell reproduced to full float
+  precision via an independent climatology implementation; damped-variant selection
+  matches ladder damped_ref; ensemble = exact 2-seed mean. Notes acted on: (a) matched-
+  sample 2.39 cm vs full-sample 2.56 cm is mainly the EVALUATION WINDOW (matched sample
+  ends 2024-06 with the Li hindcast; 2024–2026 months are harder), reproduced 2.394
+  exactly — paper sentence added saying so; (b) anomaly-space CC/NSE pool across folds
+  with fold-specific climatologies (piecewise definition) — disclosed in Sect. 5.4;
+  (c) notna assertion added to the script (latent NaN path, currently zero rows).
+- Paper: new tab:conventional (18 rows, 2 dp, rows generated programmatically from the
+  CSV) + two paragraphs in Sect. 5.4; ARCHIVE_MANIFEST row; run_chain.py step
+  "conventional_metrics" (after ladder); CODE_MAP row. PDF 41 pp clean, 17/17 tests.

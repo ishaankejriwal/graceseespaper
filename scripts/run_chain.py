@@ -243,6 +243,13 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      [RESULTS / "phase2_baseline_predictions.csv", RESULTS / "phase3b_predictions.csv"],
      [RESULTS / "paper_baseline_ladder.csv", RESULTS / "paper_baseline_contrasts.csv"]),
 
+    ("conventional_metrics",
+     ["scripts/compute_conventional_metrics.py"],
+     [DATA / "basin_month_twsa_global.csv", RESULTS / "phase2_baseline_predictions.csv",
+      RESULTS / "kalman_predictions.csv", RESULTS / "phase8_lstm_combined_predictions.csv",
+      RESULTS / "phase8b_lstm_h46_predictions.csv"],
+     [RESULTS / "conventional_metrics_perbasin.csv", RESULTS / "conventional_metrics_summary.csv"]),
+
     ("figures",
      ["scripts/make_figures.py"],
      [MASK_NC, DATA / "basin_meta.csv",

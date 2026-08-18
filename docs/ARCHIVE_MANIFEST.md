@@ -14,3 +14,4 @@ Include this file (or fold it into the README) in the Zenodo deposit.
 | Stratification of the stacked correction | `results/phase8_stratification.csv` |
 | Forcing and architecture comparisons, ERA5 attribution table | `results/phase6_era5_headline.csv`, `results/phase7_corrected_analysis.md`, `results/phase6_era5_attribution.csv` (and `_folds` / `_continent` / `_fdr` companions), `results/flat12_train85_sensitivity.csv` |
 | Fig. 3 (neighbor map), Fig. 6 (complementarity) | `results/phase5_perbasin_fdr_h1.csv`, `results/phase6_basin_analysis_summary.csv`, `results/phase6_basin_analysis_q4.csv` |
+| Conventional-metrics table (Sect. on comparability: per-basin RMSE cm / CC / NSE, anomaly and full signal) | `results/conventional_metrics_summary.csv`; per-basin values in `results/conventional_metrics_perbasin.csv` (built by `scripts/compute_conventional_metrics.py`) |

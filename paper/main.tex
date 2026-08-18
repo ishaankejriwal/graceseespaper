@@ -58,7 +58,8 @@ per-basin ridge regression at five of six leads. Refitting the same model
 with the noise variance fixed at zero removes the entire margin, so the gain
 is the noise filtering itself, not the autoregressive structure. Much
 of the skill a learned model can demonstrate over persistence-class
-references is therefore attainable by filtering alone. What beats the filter is exogenous forcing:
+references is therefore attainable by filtering alone. Exogenous forcing
+does beat the filter:
 % source: results/phase6_era5_headline.csv, ridge_own_era5 vs ridge_own h1 (+4.62%, p=1.0e-4)
 ERA5-Land predictors add 4.6\,\% at lead one, and a twelve-month forcing
 history extends the gain through lead three, read linearly: a ridge
@@ -123,9 +124,9 @@ The implicit logic is nonetheless that a model shown to have skill has
 extracted predictive structure beyond simple memory.
 
 This paper starts from an observation that undermines that logic for GRACE
-specifically. Basin-average TWSA is not a state variable observed cleanly; it
-is a state variable observed through a noisy instrument, with observation
-errors that are large for small and arid basins \citep{save2016mascons,
+specifically. Basin-average TWSA is a state variable observed through a
+noisy instrument, with observation errors that are large for small and arid
+basins \citep{save2016mascons,
 landerer2020gracefo}. A persistence forecast (last month's observed
 anomaly, damped or not) propagates the observation noise of the anchor
 month into every forecast. The proper persistence-class reference for a noisy
@@ -194,11 +195,11 @@ our knowledge, no prior work measures the incremental cross-basin information
 in \emph{observed} GRACE TWSA against null models. We do so with
 degree-matched random graphs, a mascon leakage distance exclusion, a
 resolution stratification, and full ERA5 local-meteorology conditioning. The
-answer is two-sided, and the two sides must be kept apart: at the linear
-tier the incremental effect is a null, while the same neighbor signal does
-deliver skill through a dedicated nonlinear correction stage. We therefore
-also show what governs whether the signal is usable by a deep model at all,
-and it is not the architecture but the \emph{representation}: the neighbor
+result is two-sided: at the linear tier the incremental effect is a null,
+while the same neighbor signal does deliver skill through a dedicated
+nonlinear correction stage. We therefore
+also show what governs whether a deep model can use the signal at all: the
+\emph{representation}, not the architecture. The neighbor
 helps only when it arrives as a state already propagated to the forecast
 target time, and is inert as raw history however it is delivered.
 
@@ -215,9 +216,9 @@ the strongest own-basin reference at every lead. A substantial share of
 what would register as ``ML skill'' over persistence-class references on
 deseasonalized TWSA is therefore reproduced by three-parameter state-space
 filtering alone.
-The interesting question becomes what \emph{does} beat the filter; the
-answer (exogenous forcing, a longer window of that forcing read linearly,
-and a small spatial correction) maps where genuine information lives.
+What \emph{does} beat the filter (exogenous forcing, a longer window of
+that forcing read linearly, and a small spatial correction) maps where
+genuine information lives.
 \item \emph{The initial-conditions/forcing crossover, located on observed
 TWSA.} Against the published GRACE-FCast hindcast \citep{li2026fcast,
 li2025pangaea} on 227 matched basins under a common protocol, our best system
@@ -354,7 +355,7 @@ by design it takes no GRACE lags as input \citep{li2026fcast}. We evaluate
 both their full-signal product and their non-seasonal variant
 (Sect.~\ref{sec:methods_li}).
 
-Two features of that choice bear on how our comparison should be read.
+Two features of that choice qualify the comparison.
 GRACE-FCast is released as three products, built on the JPL, CSR and GSFC
 mascon solutions, and the skill figures reported in \citet{li2026fcast} are
 for the average of the three; the CSR member we use is the one their own
@@ -365,9 +366,9 @@ one in which the two systems share a gravity solution. Our numbers
 therefore characterize that member, not the product their headline scores
 describe. Second, their decomposition removes a linear trend as well as the
 seasonal cycle, so their non-seasonal variant and our deseasonalized target
-are defined on the same footing (Sect.~\ref{sec:methods_target}); the
+are defined on the same footing (Sect.~\ref{sec:methods_target}). The
 functional form of their seasonal and trend fit follows \citet{li2020wrr}
-and is not restated in the forecast paper, which is why we also report the
+and is not restated in the forecast paper; we therefore also report the
 full-signal variant, where any such convention difference is absorbed by
 subtracting our own climatology.
 
@@ -473,8 +474,8 @@ uncertainty without biasing the state. We call this forecast the
 \emph{Kalman forecast}. Two further members of the same ``filtering class''
 reuse the filtered state: the \emph{ridge on filtered states}, a pooled
 ridge on lagged filtered states, and the neighbor-augmented variants of
-Sect.~\ref{sec:methods_neighbors}. We emphasize what this benchmark is not:
-it assimilates nothing into any model and is unrelated to the
+Sect.~\ref{sec:methods_neighbors}. This benchmark is not a data-assimilation
+scheme: it assimilates nothing into any model and is unrelated to the
 GRACE data-assimilation literature reviewed by \citet{springer2026review};
 it is a forecast reference with three scalars per basin.
 
@@ -487,8 +488,8 @@ to its lower boundary: all 1170 basin--fold fits converge, but 259 of them
 % source: results/post_rerun_audit.md sect. 6 (kalman_fold_params.pkl diagnostics: 1170/1170 converged, 259 at r<1e-6, 31 basins at the boundary in all five folds)
 land at $r < 10^{-6}$, and 31 basins sit at the boundary in all five folds.
 So $r$ is not, per basin, a clean instrument-noise estimate. Whether the
-benchmark's \emph{margin} is nonetheless the filtering term is a separate,
-answerable question, and an ablation answers it. Refitting the identical
+benchmark's \emph{margin} nonetheless comes from the filtering is a separate
+question, and an ablation settles it. Refitting the identical
 model class by the identical MLE with $r$ fixed at zero forces the update
 gain to one, so the ``filter'' tracks the raw observation and the model
 degenerates to damped persistence with MLE $\rho$. This removes the entire
@@ -523,7 +524,7 @@ uniformly at random. The placebo models are refit end-to-end, so the
 comparison is capacity-matched; beating all $N$ draws gives an empirical
 rank $p_{\mathrm{rank}} = 1/(N{+}1)$.
 % source: results/phase3b_summary.csv (50 draws), results/phase8b_h16_summary.csv (20 draws)
-Two properties of this statistic must be kept in view. First,
+Two properties of this statistic matter. First,
 $p_{\mathrm{rank}}$ is bounded below by $1/(N{+}1)$, so at $N = 20$ every
 ``significant'' cell is pinned at $0.0476$ and the rank $p$ understates the
 evidence; where the margin matters we therefore also report the real graph's
@@ -806,7 +807,7 @@ persistence is far weaker and is shown in the broken lower panel.}
 \label{fig:ladder}
 \end{figure*}
 
-Three readings of Table~\ref{tab:ladder} matter for the field. First, the
+Three features of Table~\ref{tab:ladder} deserve comment. First, the
 gap between raw persistence and damped persistence ($16$--$23\,\%$) is the
 % source: results/paper_baseline_ladder.csv, persistence rows (-15.80 to -22.68)
 % source: results/paper_baseline_ladder.csv, kalman_ar1 h1-h2
@@ -816,17 +817,18 @@ and the $r=0$ ablation of Sect.~\ref{sec:methods_kalman} identifies it as
 the noise-filtering term specifically: the same model class with the noise
 variance removed gives the margin back and more. The margin is of the same
 order as many published model-over-persistence margins.
-% source: results/r0_ablation_summary.csv (kalman vs r0 twin +5.35..+12.65%; r0 vs damped -0.93..-11.57% at h2-6) Second, learned and multi-lag models
+% source: results/r0_ablation_summary.csv (kalman vs r0 twin +5.35..+12.65%; r0 vs damped -0.93..-11.57% at h2-6)
+Second, learned and multi-lag models
 without noise separation sit \emph{between} the two persistence variants
 and the filter: the per-basin ridge, with five lag coefficients per basin,
 never reaches the three-parameter filter at any lead, and by lead 6 it has
 fallen below damped persistence altogether. Third, the benchmark
 is nearly free: it adds no data requirements and two lines of state-space
 code, so we propose it as the default persistence-class reference for
-deseasonalized GRACE basin forecasting. The reading is constructive: the
+deseasonalized GRACE basin forecasting. The
 ladder does not say learned models are useless; it says the bar they must
-clear sits higher than any reference in current use, and the rest of this
-section is a map of what clears it.
+clear sits higher than any reference in current use. The rest of this
+section maps what clears it.
 
 \paragraph{Protocol sensitivity.} The margin is insensitive to the two
 evaluation-protocol choices we tested directly, the calendar-month
@@ -861,7 +863,7 @@ layers are the strongest standalone predictors, and small negative unique
 terms for collinear variables appear as expected. By fold, the gain is
 % source: results/phase6_era5_attribution.csv (full +4.62%; evap unique +1.445 drop-p=.00217, x11 Bonferroni .024; swvl1/swvl2 solo +2.290/+2.220 p<1e-3)
 robustly positive in four of five test windows ($+6.0$ to $+8.5\,\%$) and
-fails only in the window spanning the 2022--2023 triple-dip La Ni\~na --
+fails only in the window spanning the 2022--2023 triple-dip La Ni\~na,
 the one climate state in the record where reanalysis forcing misinformed
 the model.
 % source: results/phase6_era5_attribution_folds.csv (f1 +8.55, f2 +5.98, f3 -3.05 p=.315, f4 +6.40, f5 +7.88)
@@ -951,7 +953,7 @@ An MLP on the same flattened history
 % source: computed 2026-08-16, mlp_own_era5_flat12_s0 vs ridge_own_era5_flat12 (-3.08/-2.70/-2.26, all p<0.05)
 loses to the flat ridge as well ($-3.08$ to $-2.26\,\%$). The apparent
 sequence-modeling gain is a history-length gain: twelve months of
-forcing carries real information, the linear reader extracts the most of
+forcing carries real information, a linear reader extracts most of
 it, and the sequence architecture pays a premium for re-learning what the
 flattening gives away for free.
 
@@ -959,8 +961,8 @@ Without ERA5, the LSTM
 % source: results/phase7_corrected_analysis.md Q1 (lstm_own vs ridge_own ens: +0.32 p=.10 / +0.93 p=1.5e-4 / -1.03 p=.008)
 does not durably beat the ridge: $+0.32\,\%$ at lead 1 ($p = 0.10$),
 $+0.93\,\%$ at lead 2 ($p = 1.5\times10^{-4}$), and significantly
-\emph{worse} at lead 3 ($-1.03\,\%$, $p = 0.008$): the filter has already
-extracted most of the temporal structure of the TWSA series itself, and the
+\emph{worse} at lead 3 ($-1.03\,\%$, $p = 0.008$). The filter has already
+extracted most of the temporal structure of the TWSA series itself; the
 usable history is the forcing's, not the TWSA's.
 A one-layer graph attention network never beats its ridge twin at any seed,
 % source: results/phase7_corrected_analysis.md Q4 (gnn_corr_top1 vs ridge_corr_top1 ens -0.90/-0.24/-0.61; sole nominal win gnn_corr_top2_era5_ens h2 +0.65 p=.035, no seed support, placebo ranks 2-14/20)
@@ -1057,7 +1059,7 @@ seasonal/trend edge, the crossing moves from between leads 2 and 3 to
 % source: results/phase8b_li_comparison_headline.csv, lstmres ens vs li_lstm_nonseas (h1 +30.94, h2 +8.96, h3 -1.74 ns, h4-h6 -8.91/-16.20/-23.38, p<=.0029)
 between leads 3 and 4 but does not disappear.
 
-It is worth noting that \citet{li2026fcast} document the same
+\citet{li2026fcast} document the same
 target-definition sensitivity from the other side, and quantify it. Scoring
 their own product at lead 1, they report correlation above $0.8$ over
 approximately $72\,\%$ of global land for the full signal but only $20\,\%$
@@ -1091,8 +1093,8 @@ The equal-weight standardized comparison of Table~\ref{tab:crossing}
 remains our primary metric.
 
 \paragraph{A descriptive best-of-both splice.} Splicing our forecasts at
-short leads onto theirs at long leads is a way to quantify the
-complementarity, and we report it as a descriptive sketch rather than a
+short leads onto theirs at long leads quantifies the complementarity, and
+we report it as a descriptive sketch rather than a
 validated forecast product: the splice points would be chosen on the same
 test sample, several variants were examined without multiplicity control,
 and pooled DM differentials over all leads are diluted by the shared
@@ -1130,15 +1132,15 @@ family runs \emph{against} the neighbor (lead 5, $p = 0.070$). The
 estimate is also protocol-sensitive: under the target-date fold
 convention rejected in Sect.~\ref{sec:methods_eval} the same contrast
 reads $+0.49\,\%$ with $p = 0.022$, itself a caution for
-spatial-TWSA claims evaluated under looser protocols. What makes the null
-informative rather than merely inconclusive is the control battery the
-estimate was put through
+spatial-TWSA claims evaluated under looser protocols. The null is
+informative rather than merely inconclusive because of the control battery
+the estimate was put through
 (Table~\ref{tab:controls} and Fig.~\ref{fig:controls}), which no prior
-spatial-TWSA claim has faced, and which localizes the little that is there.
+spatial-TWSA claim has faced, and which localizes what little signal there is.
 
-\paragraph{Two questions that must be kept apart.} The placebo evidence and
-the paired-contrast evidence answer different questions, and blurring them is
-how a null becomes an apparent finding.
+\paragraph{Two separate questions.} The placebo evidence and
+the paired-contrast evidence answer different questions, and conflating them
+would turn this null into an apparent finding.
 \emph{Does correlation-selection beat a random neighbor?} At lead 1, yes: the
 % source: results/phase3b_summary.csv, kalman_corr_top1 h1 (50/50 placebos beaten, p_rank=0.0196); kalman_corr_min300_top1 h1 also 50/50
 real graph beats all 50 degree-matched random graphs
@@ -1210,10 +1212,10 @@ gives $+1.11\,\%$ at lead 1 ($p = 2.3\times10^{-4}$) and $+0.59\,\%$ at lead
 2 ($p = 0.037$), then nothing at leads 3--6, while the mid and low terciles
 are negative at every lead.
 
-Short-lead, confined to shared footprints, and absent where footprints are
-clean is the signature of leakage, not of hydrology. A centroid-distance
-exclusion does not remove shared mascons for such basins, so we rest no
-novelty claim on the linear pocket. Accordingly we describe this section as a
+An effect that is short-lead, confined to shared footprints, and absent
+where footprints are clean has the signature of leakage, not of hydrology.
+A centroid-distance exclusion does not remove shared mascons for such
+basins, so we make no novelty claim for the linear pocket. Accordingly we describe this section as a
 characterization with null-model controls, not as isolation and validation of
 a signal: the controls tell us what the pooled number is \emph{not} (chance
 graph structure, shared weather), the paired test tells us it is not
@@ -1330,9 +1332,9 @@ exclusions bound its spatial scale (${\sim}300$--1000\,km). But the
 footprint-sharing stratification places what is left exactly where an
 instrumental explanation predicts it, and a centroid-distance rule between
 basin \emph{centroids} does nothing about two basins drawing on the same
-mascon. The reading most consistent with the whole battery is that at the
-linear tier the neighbor is largely acting as a second view of partly the
-same measurement, which would explain why the estimate is confined to
+mascon. Taken together, the battery suggests that at the linear tier the
+neighbor is largely acting as a second view of partly the same
+measurement, which would explain why the estimate is confined to
 % source: results/phase3b_summary.csv h1 (min1000 -0.60% and 0/50 placebos); post_rerun_audit.md sect. 2 (h2-h6 negative, 0/50)
 shared-footprint basins and to leads 1--2, and why it is negative beyond
 1000\,km. We claim no hydrological transfer, and at the linear tier we claim
@@ -1348,7 +1350,7 @@ operational recipe: selection for early folds uses folds lying later in
 time, so a deployable version would have to select on past folds only.
 On the corrected pipeline the per-basin decomposition confirms the
 two-sided structure: 128 of 234 basins nominally favor the neighbor and 21
-survive FDR control at $q = 0.10$: 13 helped and 8 hurt. The
+survive FDR control at $q = 0.10$, 13 helped and 8 hurt. The
 hurt set is not noise: it is the familiar great-river roster (Yenisey,
 Paran\'a, Yangtze, Amur) whose large, clean footprints invite spurious
 distant neighbors. The helped set skews African and coastal (Niger,
@@ -1366,7 +1368,7 @@ measurement, not a deployable recipe.
 % source: results/phase6_basin_analysis_selective.csv (all +0.3076 p=.199; lofo +1.1206 p<1e-9 n~127.8; oracle +1.7787; rf +0.5522 p=.0039; era5_ridge lofo +1.0506); results/phase6_basin_analysis_rf_importance.csv (cv_r2_mean 0.053)
 
 \paragraph{Architectures that should have enlarged the effect do not.}
-Structurally richer constructions all fail to enlarge the effect:
+Structurally richer constructions all fail to do so:
 predictive-lag neighbor selection loses to the own-basin reference at
 lead 1 ($-1.30\,\%$, $p = 0.0007$) and to all 50 placebo graphs, worse
 than a random basin; a single-latent fusion filter treating the neighbor
@@ -1419,8 +1421,8 @@ reaches the model. The input-channel variant receives the neighbor's
 correction stage receives a single number per forecast, the neighbor's
 $\rho^{h}$-propagated current state. Delivery and representation are
 therefore confounded in that pair, so a third variant separates them: the
-correction stage fed the identical 12-month history. The answer is that
-representation, not delivery, is the operative variable.
+correction stage fed the identical 12-month history. Representation, not
+delivery, turns out to be the operative variable.
 % source: src/gracefc/experiment_lstm_combined.py (input arm _state_channel 12-month window vs stage-2 propagated_neighbor_features k=1 scalar; hist12 arm added in the repaired design)
 Feeding the neighbor's filtered-state history to the LSTM as one more
 encoder input channel yields no robust ensemble gain
@@ -1515,7 +1517,7 @@ beyond that band.}
 \label{fig:delivery}
 \end{figure*}
 
-Six properties give the correction its evidential weight.
+Six properties support this result.
 
 First, and primarily, \emph{the random-graph placebo.} This is the control
 the claim rests on. Its logic is that a placebo neighbor is a feature the
@@ -1634,29 +1636,29 @@ cell across every stratum and lead remains positive ($+0.22\,\%$, in a
 ``Positive everywhere'' is not the same as ``the same everywhere'', and along
 the size axis it is not. Small basins gain \emph{least}, and the gradient is real
 rather than visual: the size interaction is significant at every lead
-(lead-1 $p = 0.026$, lead-6 $p < 0.001$). We state that plainly because its
-direction is the reverse of the artifact's prediction: leakage would make
+(lead-1 $p = 0.026$, lead-6 $p < 0.001$). The direction of that gradient is
+the reverse of the artifact's prediction: leakage would make
 the smallest, most footprint-shared basins gain the most, and they gain
 the least. Along the sharing axis the differences are not statistically
 distinguishable at any lead
 (high-vs-low interaction $p = 0.099$ at lead 1, with the point estimate
 trending toward \emph{more} gain in high-sharing basins, and
-$p \geq 0.51$ at every other lead), which turns
-``not concentrated'' from a description of the table into a tested statement.
+$p \geq 0.51$ at every other lead), so
+``not concentrated'' is a tested statement, not just a reading of the table.
 
 The linear pocket and the stacked correction therefore have
 different signatures: one is confined to shared footprints and to leads 1--2,
 the other is positive in every stratum at every lead and, if anything, weakest
 where the artifact would be strongest. Under this stratification the
 correction shows no detectable concentration where leakage would put it, and
-the size gradient runs opposite to the artifact's prediction. That is the
-strongest statement the design supports: the footprint-sharing score is a
+the size gradient runs opposite to the artifact's prediction. Three
+caveats limit how far that goes: the footprint-sharing score is a
 lower-bound proxy (it counts only foreign land), the interaction test is a
 null result rather than proof of absence (the lead-1 point estimate
 trends toward more gain under high sharing, $p = 0.099$), and the
-stratification reuses the headline's test months. Ruling on footprint sharing
-aside, the analysis does not identify what the neighbor is contributing, and
-we make no claim that it is a hydroclimatic teleconnection.
+stratification reuses the headline's test months. Beyond ruling on footprint
+sharing, the analysis does not identify what the neighbor is contributing,
+and we make no claim that it is a hydroclimatic teleconnection.
 
 \begin{figure*}[t]
 \includegraphics[width=\textwidth]{fig08_stratification.pdf}
@@ -1702,13 +1704,13 @@ failure that survives the separation of objectives.
 
 What distinguishes the variants that work is that the neighbor arrives already
 propagated to the forecast target time. $\rho_j^{h} x_j(t)$ is not a
-compression of the history; it is the neighbor's state carried forward by
+compression of the history but the neighbor's state carried forward by
 its own estimated dynamics, so the downstream model is handed a quantity
 that is temporally aligned with what it must predict. Recovering that
 alignment from 12 raw monthly values is a learning problem in its own right,
 and at this sample size (a few thousand rows per fold, one weak predictor
-among many) it is evidently not solved. The reading we can support is
-that the filter does more than clean the target: it also puts cross-basin
+among many) it is evidently not solved. On this evidence the filter does
+more than clean the target: it also puts cross-basin
 information into the only form in which our models can use it. That places
 the propagation, not the architecture, at the center of the third
 contribution, and it is a claim about sample size and inductive bias rather
@@ -1719,15 +1721,15 @@ propagated states, never raw history, where a neighbor-only residual MLP over th
 ridge beats its ridge twin on identical features by $+0.81$ to $+2.17\,\%$
 while beating all 20 placebos in every seed--lead cell. It does so
 despite the \emph{linear} neighbor contrast on that same information set
-being a null. Two architectures, two information sets, one conclusion:
+being a null. Both architectures, on both information sets, reach the same conclusion:
 the cross-basin signal is there, and it is reachable only when the neighbor
 is presented as a propagated state.
 A double-counting check completes the picture: stacking the correction on
 top of an encoder that \emph{already ingests} the neighbor history yields
 $-0.46\,\%$ at lead 1 before drifting weakly positive at long leads
 ($+0.23$ to $+0.83\,\%$), never approaching the $+0.91$ to $+1.96\,\%$ the
-same correction earns over a neighbor-free encoder, consistent with the
-representation account: once the encoder has consumed the raw history, a
+same correction earns over a neighbor-free encoder. This is consistent with
+the representation account: once the encoder has consumed the raw history, a
 second helping of the propagated state has little left to add, and the
 clean two-stage design remains the better construction.
 % source: results/phase8b_h16_headline.csv, lstmres_nbrin_corr_top1_s0 vs
@@ -1746,8 +1748,8 @@ $-0.77\,\%$, $p = 0.032$), and that model exists only at leads 1--3, so the
 long-lead ranking is untested against it.
 % source: computed 2026-08-16, lstmres_corr_top1 2-seed ens vs ridge_own_era5_flat12, matched rows
 A
-leaderboard position is not the evidence, however, and one comparison in
-particular must be kept in view: the largest architectural number anywhere in
+leaderboard position is not the evidence, however, and one comparison
+deserves particular attention: the largest architectural gain anywhere in
 % source: results/phase7_corrected_analysis.md Q2(c) (resmlp_own_era5 vs ridge_own_era5 ens +3.35/+3.58/+2.84, p<=4.6e-9)
 this study is \emph{neighbor-free}: a two-stage residual MLP on own-basin
 ERA5 features beats its ridge twin by $+3.35$, $+3.58$, and $+2.84\,\%$ at
@@ -1799,7 +1801,8 @@ whatever mixture of measurement error and unmodeled dynamics the filter is
 exploiting (Sect.~\ref{sec:methods_kalman}). The fix costs
 three parameters per basin.
 % source: ladder gaps from results/paper_baseline_ladder.csv (persistence -15.80..-22.68 vs damped;
-% climatology -33.6..-125.6); baseline survey as sourced in the Sect. 1 comment This is the same benchmark-hygiene move that
+% climatology -33.6..-125.6); baseline survey as sourced in the Sect. 1 comment
+This is the same benchmark-hygiene move that
 \citet{niraula2021seaice} made for the sea-ice edge via spatial damping,
 executed here via signal/noise separation, and it converges with three
 independent lines: persistence-class methods underrated at the
@@ -1809,7 +1812,7 @@ models unbeaten when autoregressive information is excluded
 \citep{nie2025linear}. Our contribution to that conversation is an
 ablation-grounded attribution: with autoregressive information included,
 what separates the models the field builds is mostly how well they filter
-it: deleting only the noise term from the benchmark deletes the margin
+it; deleting only the noise term from the benchmark deletes the margin
 (Sect.~\ref{sec:methods_kalman}). The ablation fixes the attribution within
 the model class; what the filtered component physically is (instrument
 noise, fast hydrology, decomposition error) remains unidentified
@@ -1882,9 +1885,9 @@ basins whose mascon footprint is shared with land outside the basin and to
 leads 1--2, and it is negative in the 142 resolved, clean-footprint
 basins (Sect.~\ref{sec:results_neighbor}). A graph
 attention network given identical information never beats a ridge, and
-two-hop neighborhoods never beat one-hop. Anyone building a basin graph for
-observed TWSA should expect these to be the default outcomes, and should
-stratify by footprint sharing before believing a positive one.
+two-hop neighborhoods never beat one-hop. Basin-graph studies on observed
+TWSA should expect these as the default outcomes, and should stratify by
+footprint sharing before trusting a positive one.
 
 On the support side, the signal is not absent; it is inaccessible to the
 standard tools. Two nonlinear, two-stage constructions recover it: a
@@ -1911,7 +1914,7 @@ an open question, and calling it a teleconnection would be an overclaim.
 10-nearest basin graph but on a reconstructed target, with no
 persistence-class baselines, no isolation of the graph's contribution, and no
 null models; our GAT null, control battery, and footprint-sharing
-stratification are the coherent companion measurement: the graph
+stratification supply the missing measurement: the graph
 assumption, tested, yields a linear null with a footprint-sharing pocket, a small
 nonlinear signal that survives the leakage stratifier, and the finding that
 message passing is the wrong way to extract it.
@@ -1956,8 +1959,10 @@ frame as open triangles.}
 
 No published study reports pooled deseasonalized basin RMSE over a global
 sample, so no external number is directly comparable to ours; we compare
-only against baselines recomputed under our protocol, and we flag two
-specific numbers a reader might juxtapose. \citet{mo2025nrt} report median
+only against baselines recomputed under our protocol. Two published
+numbers nonetheless invite comparison with ours, and neither comparison
+is like-for-like.
+\citet{mo2025nrt} report median
 % source: results/phase8_related_benchmarks.md sect. 2.1 (1.79/2.07/2.26 cm, median grid, full signal)
 grid-cell RMSE of 1.79/2.07/2.26\,cm at 1--3 months; that figure is a median
 over grid cells of \emph{full-signal} errors (seasonal cycle included) on a
@@ -1977,6 +1982,83 @@ ends in December 2020, overlapping only ${\sim}19$ months of our test
 targets. Its published conclusion, that initial-condition persistence
 dominates sub-seasonal TWS skill \citep{li2026fldas}, is the qualitative
 claim our benchmark formalizes.
+
+To state our results in the metrics the literature does use,
+Table~\ref{tab:conventional} reports three of our systems in those terms:
+per-basin RMSE in cm of equivalent water height, correlation, and
+Nash--Sutcliffe efficiency, each reported as the median over the 234
+basins. The full-signal columns score a forecast of the raw TWSA series,
+formed by adding each fold's frozen train-window climatology to the
+predicted anomaly. Because forecast and observation share that
+climatology, the cm errors are identical in the two spaces; only the
+correlation and efficiency change, and the change is the point. At lead 1
+the median full-signal correlation is 0.86 and the median full-signal
+efficiency 0.72 for damped persistence alone, values that would read as
+strong skill in a full-signal evaluation, while the anomaly-space columns
+show how much of them is the extrapolated seasonal cycle and trend rather
+than forecast information. This is the benchmark argument of
+Sect.~\ref{sec:results_benchmark} restated in the literature's own
+metrics, and it quantifies why we compare systems on the deseasonalized
+target.
+% source: results/conventional_metrics_summary.csv (damped h1: cc_full_med 0.8615, nse_full_med 0.7236)
+
+Two cautions apply when published values are placed next to
+Table~\ref{tab:conventional}. First, pooled RMSE is roughly twice the
+per-basin median at every lead (5.1 versus 2.7\,cm at lead 1 for the
+Kalman forecast), because pooled error is dominated by a small number of
+high-variance glaciated and tropical basins; which statistic a published
+number represents therefore moves it by a factor of about two, and the
+medians of \citet{mo2025nrt} are over grid cells, a finer unit still. The
+matched-sample medians of Sect.~\ref{sec:results_crossing} are smaller
+than the values here mainly because that sample ends with the GRACE-FCast
+hindcast in 2024 and the added 2024--2026 test months are harder.
+Second, the anomaly-space correlation and efficiency pool test months
+across folds whose climatologies were fit on different training windows,
+so the pooled anomaly series is piecewise-defined; the cm errors and the
+full-signal observations are unaffected.
+% source: results/conventional_metrics_summary.csv (kalman h1 pooled 5.128 vs median 2.664); audit note on matched-sample window (RUN_LOG 2026-08-18)
+
+\begin{table*}[t]
+\caption{Our systems in the literature's conventional metrics: per-basin
+RMSE (cm equivalent water height), correlation (CC), and Nash--Sutcliffe
+efficiency (NSE), each the median over 234 basins, on the deseasonalized
+anomaly and on the full signal (frozen train-window climatology plus
+predicted anomaly). The cm errors are identical in both spaces because
+forecast and observation share the climatology; only CC and NSE differ.
+The gap between the anomaly and full-signal columns is the share of a
+full-signal score carried by the extrapolated seasonal cycle and trend.}
+% source: results/conventional_metrics_summary.csv (all rows, medians rounded to 2 dp; scripts/compute_conventional_metrics.py, audited 2026-08-18)
+\label{tab:conventional}
+\begin{tabular}{lcccccc}
+\tophline
+Model & Lead & RMSE (cm) & CC anom. & CC full & NSE anom. & NSE full \\
+\middlehline
+Damped persistence & 1 & 2.74 & 0.62 & 0.86 & 0.33 & 0.72 \\
+ & 2 & 3.32 & 0.46 & 0.81 & 0.09 & 0.59 \\
+ & 3 & 3.57 & 0.39 & 0.79 & 0.02 & 0.54 \\
+ & 4 & 3.65 & 0.34 & 0.78 & $-0.01$ & 0.51 \\
+ & 5 & 3.78 & 0.30 & 0.77 & $-0.04$ & 0.48 \\
+ & 6 & 3.96 & 0.23 & 0.75 & $-0.08$ & 0.43 \\
+\middlehline
+Kalman forecast & 1 & 2.66 & 0.64 & 0.86 & 0.36 & 0.74 \\
+ & 2 & 3.23 & 0.50 & 0.82 & 0.18 & 0.63 \\
+ & 3 & 3.46 & 0.43 & 0.80 & 0.06 & 0.56 \\
+ & 4 & 3.57 & 0.37 & 0.78 & 0.00 & 0.52 \\
+ & 5 & 3.72 & 0.30 & 0.76 & $-0.02$ & 0.48 \\
+ & 6 & 3.84 & 0.24 & 0.74 & $-0.05$ & 0.44 \\
+\middlehline
+Stacked system (ensemble) & 1 & 2.56 & 0.70 & 0.88 & 0.43 & 0.77 \\
+ & 2 & 3.15 & 0.54 & 0.83 & 0.20 & 0.65 \\
+ & 3 & 3.40 & 0.45 & 0.80 & 0.10 & 0.57 \\
+ & 4 & 3.49 & 0.38 & 0.79 & 0.03 & 0.54 \\
+ & 5 & 3.66 & 0.30 & 0.76 & $-0.03$ & 0.49 \\
+ & 6 & 3.82 & 0.23 & 0.74 & $-0.05$ & 0.46 \\
+\bottomhline
+\end{tabular}
+\belowtable{The damped-persistence rows use the stronger variant at each
+lead, matching Table~\ref{tab:ladder}. Archived source files are listed in
+Appendix~\ref{app:repro}.}
+\end{table*}
 
 \subsection{Limitations}
 \label{sec:disc_limitations}
@@ -2009,7 +2091,7 @@ sets each scored twice.
 $\ge$300\,km exclusion and meteorology conditioning that bound the leakage
 and shared-climate confounds were run for the linear estimate, not for the
 stacked correction; the stacked evidence rests on the seed-matched placebo
-graphs alone. Indirect, and disclosed as such.
+graphs alone, an indirect control.
 \item \emph{Comparison asymmetries with GRACE-FCast.} Their training uses
 the \citet{yin2023gtws} reconstruction across the mission gap (hindsight);
 their seasonal/trend handling contributes ${\sim}0.07$--0.09 of the
@@ -2081,10 +2163,9 @@ leads) at five of six leads, at negligible cost. The margin is
 insensitive to the evaluation-protocol choices we varied
 (Sect.~\ref{sec:results_benchmark}), so it is a property of the benchmark
 rather than of an implementation. We propose it as
-the default reference for this task, and we read the
-consequence constructively: benchmarked properly, short-lead TWSA
-forecasting is revealed to be a filtering problem, and the meaningful
-question becomes what information beats state-space filtering.
+the default reference for this task. Benchmarked this way, short-lead TWSA
+forecasting is a filtering problem, and the question becomes what
+information beats state-space filtering.
 
 The answer has three parts. First, exogenous forcing: ERA5 predictors add
 % source: results/phase6_era5_headline.csv (+4.62% h1); computed 2026-08-16 flat12 (+3.34/+5.01/+3.49)
@@ -2099,8 +2180,8 @@ satellite-observed TWSA. Third, cross-basin information, the two-sided
 part. At the linear tier it is a null, and what little sits inside that
 null looks like an instrument artifact: the estimate concentrates in
 basins whose mascon footprints are shared with outside land and turns
-negative where footprints are clean. Representation is what changes the
-answer. Handed over as raw 12-month history, the same neighbor signal
+negative where footprints are clean. Representation changes the answer.
+Handed over as raw 12-month history, the same neighbor signal
 yields nothing, whether as an encoder input channel or as a dedicated
 correction stage; as a single state propagated to the forecast target time
 % source: results/phase8b_h16_ensemble_headline.csv (scalar correction +0.91..+1.96%, all p<=3.14e-08, 20/20 placebos in all 12 cells)
