@@ -1,6 +1,10 @@
 # Project Context — Global TWSA Forecasting Study
 
-Last updated: 2026-08-17. Status: **corrected rerun COMPLETE for every phase; publication-polish
+Last updated: 2026-08-18. Status: **corrected rerun COMPLETE for every phase; humanizer prose
+pass + conventional-metrics comparability table DONE (2026-08-18: 44 prose edits, two
+never-rendered sentences restored from comment lines, new audited tab:conventional with
+per-basin cm RMSE / CC / NSE in anomaly and full-signal space — median full-signal CC 0.86
+at lead 1 for damped persistence alone; PDF 41 pp); publication-polish
 round DONE (2026-08-17 evening): manuscript rewritten to published-paper register (abstract
 ~280 words / 0 p-values, title 12 words, audit-trail voice purged, stats de-duplicated, new
 ERA5 attribution table, terminology unified — "footprint-sharing score", "variant", "lead")

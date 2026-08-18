@@ -111,6 +111,7 @@ disagrees with the recorded value in `paper/notes/REWRITE_LEDGER.md`.
 | `run_resolution_sensitivity.py` | Are results contaminated by the satellite's coarse resolution? Builds the leakage metric. |
 | `run_phase8_stratification.py` | Is the neighbour result just leakage in disguise? (No — it's positive everywhere.) |
 | `build_paper_ladder.py` | Recomputes the paper's main comparison table on exactly matched rows. |
+| `compute_conventional_metrics.py` | Restates three systems in the literature's own metrics (per-basin RMSE in cm, CC, NSE; anomaly and full signal) for the paper's comparability table. |
 
 ---
 
