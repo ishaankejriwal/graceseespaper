@@ -20,8 +20,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.models import rmse  # noqa: E402
 from gracefc.stats import block_bootstrap_skill_ci, per_basin_dm_fdr, pooled_monthly_dm  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir  # noqa: E402
 
-OUT = ROOT / "results"
+OUT = results_dir(ROOT)
+DATA = processed_dir(ROOT)
 TAG_H13 = "phase8_lstm_combined"
 TAG_H46 = "phase8b_lstm_h46"
 HORIZONS = range(1, 7)
@@ -136,7 +138,7 @@ def main() -> None:
     if not (gap < 1e-6):
         raise AssertionError(f"target mismatch vs Li rows: max |diff| = {gap}")
 
-    coverage = pd.read_csv(ROOT / "data/processed/li2026_basin_coverage.csv")
+    coverage = pd.read_csv(DATA / "li2026_basin_coverage.csv")
     matched = matched.merge(coverage, on="name")
     matched.to_csv(OUT / "phase8b_li_comparison_predictions.csv", index=False)
 

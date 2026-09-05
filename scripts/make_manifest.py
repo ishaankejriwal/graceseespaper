@@ -16,12 +16,18 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RESULTS = ROOT / "results"
+sys.path.insert(0, str(ROOT / "src"))
+
+from gracefc.runtime import results_dir, source  # noqa: E402
+
+RESULTS = results_dir(ROOT)
 MANIFEST = RESULTS / "SHA256_MANIFEST_LIVE.csv"
 
 
 def tracked_files() -> set[str]:
     """Names git already versions — those need no separate checksum."""
+    if source() != "csr":
+        return set()
     out = subprocess.run(["git", "ls-files", "results"], cwd=ROOT,
                          capture_output=True, text=True).stdout
     return {Path(line).name for line in out.splitlines() if line.strip()}

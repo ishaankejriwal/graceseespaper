@@ -1,4 +1,4 @@
-"""Resolution stratification on OFFICIAL CSR mascon geometry (rebuilt 2026-08-15).
+"""Resolution stratification on native CSR or JPL mascon geometry.
 
 History: the first version of this analysis believed no official mascon-assignment
 product existed and recovered native tiles empirically (identical 8-month fingerprints
@@ -14,11 +14,16 @@ coastal leakage. This script now:
 3. Sweeps area thresholds as before, and repeats the decisive 2x2 at BOTH the 90,000 km2
    convention and CSR's published ~200,000 km2 caution threshold.
 
+For JPL, mascon_ID is read from the product itself and mapped to the 0.25-degree
+basin-mask grid. CRI files provide a land mask; for expert non-CRI files, the union of
+the supplied HydroSHEDS basins is used and recorded as ``land_mask_source``.
+
 Outputs: resolution_diagnostics.csv (official geometry, plus *_fp fingerprint columns),
 mascon_tile_inventory.csv, csr_geometry_validation.csv, resolution_sweep_area.csv,
 resolution_sweep_contamination.csv, resolution_cross_2x2.csv (90k),
 resolution_cross_2x2_200k.csv.
 """
+import os
 import sys
 from pathlib import Path
 
@@ -29,15 +34,22 @@ import xarray as xr
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from gracefc.basins import load_basin_masks  # noqa: E402
+from gracefc.basins import _nearest_grid_indices, load_basin_masks  # noqa: E402
 from gracefc.stats import pooled_monthly_dm  # noqa: E402
+from gracefc.runtime import results_dir, source  # noqa: E402
 
-MASCON_NC = ROOT / "CSR_GRACE_GRACE-FO_RL0603_Mascons_all-corrections.nc"
+PRODUCT = source()
+MASCON_NC = Path(os.environ.get(
+    "GRACEFC_MASCON_FILE",
+    ROOT / "CSR_GRACE_GRACE-FO_RL0603_Mascons_all-corrections.nc"
+    if PRODUCT == "csr" else ROOT / "data" / "raw" /
+    "GRCTellus.JPL.200204_202604.GLO.RL06.3M.MSCNv04.nc",
+))
 MASK_NC = ROOT / "HydroShed+Mascon_Basins_L3.nc"
 CSR_DIR = ROOT / "data" / "raw" / "csr_ancillary"
 MAPPING_NC = CSR_DIR / "CSR_GRACE_GRACE-FO_RL0603_mascons_mapping_file.nc"
 LANDMASK_NC = CSR_DIR / "CSR_GRACE_GRACE-FO_RL06_Mascons_v02_LandMask.nc"
-OUT_DIR = ROOT / "results"
+OUT_DIR = results_dir(ROOT)
 
 # Months used as the tile fingerprint for the cross-check. Eight float32 values
 # agreeing exactly across two different mascons is not a credible collision.
@@ -58,6 +70,33 @@ def _align_to(ds: xr.Dataset, lat_ref: np.ndarray, lon_ref: np.ndarray) -> xr.Da
 
 def load_official_geometry() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """(tile_id 2D int, cell_km2 2D, land 2D bool) on the solutions grid, from CSR files."""
+    if PRODUCT == "jpl":
+        masks = load_basin_masks(MASK_NC)
+        ds = xr.open_dataset(MASCON_NC, decode_times=False)
+        raw_id = ds["mascon_ID"].values
+        lat_map = _nearest_grid_indices(ds["lat"].values, masks["lat"])
+        lon_map = _nearest_grid_indices(ds["lon"].values, masks["lon"], circular=True)
+        ids = raw_id[np.ix_(lat_map, lon_map)]
+        if "land_mask" in ds:
+            raw_land = ds["land_mask"].values >= 0.5
+            land = raw_land[np.ix_(lat_map, lon_map)]
+        else:
+            # The expert non-CRI product does not bundle a land mask. Use the union
+            # of the supplied HydroSHEDS basin masks and label this in the output.
+            land = np.zeros(ids.shape, dtype=bool)
+            for idx in masks["indices"]:
+                land.ravel()[idx] = True
+        ds.close()
+        assert np.isfinite(ids).all(), "JPL mascon_ID has non-finite values"
+        _, tile_id = np.unique(ids.astype(np.int64).ravel(), return_inverse=True)
+        tile_id = tile_id.reshape(ids.shape)
+        lat = masks["lat"]
+        cell_km2_eq = (111.32 * 0.25) ** 2
+        cell_km2 = np.broadcast_to(
+            (np.cos(np.deg2rad(lat)) * cell_km2_eq)[:, None], tile_id.shape
+        ).copy()
+        return tile_id, cell_km2, land
+
     sols = xr.open_dataset(MASCON_NC, decode_times=False)
     lat, lon = sols["lat"].values, sols["lon"].values
     sols.close()
@@ -93,7 +132,15 @@ def recover_mascon_tiles() -> np.ndarray:
     contiguous = np.ascontiguousarray(flat)
     keys = contiguous.view([("", contiguous.dtype)] * contiguous.shape[1]).ravel()
     _, tile_id = np.unique(keys, return_inverse=True)
-    return tile_id.reshape(n_lat, n_lon)
+    native = tile_id.reshape(n_lat, n_lon)
+    if PRODUCT == "jpl":
+        masks = load_basin_masks(MASK_NC)
+        ds = xr.open_dataset(MASCON_NC, decode_times=False)
+        lat_map = _nearest_grid_indices(ds["lat"].values, masks["lat"])
+        lon_map = _nearest_grid_indices(ds["lon"].values, masks["lon"], circular=True)
+        ds.close()
+        return native[np.ix_(lat_map, lon_map)]
+    return native
 
 
 def validate_partitions(off_id: np.ndarray, fp_id: np.ndarray) -> pd.DataFrame:
@@ -125,7 +172,7 @@ def validate_partitions(off_id: np.ndarray, fp_id: np.ndarray) -> pd.DataFrame:
                                                  .reindex(off_major.index)).sum() / n),
         "adjusted_rand_index": float(ari),
     }])
-    out.to_csv(OUT_DIR / "csr_geometry_validation.csv", index=False)
+    out.to_csv(OUT_DIR / f"{PRODUCT}_geometry_validation.csv", index=False)
     return out
 
 
@@ -214,7 +261,8 @@ def cross_2x2(keep: pd.DataFrame, pred: pd.DataFrame, area_cut: float) -> pd.Dat
 
 
 def main() -> None:
-    print("loading OFFICIAL CSR mascon geometry ...")
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"loading OFFICIAL {PRODUCT.upper()} mascon geometry ...")
     tile_id, cell_km2, land = load_official_geometry()
     tiles = tile_report(tile_id, cell_km2)
     print(f"  {len(tiles)} official tiles over the global grid")
@@ -238,6 +286,13 @@ def main() -> None:
         legacy_land[idx] = True
     diag_fp = basin_diagnostics(fp_id, cell_km2, masks, legacy_land, suffix="_fp")
     meta = meta.merge(diag, on="name", how="left").merge(diag_fp, on="name", how="left")
+    meta["geometry_product"] = PRODUCT
+    if PRODUCT == "jpl":
+        with xr.open_dataset(MASCON_NC, decode_times=False) as product_ds:
+            land_source = "jpl_land_mask" if "land_mask" in product_ds else "hydrosheds_union"
+    else:
+        land_source = "csr_official"
+    meta["land_mask_source"] = land_source
     keep = meta[meta["exclude_reason"] == "keep"].copy()
 
     both = keep.dropna(subset=["contamination", "contamination_fp"])
@@ -251,7 +306,7 @@ def main() -> None:
 
     keep.to_csv(OUT_DIR / "resolution_diagnostics.csv", index=False)
 
-    pred = pd.read_csv(ROOT / "results/phase3b_predictions.csv")
+    pred = pd.read_csv(OUT_DIR / "phase3b_predictions.csv")
 
     # Sweep: area threshold (200k = CSR's published caution threshold)
     rows = []

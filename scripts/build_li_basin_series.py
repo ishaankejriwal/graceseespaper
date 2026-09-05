@@ -1,10 +1,11 @@
-"""Aggregate Li & Kusche (2026) CSR-FCast 1-degree forecasts to our L3 basin means.
+"""Aggregate Li & Kusche (2026) CSR/JPL-FCast forecasts to L3 basin means.
 
 Spatial matching: each 0.25-degree mask cell is assigned to the 1-degree Li cell that
 contains it, so basin weights on the coarse grid are exact sums of the fine-grid
 cos-lat weights. NaN-aware renormalization mirrors basins.py; per-basin coverage of
 Li's land mask is reported so poorly covered coastal basins can be screened.
 """
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -15,11 +16,6 @@ import xarray as xr
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-
-LI_DIR = ROOT / "data/raw/li2026/CSR-FCast/global_gridded"
-OUT = ROOT / "data/processed/li2026_csr_basin_forecasts.csv"
-COV_OUT = ROOT / "data/processed/li2026_basin_coverage.csv"
-
 
 def build_weight_matrix(basin_idx: np.ndarray, li_lat: np.ndarray, li_lon: np.ndarray) -> np.ndarray:
     """(n_basins, n_li_cells) weight matrix on the flattened (lon, lat) Li grid.
@@ -48,10 +44,23 @@ def build_weight_matrix(basin_idx: np.ndarray, li_lat: np.ndarray, li_lon: np.nd
 
 
 def main() -> None:
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--source", choices=("csr", "jpl"), default="csr")
+    args = ap.parse_args()
+    label = args.source.upper()
+    data_dir = ROOT / "data" / "processed"
+    if args.source != "csr":
+        data_dir = data_dir / args.source
+    li_dir = ROOT / "data" / "raw" / "li2026" / f"{label}-FCast" / "global_gridded"
+    out = data_dir / f"li2026_{args.source}_basin_forecasts.csv"
+    cov_out = data_dir / "li2026_basin_coverage.csv"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    meta = pd.read_csv(data_dir / "basin_meta.csv")
     # Only the hydrology sample: excluded basins never enter any comparison
     keep_meta = meta[meta["exclude_reason"] == "keep"].reset_index(drop=True)
-    files = sorted(LI_DIR.glob("CSR_FCast_gridded_initialized_in_*.nc"))
+    files = sorted(li_dir.glob(f"{label}_FCast_gridded_initialized_in_*.nc"))
+    if not files:
+        raise FileNotFoundError(f"no {label}-FCast files found in {li_dir}")
     print(f"{len(files)} init files | {len(keep_meta)} kept basins")
 
     ds0 = xr.open_dataset(files[0])
@@ -64,7 +73,7 @@ def main() -> None:
     ds0.close()
     coverage = (W @ finite0) / w_tot
     keep_meta = keep_meta.assign(li_coverage=coverage)
-    keep_meta[["name", "li_coverage"]].to_csv(COV_OUT, index=False)
+    keep_meta[["name", "li_coverage"]].to_csv(cov_out, index=False)
     print(f"coverage: min={coverage.min():.3f} | <0.9: {(coverage < 0.9).sum()} "
           f"| <0.5: {(coverage < 0.5).sum()}")
 
@@ -91,8 +100,8 @@ def main() -> None:
 
     df = pd.DataFrame(rows, columns=["name", "issue_date", "target_date", "horizon",
                                      "li_full_cm", "li_nonseasonal_cm"])
-    df.to_csv(OUT, index=False)
-    print(f"wrote {len(df)} rows -> {OUT}")
+    df.to_csv(out, index=False)
+    print(f"wrote {len(df)} rows -> {out}")
 
 
 if __name__ == "__main__":

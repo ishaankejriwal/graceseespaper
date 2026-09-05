@@ -135,10 +135,11 @@ def load_basin_masks(mask_path: Path) -> dict:
         "Franz_Josef", "Banks_Island", "Aleutians_South_Alaska", "Patagonia",
     )
     meta["glaciated"] = meta["name"].apply(lambda n: any(k in n for k in glaciated_keys))
-    return {"indices": cell_indices, "weights": cell_weights, "meta": meta}
+    return {"indices": cell_indices, "weights": cell_weights, "meta": meta,
+            "lat": lat, "lon": lon}
 
 
-def assign_solution_months(ds: xr.Dataset) -> pd.DatetimeIndex:
+def assign_solution_months(ds: xr.Dataset, product: str = "csr") -> pd.DatetimeIndex:
     """Map each raw solution to its official calendar month, one solution per month.
 
     Midpoint binning mislabels irregular-span solutions: the arcs centered
@@ -148,8 +149,10 @@ def assign_solution_months(ds: xr.Dataset) -> pd.DatetimeIndex:
     solution, so the coverage span minus that list IS the month sequence;
     every assignment is then asserted against the solution's data span.
     """
-    units = ds["time"].attrs.get("Units", "days since 2002-01-01T00:00:00Z")
-    origin = pd.Timestamp(units.split("since")[1].strip().replace("Z", ""))
+    units = ds["time"].attrs.get(
+        "units", ds["time"].attrs.get("Units", "days since 2002-01-01T00:00:00Z")
+    )
+    origin = pd.Timestamp(str(units).split("since", 1)[1].strip().replace("Z", ""))
     missing = {
         pd.Period(m, freq="M")
         for m in re.findall(r"\d{4}-\d{2}", str(ds.attrs["months_missing"]))
@@ -160,10 +163,16 @@ def assign_solution_months(ds: xr.Dataset) -> pd.DatetimeIndex:
     n_sol = ds["time"].shape[0]
     if len(months) != n_sol:
         raise ValueError(
-            f"CSR metadata inconsistent: {len(months)} expected months vs {n_sol} solutions; "
+            f"{product.upper()} metadata inconsistent: {len(months)} expected months vs "
+            f"{n_sol} solutions; "
             "verify months_missing/time_coverage attributes before rebuilding"
         )
-    bounds = ds["time_bounds"].values.astype("float64")
+    bounds_name = ds["time"].attrs.get("bounds", "time_bounds")
+    if bounds_name not in ds:
+        # Some JPL releases omit bounds. The official non-missing month sequence is
+        # still unambiguous and preferable to midpoint-to-month rounding.
+        return pd.DatetimeIndex([m.to_timestamp() for m in months])
+    bounds = ds[bounds_name].values.astype("float64")
     t0 = origin + pd.to_timedelta(bounds[:, 0], unit="D")
     t1 = origin + pd.to_timedelta(bounds[:, 1], unit="D")
     for i, m in enumerate(months):
@@ -175,12 +184,72 @@ def assign_solution_months(ds: xr.Dataset) -> pd.DatetimeIndex:
     return pd.DatetimeIndex([m.to_timestamp() for m in months])
 
 
-def build_basin_series(csr_path: Path, mask_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Aggregate CSR lwe_thickness into per-basin monthly means. Returns (long_df, meta)."""
+def _coord_name(obj: xr.DataArray, candidates: tuple[str, ...]) -> str:
+    for name in candidates:
+        if name in obj.dims and name in obj.coords:
+            return name
+    raise ValueError(f"none of coordinates {candidates} occur in lwe_thickness dimensions {obj.dims}")
+
+
+def _nearest_grid_indices(source: np.ndarray, target: np.ndarray, circular: bool = False) -> np.ndarray:
+    """Index of the closest source-grid centre for every target-grid centre."""
+    source = np.asarray(source, dtype=float)
+    target = np.asarray(target, dtype=float)
+    delta = np.abs(target[:, None] - source[None, :])
+    if circular:
+        delta = np.mod(delta, 360.0)
+        delta = np.minimum(delta, 360.0 - delta)
+    return np.argmin(delta, axis=1)
+
+
+def build_basin_series(
+    mascon_path: Path,
+    mask_path: Path,
+    product: str = "csr",
+    apply_scale_factors: bool | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Aggregate a CSR or JPL mascon grid into per-basin monthly means.
+
+    The HydroSHEDS mask is on a 0.25-degree grid. CSR is already sampled on that
+    grid, while JPL is sampled at 0.5 degrees. Mask-cell centres are mapped to the
+    nearest mascon grid centre before area-weighted aggregation; repeated source
+    cells retain the summed fine-grid basin area they represent.
+    """
+    product = product.lower()
+    if product not in {"csr", "jpl"}:
+        raise ValueError(f"unsupported mascon product: {product!r}")
     bm = load_basin_masks(mask_path)
-    ds = xr.open_dataset(csr_path, decode_times=False)
-    dates = assign_solution_months(ds)
+    ds = xr.open_dataset(mascon_path, decode_times=False)
+    dates = assign_solution_months(ds, product=product)
+    if "lwe_thickness" not in ds:
+        raise ValueError(f"{mascon_path} has no lwe_thickness variable")
     lwe = ds["lwe_thickness"]
+    lat_name = _coord_name(lwe, ("lat", "latitude"))
+    lon_name = _coord_name(lwe, ("lon", "longitude"))
+    lwe = lwe.transpose("time", lat_name, lon_name)
+
+    # JPL's CRI product distributes optional scale factors for sub-mascon hydrology;
+    # the expert non-CRI product does not. CSR is used as distributed.
+    if apply_scale_factors is None:
+        apply_scale_factors = product == "jpl" and "scale_factor" in ds
+    if apply_scale_factors:
+        if "scale_factor" not in ds:
+            raise ValueError("JPL scale factors requested but scale_factor is absent")
+        scale = ds["scale_factor"].transpose(lat_name, lon_name)
+        lwe = lwe * scale
+
+    mask_lat = np.asarray(bm["lat"])
+    mask_lon = np.asarray(bm["lon"])
+    src_lat_for_mask = _nearest_grid_indices(ds[lat_name].values, mask_lat)
+    src_lon_for_mask = _nearest_grid_indices(ds[lon_name].values, mask_lon, circular=True)
+    mask_nlon = len(mask_lon)
+    src_nlon = len(ds[lon_name])
+    source_indices = []
+    for mask_flat in bm["indices"]:
+        mask_rows, mask_cols = np.divmod(mask_flat, mask_nlon)
+        source_indices.append(
+            src_lat_for_mask[mask_rows] * src_nlon + src_lon_for_mask[mask_cols]
+        )
     n_time = lwe.shape[0]
 
     n_basins = len(bm["indices"])
@@ -191,7 +260,7 @@ def build_basin_series(csr_path: Path, mask_path: Path) -> tuple[pd.DataFrame, p
         t1 = min(t0 + chunk, n_time)
         block = lwe.isel(time=slice(t0, t1)).values.reshape(t1 - t0, -1)
         for b in range(n_basins):
-            idx, w = bm["indices"][b], bm["weights"][b]
+            idx, w = source_indices[b], bm["weights"][b]
             vals = block[:, idx]
             # NaN-aware weighted mean: renormalize weights over valid cells per timestep
             valid = np.isfinite(vals)
@@ -205,4 +274,8 @@ def build_basin_series(csr_path: Path, mask_path: Path) -> tuple[pd.DataFrame, p
         raise ValueError("duplicate solution months after official assignment")
     long_df = df.reset_index(names="date").melt(id_vars="date", var_name="name", value_name="twsa_cm")
     long_df = long_df.merge(bm["meta"][["name", "basin_idx"]], on="name")
-    return long_df.sort_values(["basin_idx", "date"]).reset_index(drop=True), bm["meta"]
+    meta = bm["meta"].copy()
+    meta["mascon_product"] = product
+    meta["scale_factors_applied"] = bool(apply_scale_factors)
+    ds.close()
+    return long_df.sort_values(["basin_idx", "date"]).reset_index(drop=True), meta

@@ -1,4 +1,4 @@
-"""Phase 6: head-to-head against the Li & Kusche (2026) LSTM hindcast (CSR-FCast).
+"""Phase 6: head-to-head against the source-matched Li & Kusche (2026) LSTM hindcast.
 
 Places their basin-aggregated forecasts into our evaluation space: subtract OUR
 fold-specific climatology (full variant) and a train-window-only mean offset that
@@ -26,8 +26,10 @@ from gracefc.evaluate import DEFAULT_FOLDS  # noqa: E402
 from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
 from gracefc.stats import block_bootstrap_skill_ci, diebold_mariano, per_basin_dm_fdr, pooled_monthly_dm  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir, source  # noqa: E402
 
-OUT_DIR = ROOT / "results"
+OUT_DIR = results_dir(ROOT)
+DATA = processed_dir(ROOT)
 HORIZONS = range(1, 7)
 OUR_MODELS = {
     # file -> models to pull (phase3b is already in std units; phase2 has *_std_units cols)
@@ -92,13 +94,13 @@ def build_li_pred_rows(li: pd.DataFrame, wide: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    long_df = pd.read_csv(ROOT / "data/processed/basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")
+    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
+    meta = pd.read_csv(DATA / "basin_meta.csv")
     keep = meta[meta["exclude_reason"] == "keep"]["name"]
     wide = pivot_wide(long_df[long_df["name"].isin(keep)])
-    li = pd.read_csv(ROOT / "data/processed/li2026_csr_basin_forecasts.csv",
+    li = pd.read_csv(DATA / f"li2026_{source()}_basin_forecasts.csv",
                      parse_dates=["issue_date", "target_date"])
-    coverage = pd.read_csv(ROOT / "data/processed/li2026_basin_coverage.csv")
+    coverage = pd.read_csv(DATA / "li2026_basin_coverage.csv")
 
     li_rows = build_li_pred_rows(li, wide)
     print(f"li rows: {len(li_rows)} | basins: {li_rows['name'].nunique()}")
