@@ -13,8 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.stats import block_bootstrap_skill_ci, diebold_mariano, per_basin_dm_fdr  # noqa: E402
+from gracefc.runtime import results_dir  # noqa: E402
 
-OUT_DIR = ROOT / "results"
+OUT_DIR = results_dir(ROOT)
 KEYS = ["name", "issue_date", "target_date", "fold", "horizon"]
 
 

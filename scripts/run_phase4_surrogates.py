@@ -30,18 +30,20 @@ from gracefc.graphs import corr_topk  # noqa: E402
 from gracefc.kalman import filtered_state_wide  # noqa: E402
 from gracefc.surrogates import surrogate_wide  # noqa: E402
 from gracefc.cache import load_params_cache  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir  # noqa: E402
 
-OUT_DIR = ROOT / "results"
+OUT_DIR = results_dir(ROOT)
+DATA = processed_dir(ROOT)
 N_SURR = 99
 HORIZONS = range(1, 7)
 
 
 def main() -> None:
-    long_df = pd.read_csv(ROOT / "data/processed/basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")
+    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
+    meta = pd.read_csv(DATA / "basin_meta.csv")
     keep = meta[meta["exclude_reason"] == "keep"]["name"]
     wide = pivot_wide(long_df[long_df["name"].isin(keep)])
-    cache = load_params_cache(OUT_DIR / "kalman_fold_params.pkl", ROOT / "data/processed/basin_month_twsa_global.csv")
+    cache = load_params_cache(OUT_DIR / "kalman_fold_params.pkl", DATA / "basin_month_twsa_global.csv")
     assert cache, "params cache missing or stale for current data/protocol - run phase3b first"
 
     # sse[(model, h)] accumulates pooled squared error across folds

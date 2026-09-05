@@ -331,6 +331,37 @@ Run the whole thing:
 .venv/Scripts/python scripts/run_chain.py
 ```
 
+Run the same experiment suite with the JPL RL06.3Mv04 mascons:
+
+```powershell
+.venv\Scripts\python.exe scripts\run_chain.py --source jpl --list
+.venv\Scripts\python.exe scripts\run_chain.py --source jpl
+```
+
+Place the JPL file used by the historical pilot at
+`data/raw/GRCTellus.JPL.200204_202604.GLO.RL06.3M.MSCNv04.nc`. The JPL target table is
+written to `data/processed/jpl/`, and every derived result and cache is written to
+`results/jpl/`; the archived CSR files are not overwritten. The JPL reader maps the
+0.25-degree basin-mask cells to JPL's 0.5-degree sampled grid and uses the product's official
+missing-month metadata. If the selected JPL file contains the optional `scale_factor` field
+(as the recommended CRI product does), it is applied and recorded in `basin_meta.csv`; the
+expert non-CRI product has no scale factors and is used as distributed. For an explicitly
+unscaled sensitivity run, add `--no-scale-factors` to the `run_chain.py --source jpl`
+command.
+
+To use a downloaded CRI file without renaming it, pass its path through the full chain:
+
+```powershell
+.venv\Scripts\python.exe scripts\run_chain.py --source jpl `
+  --mascon-file data\raw\GRCTellus.JPL.latest.GLO.RL06.3M.MSCNv04CRI.nc
+```
+
+The default JPL chain also expects the matching Li & Kusche files under
+`data/raw/li2026/JPL-FCast/global_gridded/`. As with CSR, `phase7_gnn` is defined but omitted
+from the default because it is exceptionally expensive; run it explicitly after its
+dependencies with `--source jpl --steps phase7_gnn`. Publication figures are not run for
+JPL because their assertions intentionally pin the manuscript's archived CSR numbers.
+
 Heads up: a full run is **roughly a day and a half to two days** on a laptop — the recorded
 14-step partial rerun took ~34 hours, and the full default list adds the baselines, phase 3b,
 the Li comparison, and more on top of that. The neural network stages dominate. Run just part

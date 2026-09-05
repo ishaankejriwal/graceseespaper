@@ -28,8 +28,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.stats import block_bootstrap_skill_ci, diebold_mariano  # noqa: E402
+from gracefc.runtime import results_dir  # noqa: E402
 
-RESULTS = ROOT / "results"
+RESULTS = results_dir(ROOT)
 
 P2_MODELS = [
     "climatology_zero",

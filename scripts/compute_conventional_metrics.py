@@ -33,8 +33,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.decompose import fit_climatology  # noqa: E402
 from gracefc.evaluate import DEFAULT_FOLDS  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir  # noqa: E402
 
-RES = ROOT / "results"
+RES = results_dir(ROOT)
+DATA = processed_dir(ROOT)
 HORIZONS = range(1, 7)
 # Ladder convention (tab:ladder caption): rho-damping is the stronger variant at
 # lead 1, regression damping at leads 2-6.
@@ -42,7 +44,7 @@ DAMPED_BY_H = {1: "damped_persistence_rho", **{h: "damped_persistence_reg" for h
 
 
 def load_wide() -> pd.DataFrame:
-    long = pd.read_csv(ROOT / "data" / "processed" / "basin_month_twsa_global.csv", parse_dates=["date"])
+    long = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
     return long.pivot(index="date", columns="name", values="twsa_cm")
 
 

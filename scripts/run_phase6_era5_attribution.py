@@ -33,22 +33,25 @@ from gracefc.kalman import filtered_state_wide  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
 from gracefc.stats import per_basin_dm_fdr, pooled_monthly_dm  # noqa: E402
 from gracefc.cache import load_params_cache  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir, shared_processed_dir  # noqa: E402
 
-OUT_DIR = ROOT / "results"
+OUT_DIR = results_dir(ROOT)
+DATA = processed_dir(ROOT)
+SHARED_DATA = shared_processed_dir(ROOT)
 H = 1  # the ERA5 linear gain is significant at lead 1 only
 
 
 def build_pred_rows() -> tuple[pd.DataFrame, list[str]]:
-    long_df = pd.read_csv(ROOT / "data/processed/basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")
+    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
+    meta = pd.read_csv(DATA / "basin_meta.csv")
     keep = meta[meta["exclude_reason"] == "keep"]["name"]
     wide = pivot_wide(long_df[long_df["name"].isin(keep)])
-    era5_long = pd.read_csv(ROOT / "data/processed/era5_basin_month.csv", parse_dates=["date"])
+    era5_long = pd.read_csv(SHARED_DATA / "era5_basin_month.csv", parse_dates=["date"])
     era5_wide = era5_wide_by_var(era5_long[era5_long["name"].isin(keep)])
     variables = list(era5_wide)
 
     cache = load_params_cache(OUT_DIR / "kalman_fold_params.pkl",
-                              ROOT / "data/processed/basin_month_twsa_global.csv")
+                              DATA / "basin_month_twsa_global.csv")
     assert cache, "params cache missing or stale - run phase3b first"
 
     out = []
@@ -138,7 +141,7 @@ def main() -> None:
     folds = pd.DataFrame(fold_rows).sort_values("fold")
     folds.to_csv(OUT_DIR / "phase6_era5_attribution_folds.csv", index=False)
 
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")[["name", "continent"]]
+    meta = pd.read_csv(DATA / "basin_meta.csv")[["name", "continent"]]
     pub_c = pub.merge(meta, on="name")
     cont_rows = []
     for cont, grp in pub_c.groupby("continent"):

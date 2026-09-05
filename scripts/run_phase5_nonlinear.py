@@ -15,8 +15,10 @@ from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
 from gracefc.stats import block_bootstrap_skill_ci, pooled_monthly_dm  # noqa: E402
 from gracefc.cache import load_params_cache, save_params_cache  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir  # noqa: E402
 
-OUT_DIR = ROOT / "results"
+OUT_DIR = results_dir(ROOT)
+DATA = processed_dir(ROOT)
 PARAMS_CACHE = OUT_DIR / "kalman_fold_params.pkl"
 
 
@@ -26,11 +28,11 @@ def main() -> None:
     ap.add_argument("--tag", default="phase5_nonlinear")
     args = ap.parse_args()
 
-    long_df = pd.read_csv(ROOT / "data/processed/basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")
+    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
+    meta = pd.read_csv(DATA / "basin_meta.csv")
     keep = meta[meta["exclude_reason"] == "keep"]["name"]
     wide = pivot_wide(long_df[long_df["name"].isin(keep)])
-    cache = load_params_cache(PARAMS_CACHE, ROOT / "data/processed/basin_month_twsa_global.csv")
+    cache = load_params_cache(PARAMS_CACHE, DATA / "basin_month_twsa_global.csv")
     print(f"sample: {wide.shape[1]} basins | placebo seeds={args.placebo}")
 
     pred_rows, plac_monthly = run_nonlinear_experiment(wide, n_placebo=args.placebo, params_cache=cache)
