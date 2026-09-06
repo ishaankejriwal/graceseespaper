@@ -266,7 +266,7 @@ def build_basin_series(
             valid = np.isfinite(vals)
             wsum = (valid * w).sum(axis=1)
             num = np.nansum(vals * w, axis=1)
-            out[t0:t1, b] = np.where(wsum > 0, num / wsum, np.nan)
+            np.divide(num, wsum, out=out[t0:t1, b], where=wsum > 0)
 
     df = pd.DataFrame(out, index=dates, columns=bm["meta"]["name"].values)
     # One solution per official month by construction; duplicates mean the mapping broke
@@ -277,5 +277,13 @@ def build_basin_series(
     meta = bm["meta"].copy()
     meta["mascon_product"] = product
     meta["scale_factors_applied"] = bool(apply_scale_factors)
+    valid_months = np.isfinite(out).sum(axis=0)
+    meta["product_valid_months"] = valid_months
+    if product == "jpl":
+        # Small island masks can map entirely to JPL cells where the CRI land
+        # scale factor is unavailable. Keep their rows for auditability, but do
+        # not pass an all-NaN target series into the forecasting experiments.
+        unavailable = (meta["exclude_reason"] == "keep") & (valid_months == 0)
+        meta.loc[unavailable, "exclude_reason"] = "jpl_unavailable"
     ds.close()
     return long_df.sort_values(["basin_idx", "date"]).reset_index(drop=True), meta
