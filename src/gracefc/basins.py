@@ -20,6 +20,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from gracefc.comparison import fully_contained_group_counts
+
 # Rough continent boxes on basin centroids, checked in order — first match wins.
 # Arabia carve-out and Europe both precede Africa so Gulf basins and Sicily don't leak in.
 # Maritime Southeast Asia precedes the australia box: the old equator cut dropped the
@@ -277,6 +279,14 @@ def build_basin_series(
     meta = bm["meta"].copy()
     meta["mascon_product"] = product
     meta["scale_factors_applied"] = bool(apply_scale_factors)
+    if product == "jpl":
+        if "mascon_ID" not in ds:
+            raise ValueError("JPL product has no mascon_ID field for spatial-support auditing")
+        native_id = ds["mascon_ID"].transpose(lat_name, lon_name).values
+        id_on_mask_grid = native_id[np.ix_(src_lat_for_mask, src_lon_for_mask)]
+        meta["n_full_jpl_mascons"] = fully_contained_group_counts(
+            id_on_mask_grid, bm["indices"]
+        )
     valid_months = np.isfinite(out).sum(axis=0)
     meta["product_valid_months"] = valid_months
     if product == "jpl":

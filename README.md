@@ -368,6 +368,14 @@ from the default because it is exceptionally expensive; run it explicitly after 
 dependencies with `--source jpl --steps phase7_gnn`. Publication figures are not run for
 JPL because their assertions intentionally pin the manuscript's archived CSR numbers.
 
+The JPL-versus-Li tables report two spatial samples. `all_matched` retains every basin/date
+available to every compared model. `joint_full_cells` is the strict resolution sensitivity:
+a basin must contain every 0.25-degree mask subcell of at least one native JPL `mascon_ID`
+and all sixteen subcells of at least one finite 1-degree Li forecast cell. This is a literal
+containment test, not an area or fractional-coverage proxy. The per-basin Li diagnostics and
+JPL hybrid comparison use this strict subset, while both pooled samples remain in the summary
+and headline CSVs so the effect of the spatial restriction is visible.
+
 Heads up: a full run is **roughly a day and a half to two days** on a laptop — the recorded
 14-step partial rerun took ~34 hours, and the full default list adds the baselines, phase 3b,
 the Li comparison, and more on top of that. The neural network stages dominate. Run just part

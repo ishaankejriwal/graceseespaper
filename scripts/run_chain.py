@@ -216,7 +216,7 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
       RESULTS / "phase8b_lstm_h46_predictions.csv",
       RESULTS / "phase8b_lstm_h46_summary.csv",
       RESULTS / "phase6_li_comparison_predictions.csv",
-      DATA / "li2026_basin_coverage.csv"],
+      DATA / "li2026_basin_coverage.csv", DATA / "basin_meta.csv"],
      [RESULTS / "phase8b_h16_headline.csv", RESULTS / "phase8b_h16_ensemble_headline.csv",
       RESULTS / "phase8b_li_comparison_headline.csv", RESULTS / "phase8b_li_comparison_perbasin.csv"]),
 
