@@ -376,6 +376,13 @@ containment test, not an area or fractional-coverage proxy. The per-basin Li dia
 JPL hybrid comparison use this strict subset, while both pooled samples remain in the summary
 and headline CSVs so the effect of the spatial restriction is visible.
 
+Compact JPL headline, summary, statistical, and basin-diagnostic tables are versioned under
+`results/jpl/` for cross-machine review. Large prediction-level tables, placebo draws, model
+state, and chain logs remain local; their checksums are recorded in
+`results/jpl/SHA256_MANIFEST_LIVE.csv`. The exact releases, scale-factor setting, run dates,
+comparison populations, seeds, and input checksums are documented in
+`results/jpl/RUN_PROVENANCE.md`.
+
 Heads up: a full run is **roughly a day and a half to two days** on a laptop — the recorded
 14-step partial rerun took ~34 hours, and the full default list adds the baselines, phase 3b,
 the Li comparison, and more on top of that. The neural network stages dominate. Run just part
