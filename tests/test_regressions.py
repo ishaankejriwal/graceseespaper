@@ -21,9 +21,47 @@ from gracefc.basins import (  # noqa: E402
     _assign_continent, _nearest_grid_indices, assign_solution_months,
     build_basin_series,
 )
+from gracefc.comparison import (  # noqa: E402
+    fully_contained_group_counts, li_joint_support_names,
+)
 from gracefc.evaluate import Fold, split_fold  # noqa: E402
 from gracefc.kalman import fit_kalman_ar1, kalman_forecast_series  # noqa: E402
 from gracefc.surrogates import iaaft  # noqa: E402
+
+
+def test_fully_contained_group_counts_are_literal():
+    groups = np.array([
+        [0, 0, 1, 1],
+        [0, 0, 1, 1],
+    ])
+    basins = [
+        np.array([0, 1, 4, 5]),       # all of group 0
+        np.array([0, 1, 2, 3]),       # half of both groups
+        np.array([2, 3, 6, 7]),       # all of group 1
+    ]
+    np.testing.assert_array_equal(
+        fully_contained_group_counts(groups, basins), [1, 0, 1]
+    )
+    np.testing.assert_array_equal(
+        fully_contained_group_counts(groups, basins, valid_groups=[True, False]),
+        [1, 0, 0],
+    )
+
+
+def test_li_comparison_requires_complete_cells_from_both_products():
+    meta = pd.DataFrame({
+        "name": ["good", "no_jpl", "excluded", "low_coverage"],
+        "exclude_reason": ["keep", "keep", "jpl_unavailable", "keep"],
+        "n_full_jpl_mascons": [1, 0, 4, 2],
+    })
+    coverage = pd.DataFrame({
+        "name": meta["name"],
+        "li_coverage": [0.9, 0.9, 0.9, 0.1],
+        "n_full_li_cells": [1, 3, 5, 2],
+    })
+    # Coverage is diagnostic only: literal complete-cell containment determines
+    # spatial support, so low_coverage still qualifies in this synthetic case.
+    assert list(li_joint_support_names(meta, coverage)) == ["good", "low_coverage"]
 
 
 # ---------------------------------------------------------------- fold membership
@@ -216,6 +254,7 @@ def test_jpl_basin_aggregation_maps_grid_and_applies_scale(tmp_path):
         {
             "lwe_thickness": (("time", "lat", "lon"), [[[1.0, 2.0]], [[2.0, 4.0]]]),
             "scale_factor": (("lat", "lon"), [[2.0, 3.0]]),
+            "mascon_ID": (("lat", "lon"), [[7, 7]]),
         },
         coords={"time": [15.0, 45.0], "lat": [0.0], "lon": [0.15, 0.85]},
     )
@@ -233,6 +272,7 @@ def test_jpl_basin_aggregation_maps_grid_and_applies_scale(tmp_path):
     assert list(long["date"]) == [pd.Timestamp("2002-01-01"), pd.Timestamp("2002-02-01")]
     assert meta.loc[0, "mascon_product"] == "jpl"
     assert bool(meta.loc[0, "scale_factors_applied"])
+    assert meta.loc[0, "n_full_jpl_mascons"] == 1
 
     # The expert non-CRI JPL file has no scale_factor and must remain supported.
     unscaled_path = tmp_path / "jpl_non_cri.nc"
