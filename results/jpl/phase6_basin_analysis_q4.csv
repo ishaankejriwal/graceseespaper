@@ -1,0 +1,11 @@
+,0
+spearman_dm_p3b_vs_dm_era5c,0.8132608129985816
+spearman_dm_era5r_vs_dm_era5c,0.8132608129985816
+spearman_skill_era5r_vs_skill_era5c,0.7673692917826376
+frac_sign_flip_era5,0.17982456140350878
+max_abs_diff_dm_p3b_vs_era5r,0.0
+n_sig_helped_p3b,14.0
+n_sig_helped_era5r,14.0
+n_sig_helped_era5c,23.0
+n_sig_helped_overlap_era5,12.0
+spearman_dm_p3b_vs_li_h4,-0.10036440561463697

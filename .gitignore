@@ -27,7 +27,14 @@ results/phase3b_placebo_monthly.csv
 
 # Chain runner per-step logs: transient, superseded by results/RUN_LOG.md
 results/chain_*.log
-results/jpl/
+
+# JPL result archive: commit compact scientific tables and their provenance, but
+# leave row-level predictions, null draws, model state, and transient logs local.
+results/jpl/chain_*.log
+results/jpl/*_predictions.csv
+results/jpl/*_placebo_basin.csv
+results/jpl/*_placebo_monthly.csv
+results/jpl/*.pkl
 
 # LaTeX build artifacts
 paper/*.aux
