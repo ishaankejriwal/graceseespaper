@@ -241,6 +241,16 @@ def test_jpl_basin_aggregation_maps_grid_and_applies_scale(tmp_path):
     np.testing.assert_allclose(unscaled["twsa_cm"], [1.5, 3.0])
     assert not bool(unscaled_meta.loc[0, "scale_factors_applied"])
 
+    # A JPL basin with no finite CRI-scaled observations remains in the audit
+    # table but must not enter models that require a fitted climatology.
+    unavailable = mascon.copy(deep=True)
+    unavailable["lwe_thickness"][:] = np.nan
+    unavailable_path = tmp_path / "jpl_unavailable.nc"
+    unavailable.to_netcdf(unavailable_path)
+    _, unavailable_meta = build_basin_series(unavailable_path, mask_path, product="jpl")
+    assert unavailable_meta.loc[0, "product_valid_months"] == 0
+    assert unavailable_meta.loc[0, "exclude_reason"] == "jpl_unavailable"
+
 
 def test_jpl_chain_paths_are_isolated():
     spec = importlib.util.spec_from_file_location("run_chain_test", ROOT / "scripts/run_chain.py")

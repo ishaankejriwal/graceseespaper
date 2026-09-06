@@ -349,6 +349,12 @@ expert non-CRI product has no scale factors and is used as distributed. For an e
 unscaled sensitivity run, add `--no-scale-factors` to the `run_chain.py --source jpl`
 command.
 
+The June 2026 CRI product leaves six small-island masks with no finite scaled JPL cells
+(`Nusa_Tenggara`, `Maluku`, `Halmahera_Islands`, `Solomon_Islands`, `Jamaica`, and
+`Puerto_Rico`). The JPL build records these as `jpl_unavailable` in `basin_meta.csv` and
+uses the remaining 228 hydrology basins. This check is computed from the selected product,
+so a future release can restore a basin if it supplies valid cells.
+
 To use a downloaded CRI file without renaming it, pass its path through the full chain:
 
 ```powershell
