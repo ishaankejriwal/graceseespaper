@@ -46,28 +46,40 @@ prediction of GRACE terrestrial water storage}
 \begin{abstract}
 Data-driven forecasts of GRACE and GRACE-FO terrestrial water storage
 anomalies are scored, when a reference forecast is used at all, against
-climatology or persistence of the last observation. Both references ignore
-two properties of the record: every monthly basin value carries observation
-noise, and eleven months separate the two missions. We propose a per-basin
-Kalman filter with an autoregressive state and additive observation noise as
-the reference forecast for deseasonalized basin storage. It has three
-parameters per basin, removes noise before extrapolating, and carries its
-state across the gap. On 234 basins over five test folds issued from 2019 to
-2026, the filter beats the stronger of two damped-persistence variants by
+climatology or persistence of the last observation. Neither allows for the
+observation noise in every monthly basin value. We propose a per-basin
+Kalman filter with an autoregressive state and additive observation noise
+as the reference forecast for deseasonalized basin storage. It has three
+parameters per basin, removes noise before extrapolating, and stays
+defined through months without an observation, including the eleven-month
+gap between the missions. On 234 basins over five test folds issued from
+2019 to 2026, the filter beats the stronger of two damped-persistence
+variants by
 % source: results/paper_baseline_ladder.csv, kalman_ar1 rows, skill_vs_damped (0.0498, 0.0879, 0.0562..0.0255)
 5.0\,\% at a lead of one month, 8.8\,\% at two months, and 2.5 to 5.6\,\% at
-leads three to six. Refitting the filter with the noise variance fixed at
-zero removes the whole margin, and a separate noise variance for GRACE-FO
-makes the filter worse. Scored against the filter, the strongest own-basin
-model in standardized units is a linear ridge correction over a flat
-twelve-month window of filtered state and ERA5-Land forcing, worth
+leads three to six. Fixing the noise variance at zero removes the whole
+margin; a separate noise variance for GRACE-FO makes the filter worse.
+Scored against the filter, the strongest own-basin model in standardized
+units is a linear ridge over a flat twelve-month window of filtered state
+and ERA5-Land forcing, worth
 % source: results/paper_baseline_contrasts.csv, ridge_own_era5_flat12 vs kalman_ar1 h1 (0.0765)
-7.6\,\% over the filter at lead one; every sequence model we trained loses to
-it once training rows are equalized. Against a published deep-learning
-forecast product on two mascon solutions, the filter alone wins at leads one
-and two and loses from lead three, where that product's forcing history
-carries it. Skill reported over persistence on this target should be re-read
-against the filter.
+7.6\,\% at lead one; every sequence model we trained loses to it,
+significantly at leads two and three against a row-matched LSTM ensemble.
+% source: results/flat12_train85_sensitivity.csv, ridge_own_era5_flat12_train85 vs lstm_own_era5_ens (skill_pct 1.02, 2.76, 2.27; dm_p 0.094, 2.7e-10, 4.3e-9)
+Against a published deep-learning product that uses no lagged storage, on
+two mascon solutions, the filter wins at lead one against both the full
+product and its non-seasonal component, wins at lead two against the
+non-seasonal component only, ties for one lead on CSR and two on JPL, and
+loses from lead three or four on CSR and four or five on JPL, where the
+product's forcing history carries it.
+% source: results/phase6_li_comparison_headline.csv and results/jpl/phase6_li_comparison_headline.csv, joint_full_cells, kalman_ar1 vs li_lstm_full / li_lstm_nonseas, dm_p by lead (tie = p >= 0.05)
+The lead-one win belongs to the reference class: damped persistence also
+beats the product there, and the filter's own contribution is its margin
+over damped persistence,
+% source: results/paper_baseline_ladder.csv, kalman_ar1 h1 skill_vs_damped 0.0498 (CSR); results/jpl/paper_baseline_contrasts.csv, kalman_ar1 vs damped_persistence_rho h1 (0.0056, dm_p 0.60);
+% results/phase6_li_comparison_headline.csv, joint_full_cells, damped_persistence_rho vs li_lstm_full h1 (0.1188, dm_p 0.029)
+5.0\,\% on CSR and indistinguishable from zero on JPL. Skill reported over
+persistence on this target should be re-read against the filter.
 \end{abstract}
 
 \introduction
@@ -113,16 +125,18 @@ This paper argues that persistence is the wrong reference for this target,
 and proposes a replacement. Basin-average TWSA is a state variable observed
 through a noisy instrument, with observation errors that are large for
 small and arid basins \citep{save2016mascons, landerer2020gracefo}. A
-persistence forecast, damped or not, propagates the observation noise of
-the anchor month into every forecast. It also has nothing to say about a
-month with no observation, and the record has an eleven-month gap between
-the end of GRACE in 2017 and the start of GRACE-FO in 2018. The reference
-we propose is a per-basin Kalman filter \citep{kalman1960} with a
-first-order autoregressive (AR(1)) state and additive observation noise. It
-separates the signal from the noise before extrapolating, and a missing
-month costs it nothing, because the filter propagates its state until the
-next observation arrives. It has three parameters per basin and needs no
-data beyond the storage series itself.
+persistence forecast, damped or not, starts from the last observed month,
+which we call the anchor observation, and propagates its observation noise
+into every forecast. The reference we propose is a per-basin Kalman filter
+\citep{kalman1960} with a first-order autoregressive (AR(1)) state and
+additive observation noise. It separates the signal from the noise before
+extrapolating, has three parameters per basin, and needs no data beyond
+the storage series itself. It also differs from persistence in a way this
+study does not test: because the filter propagates its state through any
+month without an observation, it is defined across the eleven-month gap
+between the end of GRACE in 2017 and the start of GRACE-FO in 2018, where
+persistence has no anchor. No forecast scored here is issued across that
+gap (Sect.~\ref{sec:methods-folds}).
 
 The same benchmark-hygiene argument has been made in sea-ice forecasting,
 where \citet{niraula2021seaice} showed that damped-persistence references
@@ -150,8 +164,8 @@ filters it decides the model comparison.
 The contribution of this paper is one claim with three consequences. A
 per-basin Kalman filter with an AR(1) state and additive observation noise
 is the reference forecast that data-driven forecasts of deseasonalized
-GRACE basin water storage should be scored against, because it handles
-observation noise and the 2017--2018 mission gap natively. On 234 basins
+GRACE basin water storage should be scored against, because it removes
+observation noise before extrapolating. On 234 basins
 over five test folds it beats the stronger of two damped-persistence
 % source: results/paper_baseline_ladder.csv, kalman_ar1 rows, skill_vs_damped
 variants by 5.0\,\% at lead 1, 8.8\,\% at lead 2, and 2.5 to 5.6\,\% at
@@ -159,14 +173,17 @@ leads 3 to 6, and refitting it with the noise variance fixed at zero
 removes the entire margin. Scored against it, a linear ridge correction
 over a flat twelve-month history of filtered state and ERA5-Land forcing
 is the strongest own-basin model in standardized units, and every sequence
-model we trained loses to it. And the filter alone beats a published
-deep-learning product at short leads on two mascon solutions, losing only
-where that product's forcing history carries it beyond lead 3.
+model we trained loses to it. And against a published deep-learning
+product that takes no lagged storage, on two mascon solutions, the filter
+wins at lead 1, as damped persistence does, ties for one or two leads, and
+loses from lead 3 or 4 on CSR and from lead 4 or 5 on JPL, where that
+product's forcing history carries it.
 
 Section~\ref{sec:data} describes the data, Sect.~\ref{sec:methods} the
 target, the folds, the reference forecasts, the corrections built on the
 filter, the comparison protocol, and the statistics.
-Section~\ref{sec:results} presents the reference ladder, the ablations that
+Section~\ref{sec:results} presents the ladder of reference forecasts
+defined in Sect.~\ref{sec:methods-ladder}, the ablations that
 explain the filter's margin, the flat-window ridge and the sequence models,
 the comparison with the published product on both mascon solutions, the
 sensitivity of the rankings to basin weighting, and the experiments that
@@ -218,13 +235,17 @@ Figure~\ref{fig:basins} maps the basins and marks the subsets used in the
 comparison with the published product (Sect.~\ref{sec:methods-li}).
 
 \begin{figure*}[t]
-\includegraphics[width=12cm]{fig01_basins.pdf}
+\includegraphics[width=\textwidth]{fig01_basins.pdf}
 \caption{The basin sample. (a)~The 234 basins kept on the CSR product,
 colored by membership in the strict comparison subset of
 Sect.~\ref{sec:methods-li}: 209 basins enter the comparison with the
 published product, 18 are matched to that product but fail the
 full-containment rule, and 7 have no usable cell of the product at all.
-(b)~The same on the JPL product, where 67 basins pass the rule.}
+(b)~The JPL product: the 67 basins that pass the rule there are colored,
+and every other basin of the CSR sample is shaded neutral, because the
+archived JPL comparison files carry the strict roster only. Panel (b) is
+therefore not the JPL counterpart of the three-way split in (a). Land
+outside the basin sample is pale grey in both panels.}
 % source: data/processed/li2026_basin_coverage.csv (227 with coverage > 0, 209 with >=1 full Li cell and >=1 full native mascon);
 % results/phase6_li_comparison_summary.csv (n_basins 209 on joint_full_cells); results/jpl/phase6_li_comparison_summary.csv (67)
 \label{fig:basins}
@@ -321,13 +342,16 @@ the fold start but targeting a month after it belongs to neither set.
 Splitting on target dates instead would let a lead-$h$ forecast use
 transforms fit up to $h-1$ months past its issue date, which is why the
 issue-date convention matters. Earlier issue windows are unusable: the
-2017--2018 gap destroys the lag windows needed to forecast across it. The
+2017--2018 gap destroys the lag windows needed to forecast across it, so
+no scored forecast in this study is issued across the gap. The
 same rows are scored for every model at a given lead, so the sample is
 % source: results/paper_baseline_ladder.csv, column n (19422/19188/18954/18720/18486/18252)
 $n = 19{,}422$, $19{,}188$, $18{,}954$, $18{,}720$, $18{,}486$ and $18{,}252$
 basin-months at leads 1 to 6 on the CSR product, and
-% source: results/jpl/paper_baseline_ladder.csv, column n at horizon 1
-$19{,}152$ at lead 1 on the JPL product. Issue time is defined relative to
+% source: results/jpl/paper_baseline_ladder.csv, column n at horizon 1 (19152 = 228 x 84); results/paper_baseline_ladder.csv n at h1 (19422 = 234 x 83); JPL record to 2026-06 (Sect. 2.1)
+$19{,}152$ at lead 1 on the JPL product, whose record runs one month
+longer, to June 2026, so its 228 basins carry 84 lead-1 issue months
+against 83 on CSR. Issue time is defined relative to
 the last available observation, so the release latency of GRACE-FO is not
 modeled; all results are retrospective potential skill.
 
@@ -346,12 +370,18 @@ one model for all basins); the same ridge with the climate-index lags of
 Sect.~\ref{sec:data-era5} added; and a per-basin ridge on the same lags,
 refit separately for each basin.
 % source: results/paper_baseline_ladder.csv (model list); src/gracefc/features.py DEFAULT_LAGS = (0,1,2,5,11); src/gracefc/models.py alpha = 1.0
-The two damped variants are not interchangeable: the AR(1) variant is the
-stronger at lead 1 and the regression variant at leads 2 to 6, and the
-weaker one trails by
+The two damped variants are not interchangeable. On CSR the AR(1) variant
+is the stronger at lead 1 and the regression variant at leads 2 to 6, and
+the weaker one trails by
 % source: results/paper_baseline_ladder.csv, damped_persistence_reg h1 (-0.0131) and damped_persistence_rho h2-h6 (-0.0058, -0.0636, -0.1184, -0.1196, -0.1005)
-1.3\,\% at lead 1 and by 0.6 to 12.0\,\% at leads 2 to 6. Scoring
-against the weaker one would flatter every other row, so we do not.
+1.3\,\% at lead 1 and by 0.6 to 12.0\,\% at leads 2 to 6; on JPL the AR(1)
+variant is the stronger at leads 1 and 2 and the regression variant at
+leads 3 to 6.
+% source: results/jpl/paper_baseline_ladder.csv, damped_ref column (damped_persistence_rho at h1-h2, damped_persistence_reg at h3-h6)
+Scoring against the weaker one would flatter every other row, so we do
+not, and every table and figure caption names the variant it uses; the one
+ablation file scored against the regression variant at every lead is
+identified as such in Sect.~\ref{sec:results-mechanism}.
 
 \subsection{The Kalman reference}
 \label{sec:methods-kalman}
@@ -372,7 +402,11 @@ its state estimate $x_{t|t}$ at each observed month with the Kalman gain,
 which depends on $\rho$ and on the ratio $q/r$. At a month with no
 observation, including all eleven months of the mission gap, the filter
 skips the update and propagates its state and its state uncertainty
-forward; nothing is interpolated or filled. The lead-$h$ forecast issued
+forward; nothing is interpolated or filled. This is what makes the
+reference defined across the gap, where persistence has no anchor; since
+no scored forecast is issued across the gap (Sect.~\ref{sec:methods-folds}),
+it is a design property of the reference, not a tested one. The lead-$h$
+forecast issued
 at month $t$ is
 \begin{equation}
 \hat{y}_{t+h|t} = \rho^{h}\, x_{t|t},
@@ -433,6 +467,17 @@ feature vector; two seeds. The \emph{residual MLP} is a two-stage model, the
 ERA5 lag ridge followed by an MLP of the same size trained on the first
 stage's training residual; three seeds.
 % source: src/gracefc/experiment_lstm.py (12-month window, 85/15 split, seeds 0-1); experiment_nonlinear.py mlp head (64,32, early stopping); experiment_resmlp.py (3 seeds)
+Two \emph{neighbor corrections}, tested and dropped in
+Sect.~\ref{sec:results-dropped}, add to the state ridge one other basin's
+filtered state propagated to the target month, that basin chosen by
+correlation or by distance.
+% source: src/gracefc/graphs.py (correlation- and distance-selected neighbor); results/phase3b_summary.csv (kalman_corr_top1, kalman_geo_top1)
+We call the five models that are also reported in centimeters
+(Sect.~\ref{sec:results-weighting} and Appendix~\ref{app:conventional})
+the \emph{retained models}: the stronger damped-persistence variant, the
+Kalman reference, the state ridge, the flat-12 ridge and the ERA5 flat-12
+ridge.
+% source: scripts/compute_conventional_metrics.py (the five retained systems; DAMPED_BY_H rho at h1, reg at h2-h6)
 Table~\ref{tab:names} collects the names, each used for exactly one model
 throughout; Appendix~\ref{app:names} maps them to the identifiers in the
 result files.
@@ -442,7 +487,7 @@ result files.
 Appendix~\ref{app:names} maps each name to its identifier in the archived
 result files.}
 \label{tab:names}
-\begin{tabular}{p{4.0cm}p{11.2cm}}
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.0cm}>{\raggedright\arraybackslash}p{11.2cm}}
 \tophline
 Name & Definition \\
 \middlehline
@@ -461,8 +506,8 @@ ERA5 lag ridge & Kalman reference plus a ridge on the current filtered state and
 LSTM & Shared-encoder LSTM over the 12-month window of filtered state and ERA5-Land channels; two-seed ensemble (Sect.~\ref{sec:methods-corrections}). \\
 Flat-history MLP & Multilayer perceptron on the ERA5 flat-12 ridge's features; two seeds (Sect.~\ref{sec:methods-corrections}). \\
 Residual MLP & ERA5 lag ridge followed by an MLP on its training residual; three seeds (Sect.~\ref{sec:methods-corrections}). \\
-Neighbor corrections & Kalman reference plus a ridge on the own state and one other basin's propagated state, selected by correlation or by distance (Sect.~\ref{sec:results-dropped}). \\
-GRACE-FCast, full and non-seasonal & The published product of \citet{li2026fcast}, with and without its extrapolated seasonal and trend terms (Sects.~\ref{sec:data-li} and \ref{sec:methods-li}). \\
+Neighbor corrections & Kalman reference plus a ridge on the own state and one other basin's propagated state, selected by correlation or by distance (Sect.~\ref{sec:methods-corrections}; tested and dropped in Sect.~\ref{sec:results-dropped}). \\
+Published product (GRACE-FCast), full and non-seasonal & The published product of \citet{li2026fcast}, with and without its extrapolated seasonal and trend terms (Sects.~\ref{sec:data-li} and \ref{sec:methods-li}). \\
 \bottomhline
 \end{tabular}
 \end{table*}
@@ -480,10 +525,13 @@ seasonal and trend convention and ours is absorbed there; the non-seasonal
 product, which is their interannual plus sub-seasonal forecast, is scored
 in the same space and removes the advantage their monthly re-extrapolation
 of the seasonal cycle and trend would otherwise carry. The matched sample
-is the identical set of basin-months for every model at every lead: 60
-test months on CSR, in folds 1 to 4, since fold 5 lies entirely beyond
-their final initialization, and 59 on JPL.
-% source: results/phase6_li_comparison_headline.csv (n_months 60); results/jpl/phase6_li_comparison_headline.csv (n_months 59)
+is the identical set of basin-months for every model at every lead. On
+CSR that is 60 test months: folds 1 to 3 in full, 9 of the 17 issue months
+of fold 4, and none of fold 5, because the product's final initialization,
+May 2024, falls inside fold 4; on JPL, whose final initialization is one
+month earlier, it is 59.
+% source: results/phase6_li_comparison_headline.csv (n_months 60 = 17+17+17+9); results/jpl/phase6_li_comparison_headline.csv (n_months 59 = 17+17+17+8);
+% src/gracefc/evaluate.py DEFAULT_FOLDS (fold 4 issue window 2023-09..2025-01); Sect. 2.4 (final initializations 2024-05 CSR, 2024-04 JPL)
 
 Two basin populations are reported. The matched population keeps every
 basin with at least one usable cell of the product, which is 227 of the
@@ -528,10 +576,14 @@ Per-basin significance uses per-basin Diebold--Mariano statistics on the
 scored test months with Benjamini--Hochberg false-discovery-rate control at
 $q = 0.10$ \citep{benjamini1995fdr}, following the field-significance
 reasoning of \citet{wilks2016stippling}; helped and hurt basins are always
-counted separately. In the comparison with the published product the
-tables list that product first, so a negative skill there means our
-forecast has the lower error; in every other table the challenger is
-listed first.
+counted separately. Every skill in this paper is stated with our model
+first, so a positive value always means our forecast has the lower error.
+The archived JPL comparison tables list the published product first; a
+skill $s$ stored that way is converted to our convention as
+$1 - 1/(1 - s)$, the reciprocal of the mean-squared-error ratio, and not
+by a change of sign.
+% source: conversion s' = 1 - MSE(ours)/MSE(theirs) = 1 - 1/(1 - s) where s = 1 - MSE(theirs)/MSE(ours), as stored in results/jpl/phase6_li_comparison_headline.csv;
+% e.g. li_lstm_full vs kalman_ar1 h1 stored -0.7768 -> 1 - 1/1.7768 = +0.4372; the negation would give +0.7768
 
 \section{Results}
 \label{sec:results}
@@ -615,16 +667,24 @@ statement.}
 \end{table*}
 
 \begin{figure*}[t]
-\includegraphics[width=12cm]{fig02_benchmark_ladder.pdf}
+\includegraphics[width=\textwidth]{fig02_benchmark_ladder.pdf}
 \caption{The reference ladder. (a)~Pooled skill (\%) against the stronger
-damped-persistence variant by lead for the reference forecasts of
-Table~\ref{tab:ladder} and the two flat-12 ridges, with moving-block
-bootstrap 95\,\% confidence intervals. The gap between the zero line and
-the Kalman reference is the gain from filtering the anchor observation
-before damping it. (b)~Pooled RMSE in centimeters of equivalent water
-height by lead for the retained models; in this weighting the largest
+damped-persistence variant, the AR(1) variant at lead 1 and the regression
+variant at leads 2 to 6, for the ERA5 flat-12 ridge, the Kalman reference,
+the flat-12 ridge, the state ridge, the per-basin lag ridge, the pooled
+lag ridge, persistence and climatology, the last two on a broken axis.
+Moving-block bootstrap 95\,\% confidence intervals are drawn where a
+contrast against that variant exists in the archived files: for the ERA5
+flat-12 ridge, the Kalman reference, the flat-12 ridge, the state ridge
+and the per-basin lag ridge. The gap between the zero line and the Kalman
+reference is the gain from filtering the anchor observation before damping
+it. (b)~Pooled RMSE in centimeters of equivalent water height by lead for
+the five retained models of Sect.~\ref{sec:methods-corrections}: damped
+persistence (stronger variant), the Kalman reference, the state ridge, the
+flat-12 ridge and the ERA5 flat-12 ridge. In this weighting the largest
 basins dominate and the ranking changes (Sect.~\ref{sec:results-weighting}).}
-% source: results/paper_baseline_ladder.csv (skill_vs_damped); results/paper_baseline_contrasts.csv (ci_lo, ci_hi vs stronger damped); results/conventional_metrics_summary.csv (pooled_rmse_cm)
+% source: results/paper_baseline_ladder.csv (skill_vs_damped, damped_ref); results/paper_baseline_contrasts.csv (ci_lo, ci_hi vs damped_persistence_rho at h1 and damped_persistence_reg at h2-h6;
+% rows exist for ridge_own_era5_flat12, kalman_ar1, ridge_own_flat12, kalman_own_ridge, ridge_own_perbasin only); results/conventional_metrics_summary.csv (pooled_rmse_cm)
 \label{fig:ladder}
 \end{figure*}
 
@@ -640,9 +700,9 @@ per-basin lag ridge, with five coefficients per basin, never reaches the
 three-parameter filter, and by lead 6 it has fallen below damped
 persistence. Third, the reference is nearly free. It adds no data
 requirements and a few lines of state-space code, and it is the strongest
-own-basin forecast that uses nothing but the storage series at leads 1
-and 2. At leads 3 to 6 the state ridge, which adds one regression
-coefficient on the filtered state, is stronger still, by
+forecast of the reference class, at three parameters per basin. The state
+ridge, which adds one regression coefficient on the filtered state, is
+stronger at leads 3 to 6, by
 % source: results/flat12_ridge_summary.csv, kalman_own_ridge rows, skill_vs_kalman x100 (h3 0.44, h4 2.36, h5 2.66, h6 1.59) and dm_p_vs_kalman (1.1e-14, 1.6e-13, 5.9e-14, 2.3e-17)
 $+0.44$, $+2.36$, $+2.66$ and $+1.59\,\%$ ($p \le 1.6\times10^{-13}$), and
 it is behind at leads 1 and 2
@@ -678,12 +738,27 @@ filter at every lead, by
 % source: results/r0_ablation_summary.csv, noise_filtering_term rows, skill_pct (5.35, 9.63, 11.67, 12.48, 12.65, 12.27) and dm_p (max 7.2e-14 at h1)
 $5.35\,\%$ at lead 1, rising to $12.65\,\%$ at lead 5 and $12.27\,\%$ at
 lead 6 ($p \le 7.2\times10^{-14}$ at every lead). Scored against the
-regression-damped variant, the noise-free filter is
+regression-damped variant, which the ablation file uses at every lead,
+the noise-free filter is
 % source: results/r0_ablation_summary.csv, rho_estimation_term rows, skill_pct (0.90, -0.93, -6.84, -10.75, -11.57, -9.85) and dm_p (1.6e-5, 0.0022, ...)
 $+0.90\,\%$ ahead at lead 1 ($p = 1.6\times10^{-5}$) and behind at leads 2
-to 6, by $0.93$ to $11.57\,\%$. The AR(1) structure without the noise term
-is therefore worth nothing beyond damped persistence past the first lead;
-the margin is the act of filtering the observation before extrapolating.
+to 6, by $0.93$ to $11.57\,\%$; against the AR(1) variant, the stronger
+one at lead 1, it is
+% source: results/r0_ablation_summary.csv, rho_estimation_term h1 rmse_a 1.078260 (kalman_r0); results/paper_baseline_ladder.csv, damped_persistence_rho h1 rmse_std 1.076129; 1 - (1.078260/1.076129)^2 = -0.0040
+$0.40\,\%$ behind (standardized RMSE 1.0783 against 1.0761). The lead-1
+margin of Table~\ref{tab:ladder} therefore decomposes into a $+5.35\,\%$
+noise term, the Kalman reference over the noise-free filter, and a
+$0.40\,\%$ deficit of the noise-free filter's maximum-likelihood $\rho$
+against the AR(1) variant's; the two mean-squared-error ratios multiply to
+the $+4.98\,\%$ of Table~\ref{tab:ladder}.
+% source: (1 - 0.05354) x (1.078260/1.076129)^2 = 0.94646 x 1.00397 = 0.95021 = 1 - 0.0498; results/r0_ablation_summary.csv and results/paper_baseline_ladder.csv as above
+Figure~\ref{fig:mechanism}a, drawn against the regression variant at every
+lead, reads $+6.21\,\%$ for the Kalman reference at lead 1 for the same
+reason.
+% source: results/r0_ablation_summary.csv, full_margin h1 skill_pct 6.206
+The AR(1) structure without the noise term is therefore worth nothing
+beyond damped persistence; the margin is the act of filtering the
+observation before extrapolating.
 Because $r$ absorbs whatever an AR(1) state cannot carry forward
 (Sect.~\ref{sec:methods-kalman}), this ablation attributes the margin to
 filtering within the model class, not to a particular physical noise
@@ -700,7 +775,7 @@ $-0.57$, $-0.53$ and $-0.38\,\%$ ($p \le 0.0060$). Per basin at lead 1,
 after false-discovery-rate control, the split helps 0 basins and hurts 0
 of the 234 tested; the loss is diffuse, not concentrated.
 % source: results/kalman_mission_summary.csv, diagnostic rows perbasin_h1_helped_bh 0, perbasin_h1_hurt_bh 0, perbasin_h1_n_tested 234
-The first fold's training window ends in June 2019 and holds fewer than
+The first fold's training window ends in May 2019 and holds fewer than
 12 GRACE-FO months, so all 234 of its basin-fold fits fall back to the
 single variance, which is the fallback rule of
 Sect.~\ref{sec:methods-kalman} operating as designed.
@@ -710,29 +785,23 @@ years of them is estimated worse than one fit to the whole record. We
 keep the single-variance filter.
 
 \begin{figure*}[t]
-\includegraphics[width=12cm]{fig03_crossing.pdf}
-\caption{The comparison with the published product on the strict basin
-subset (Sect.~\ref{sec:results-li}). (a)~CSR, 209 basins and 60 months:
-skill (\%) of the Kalman reference and of the ERA5 flat-12 ridge over the
-GRACE-FCast full and non-seasonal products by lead, with moving-block
-bootstrap 95\,\% confidence intervals; positive means our forecast has the
-lower error. (b)~JPL, 67 basins and 59 months, Kalman reference only. On
-both products the reference wins at leads 1 and 2 and loses from lead 3
-or 4.}
-% source: results/phase6_li_comparison_headline.csv (joint_full_cells rows); results/jpl/phase6_li_comparison_headline.csv (joint_full_cells rows)
-\label{fig:crossing}
-\end{figure*}
-
-\begin{figure*}[t]
-\includegraphics[width=12cm]{fig04_filter_mechanism.pdf}
-\caption{Why the filter wins. (a)~Skill lost when the observation-noise
-term is removed from the filter, by lead: the noise-free filter against the
-Kalman reference. (b)~The mission-split filter against the single-variance
-filter by lead; negative means the split hurts. Both panels carry
-moving-block bootstrap 95\,\% confidence intervals. (c)~Per-basin lead-1
-skill of the Kalman reference over the stronger damped-persistence variant
-on the 234 basins.}
-% source: results/r0_ablation_summary.csv (noise_filtering_term rows, skill_pct, ci_lo_pct, ci_hi_pct); results/kalman_mission_summary.csv (mission_split_term rows); results/kalman_predictions.csv per basin
+\includegraphics[width=\textwidth]{fig03_filter_mechanism.pdf}
+\caption{Why the filter wins. (a)~Skill (\%) against the regression
+damped-persistence variant at every lead for the Kalman reference and for
+the noise-free filter, the same model refit with $r = 0$. The shading is
+the gap between the two curves, which is the value of the noise term, and
+carries no confidence interval. Because the reference here is the
+regression variant at every lead, the Kalman reference reads $+6.21\,\%$
+at lead 1 rather than the $+4.98\,\%$ of Table~\ref{tab:ladder}, which
+uses the stronger AR(1) variant at that lead. (b)~The mission-split filter
+against the single-variance Kalman reference by lead, with moving-block
+bootstrap 95\,\% confidence intervals; negative means the split hurts.
+(c)~Per-basin lead-1 skill of the Kalman reference over the AR(1)
+damped-persistence variant on the 234 basins, computed from RMSE in
+centimeters; the color scale is clipped at $\pm 20\,\%$, and land outside
+the basin sample is pale grey.}
+% source: results/r0_ablation_summary.csv (full_margin, rho_estimation_term and noise_filtering_term rows, skill_pct); results/kalman_mission_summary.csv (mission_split_term rows, skill_pct, ci_lo_pct, ci_hi_pct);
+% results/conventional_metrics_perbasin.csv (rmse_cm of kalman_ar1 and damped_persistence at horizon 1; damped_persistence is the rho variant at h1 per scripts/compute_conventional_metrics.py DAMPED_BY_H)
 \label{fig:mechanism}
 \end{figure*}
 
@@ -744,7 +813,7 @@ and Table~\ref{tab:corrections} answers it for the own-basin models. The
 flat-12 ridge, which reads twelve months of the filtered state instead of
 one, adds
 % source: results/paper_baseline_contrasts.csv, ridge_own_flat12 vs kalman_ar1 (skill x100: 0.81, 1.48, 1.76, 1.81, 1.49, 0.63; dm_p 0.0035, 4.9e-6, 2.9e-10, 7.5e-10, 3.4e-7, 0.015)
-$+0.81$ to $+1.81\,\%$ over the filter at every lead ($p \le 0.015$). The
+$+0.63$ to $+1.81\,\%$ over the filter at every lead ($p \le 0.015$). The
 ERA5 flat-12 ridge adds the twelve-month forcing window and gains
 % source: results/paper_baseline_contrasts.csv, ridge_own_era5_flat12 vs kalman_ar1 (skill x100: 7.65, 5.39, 4.22, 3.19, 2.09, 0.87; dm_p 1.1e-8, 1.1e-8, 3.0e-8, 5.2e-6, 9.0e-4, 0.12)
 $+7.65\,\%$ over the filter at lead 1 (95\,\% interval $+4.7$ to
@@ -775,7 +844,7 @@ on the reference; the best value in each column is in bold.}
 Model & $h{=}1$ & $h{=}2$ & $h{=}3$ & $h{=}4$ & $h{=}5$ & $h{=}6$ \\
 \middlehline
 % source: results/flat12_ridge_summary.csv, kalman_own_ridge rows, skill_vs_kalman x100 and dm_p_vs_kalman
-State ridge & $-0.17$ & $-1.01$ & $+0.44$ & $+2.36$ & $+2.66$ & $\mathbf{+1.59}$ \\
+State ridge & $-0.17$ & $-1.01$ & $+0.44$ & $+2.36$ & $\mathbf{+2.66}$ & $\mathbf{+1.59}$ \\
  & $1.8\times10^{-6}$ & $1.9\times10^{-11}$ & $1.1\times10^{-14}$ & $1.6\times10^{-13}$ & $5.9\times10^{-14}$ & $2.3\times10^{-17}$ \\
 % source: results/paper_baseline_contrasts.csv, ridge_own_flat12 vs kalman_ar1 (skill x100, dm_p)
 Flat-12 ridge & $+0.81$ & $+1.48$ & $+1.76$ & $+1.81$ & $+1.49$ & $+0.63$ \\
@@ -799,13 +868,15 @@ share of it. This is the property that makes the ranking sensitive to
 basin weighting (Sect.~\ref{sec:results-weighting}).
 
 \begin{figure*}[t]
-\includegraphics[width=12cm]{fig05_era5_where.pdf}
+\includegraphics[width=\textwidth]{fig04_era5_where.pdf}
 \caption{Where the forcing window helps. (a)~Per-basin lead-1 skill (\%)
 of the ERA5 flat-12 ridge over the Kalman reference on the 234 basins;
 basins significant under Benjamini--Hochberg false-discovery-rate control
-at $q = 0.10$ are hatched. (b)~The same skill against each basin's
-training-window storage standard deviation in centimeters of equivalent
-water height. The gain concentrates in low-variance basins.}
+at $q = 0.10$ are hatched, and land outside the basin sample is pale grey.
+(b)~The same skill against each basin's training-window storage standard
+deviation in centimeters of equivalent water height; three basins fall
+below the lower axis limit of $-42\,\%$ and are counted on the panel. The
+gain concentrates in low-variance basins.}
 % source: results/flat12_ridge_predictions.csv (per-basin lead-1 MSE of ridge_own_era5_flat12 and kalman_ar1; per-basin DM with BH q=0.10); data/processed train-window residual std per basin
 \label{fig:era5where}
 \end{figure*}
@@ -818,11 +889,11 @@ standardized RMSE of the ERA5 flat-12 ridge is
 % source: results/phase7_lstm_summary.csv, rmse_std h1: ridge_own_era5_flat12 1.0081; lstm_own_era5_s0 1.0132, s1 1.0188; mlp_own_era5_flat12_s0 1.0235, s1 1.0291; ridge_own_era5 1.0254; kalman_ar1 1.0490
 1.0081, against 1.0132 and 1.0188 for the two LSTM seeds, 1.0235 and
 1.0291 for the two flat-history MLP seeds, 1.0254 for the ERA5 lag ridge,
-and 1.0490 for the filter. The ordering is the same at leads 2 and 3. The
-flat-history MLP, which sees the identical feature vector as the flat
-ridge, is significantly worse than it in every seed at every lead
-% source: results/phase7_lstm_summary.csv, mlp_own_era5_flat12_s0/s1 rows, dm_vs_ridge_twin (positive = worse than twin) and dm_p (h1 1.9e-10, 1.1e-6; h2 2.3e-6, 4.1e-8; h3 5.5e-7, 8.3e-13)
-($p \le 1.1\times10^{-6}$). The residual MLP, the two-stage model of
+and 1.0490 for the filter. The flat ridge is lowest at leads 2 and 3 as
+well. The flat-history MLP, which sees the identical feature vector as the
+flat ridge, is significantly worse than it in every seed at every lead
+% source: results/phase7_lstm_summary.csv, mlp_own_era5_flat12_s0/s1 rows, dm_vs_ridge_twin (positive = worse than twin) and dm_p (h1 1.9e-10, 1.1e-6; h2 2.3e-6, 4.1e-8; h3 5.5e-7, 8.3e-13); max = 2.3e-6
+($p \le 2.3\times10^{-6}$). The residual MLP, the two-stage model of
 Sect.~\ref{sec:methods-corrections}, reaches
 % source: results/phase7_resmlp_summary.csv, resmlp_own_era5_s0/s1/s2 rmse_std h1 (1.0148, 1.0156, 1.0145), h2 (1.1760, 1.1788, 1.1773), h3 (1.2635, 1.2530, 1.2540)
 1.0145 to 1.0156 at lead 1 across its three seeds, also behind the flat
@@ -872,17 +943,20 @@ Residual MLP, seeds 0 / 1 / 2 & 1.0148 / 1.0156 / 1.0145 & 1.1760 / 1.1788 / 1.1
 \end{tabular}
 \end{table*}
 
-\begin{figure}[t]
-\includegraphics[width=8.3cm]{fig06_sequence_models.pdf}
-\caption{Sequence models against the flat ridge. Skill (\%) over the Kalman
-reference at leads 1 to 3 for the LSTM ensemble, the residual MLP, the ERA5
-lag ridge and the two flat-12 ridges, with the equalized-training-window
-comparison in which the ERA5 flat-12 ridge is refit on the LSTM's exact
-training rows. Every sequence model sits below the linear reader of the
-same twelve-month history.}
-% source: results/phase7_lstm_summary.csv and results/phase7_resmlp_summary.csv (rmse_std); results/flat12_train85_sensitivity.csv
+\begin{figure*}[t]
+\includegraphics[width=\textwidth]{fig05_sequence_models.pdf}
+\caption{Sequence models against the flat ridge. (a)~Skill (\%) over the
+Kalman reference at leads 1 to 3 for the ERA5 lag ridge, the flat-12
+ridge, the ERA5 flat-12 ridge, the two seeds of the flat-history MLP and
+the two-seed LSTM ensemble, with moving-block bootstrap 95\,\% confidence
+intervals. The residual MLP has no archived predictions and appears in
+Table~\ref{tab:sequence} only. (b)~Skill of the ERA5 flat-12 ridge over
+the LSTM ensemble when the ridge is refit on the LSTM's exact training
+rows, with the Diebold--Mariano $p$ value. Every sequence model sits below
+the linear reader of the same twelve-month history.}
+% source: results/phase7_lstm_summary.csv (rmse_std; mlp_own_era5_flat12_s0/s1 are the flat-history MLP); results/phase7_lstm_predictions.csv (bootstrap CIs); results/flat12_train85_sensitivity.csv (panel b)
 \label{fig:sequence}
-\end{figure}
+\end{figure*}
 
 \subsection{Against the published product on CSR and JPL}
 \label{sec:results-li}
@@ -917,7 +991,8 @@ $p = 3.2\times10^{-3}$, widening to $-26.4\,\%$).
 \caption{The comparison with GRACE-FCast on the strict subset, CSR
 product: 209 basins, 60 months, $12{,}540$ rows per lead. Skill (\%) of
 our forecast over theirs (upper value), so positive means ours has the
-lower error, with the Diebold--Mariano $p$ value below it. The last two
+lower error, as in every table of this paper, with the Diebold--Mariano
+$p$ value below it. The last two
 rows count the basins, of 209, in which the published product has the
 lower error at leads 1 and 6.}
 \label{tab:li}
@@ -955,42 +1030,78 @@ lead 6, and in
 % source: results/phase6_li_comparison_perbasin.csv, li_lstm_full vs ridge_own_era5_flat12, a_better by horizon (87, 133, 147, 151, 159, 162 of 209)
 87 against the ERA5 flat-12 ridge at lead 1 and 162 at lead 6. The pooled
 lead-1 margin is therefore magnitude in the basins where we win, not
-breadth. The reason the reference wins at all is structural: their
-network takes no lagged storage, so at lead 1, where the most recent
-observation is the strongest predictor available, a three-parameter
-filter of that observation has information their product lacks. Scored
-against damped persistence on the same subset, the full product is
-% source: results/phase6_li_comparison_headline.csv, joint_full_cells, li_lstm_full vs damped_persistence_rho (skill x100: -13.5, 14.4, 23.6, 29.7, 32.4, 35.2; dm_p h1 0.029)
-$13.5\,\%$ behind at lead 1 ($p = 0.029$) and $14.4$ to $35.2\,\%$ ahead
-at leads 2 to 6. That lead-1 deficit should not be over-read: damped
-persistence is not available to their intended user, since the two- to
-three-month release latency their product exists to bridge withholds the
-anchor observation.
+breadth. The reason the reference wins at all is structural, and it is a
+property of the reference class, not of the filter: their network takes
+no lagged storage, so at lead 1, where the most recent observation is the
+strongest predictor available, any forecast anchored on that observation
+has information their product lacks. On the same subset damped persistence
+itself beats the full product at lead 1 by
+% source: results/phase6_li_comparison_headline.csv, joint_full_cells, damped_persistence_rho vs li_lstm_full (skill x100: 11.9, -16.9, -30.9, -42.2, -47.9, -54.3; dm_p 0.029, 1.1e-3, 6.5e-8, 2.7e-10, 6.0e-11, 2.0e-12)
+$+11.9\,\%$ ($p = 0.029$) and loses to it at leads 2 to 6 by $16.9$ to
+$54.3\,\%$. The filter's own contribution at lead 1 is its margin over
+damped persistence, the $+4.98\,\%$ of Table~\ref{tab:ladder}, not the
+$+16.4\,\%$ of Table~\ref{tab:li}. Nor should the product's lead-1 deficit
+be over-read: damped persistence is not available to their intended user,
+since the two- to three-month release latency their product exists to
+bridge withholds the anchor observation.
 
 On JPL, over 67 basins and 59 months
 % source: results/jpl/phase6_li_comparison_headline.csv, joint_full_cells, n_rows 3953, n_months 59
-($3{,}953$ rows per lead), only the Kalman reference has been scored; the
-JPL run predates the flat-12 models. The tables there list the published
-product first, so its skill relative to the reference is negative where
-the reference is ahead. Against the Kalman reference the non-seasonal
-product scores
-% source: results/jpl/phase6_li_comparison_headline.csv, joint_full_cells, li_lstm_nonseas vs kalman_ar1 (skill: -1.124, -0.286, -0.075, 0.058, 0.152, 0.218; dm_p 1.3e-13, 2.1e-5, 0.15, 0.16, 1.1e-4, 2.8e-6)
-$-1.124$ at lead 1 ($p = 1.3\times10^{-13}$), so its mean squared error is
-more than twice the reference's, $-0.286$ at lead 2
-($p = 2.1\times10^{-5}$), $-0.075$ at lead 3 ($p = 0.15$, a tie), $+0.058$
-at lead 4 ($p = 0.16$, a tie), and $+0.152$ and $+0.218$ at leads 5 and 6
-($p \le 1.1\times10^{-4}$). The full product runs
-% source: results/jpl/phase6_li_comparison_headline.csv, joint_full_cells, li_lstm_full vs kalman_ar1 (skill: -0.777, -0.109, 0.058, 0.160, 0.243, 0.295; dm_p 7.1e-14, 0.087, 0.31, 1.7e-3, 1.2e-6, 1.5e-8)
-$-0.777$ at lead 1 ($p = 7.1\times10^{-14}$), $-0.109$ at lead 2
-($p = 0.087$), $+0.058$ at lead 3 ($p = 0.31$), and $+0.160$ to $+0.295$
-at leads 4 to 6 ($p \le 1.7\times10^{-3}$). The crossing sits in the same
-place on both products: the filter wins at leads 1 and 2, the two tie at
-lead 3, and the forcing-driven product wins from lead 4 or 5. The lead-1
-margin is much larger on JPL than on CSR. Two things differ there, and we
-do not separate them: the strict subset on JPL is a set of 67 large basins
-with no small ones, and the JPL member of the product was trained on an
-earlier release than the one we score it against
-(Sect.~\ref{sec:data-li}).
+($3{,}953$ rows per lead), only the Kalman reference has been scored: the
+JPL analysis was completed before the flat-12 models were built, and they
+will be added. The archived JPL tables list the published product first;
+the values here are converted to our convention
+(Sect.~\ref{sec:methods-stats}). Against the full product the reference
+scores
+% source: results/jpl/phase6_li_comparison_headline.csv, joint_full_cells, li_lstm_full vs kalman_ar1, stored product-first skill s (-0.7768, -0.1091, 0.0580, 0.1604, 0.2431, 0.2952),
+% converted as 1 - 1/(1 - s) = (0.4372, 0.0984, -0.0616, -0.1911, -0.3212, -0.4187); dm_p (7.1e-14, 0.087, 0.31, 1.7e-3, 1.2e-6, 1.5e-8)
+$+43.7\,\%$ at lead 1 ($p = 7.1\times10^{-14}$), $+9.8\,\%$ at lead 2
+($p = 0.087$, a tie), $-6.2\,\%$ at lead 3 ($p = 0.31$, a tie), and
+$-19.1$, $-32.1$ and $-41.9\,\%$ at leads 4 to 6
+($p \le 1.7\times10^{-3}$). Against the non-seasonal product it scores
+% source: same file, li_lstm_nonseas vs kalman_ar1, stored s (-1.1238, -0.2857, -0.0750, 0.0581, 0.1525, 0.2178),
+% converted as 1 - 1/(1 - s) = (0.5291, 0.2222, 0.0697, -0.0617, -0.1799, -0.2785); dm_p (1.3e-13, 2.1e-5, 0.15, 0.16, 1.1e-4, 2.8e-6)
+$+52.9\,\%$ at lead 1 ($p = 1.3\times10^{-13}$), so its mean squared error
+there is less than half the product's, $+22.2\,\%$ at lead 2
+($p = 2.1\times10^{-5}$), $+7.0\,\%$ at lead 3 ($p = 0.15$) and $-6.2\,\%$
+at lead 4 ($p = 0.16$), both ties, and $-18.0$ and $-27.9\,\%$ at leads 5
+and 6 ($p \le 1.1\times10^{-4}$). The pattern is the CSR one shifted later
+by a lead: against the full product the reference wins lead 1, ties leads
+2 and 3 and loses from lead 4; against the non-seasonal product it wins
+leads 1 and 2, ties leads 3 and 4 and loses from lead 5. Here too the
+lead-1 win is a reference-class result. Damped persistence beats the full
+product on the same rows by
+% source: results/jpl/phase6_li_comparison_headline.csv, joint_full_cells, li_lstm_full vs damped_persistence_rho h1 stored -0.7609, converted 1 - 1/1.7609 = 0.4321; dm_p 1.2e-13
+$+43.2\,\%$, nearly the filter's margin, and on JPL the filter ties damped
+persistence at lead 1
+% source: results/jpl/paper_baseline_contrasts.csv, kalman_ar1 vs damped_persistence_rho h1 (skill 0.0056, dm_p 0.60)
+($+0.56\,\%$, $p = 0.60$; Sect.~\ref{sec:results-ladder}), so on this
+product the filter adds nothing at lead 1 that persistence of the anchor
+observation does not already have. The lead-1 margin over the product is
+much larger on JPL than on CSR. Two things differ there, and we do not
+separate them: the strict subset on JPL is a set of 67 large basins with
+no small ones, and the JPL member of the product was trained on an earlier
+release than the one we score it against (Sect.~\ref{sec:data-li}).
+
+\begin{figure*}[t]
+\includegraphics[width=\textwidth]{fig06_crossing.pdf}
+\caption{The comparison with the published product on the strict basin
+subset. (a)~CSR, 209 basins and 60 months: skill (\%) of the Kalman
+reference and of the ERA5 flat-12 ridge over the published product, full
+and non-seasonal, by lead, with moving-block bootstrap 95\,\% confidence
+intervals; positive means our forecast has the lower error. (b)~JPL, 67
+basins and 59 months, Kalman reference only; the archived JPL values are
+stored with the product first and are converted with the reciprocal
+transform of Sect.~\ref{sec:methods-stats}. Filled markers are significant
+at $p < 0.05$, open markers are not, and the triangles on the zero line
+mark each curve's interpolated crossing. Against the full product the
+reference wins lead 1, ties one lead on CSR and two on JPL, and loses from
+lead 3 on CSR and lead 4 on JPL; against the non-seasonal product it wins
+leads 1 and 2, ties one lead on CSR and two on JPL, and loses from lead 4
+on CSR and lead 5 on JPL.}
+% source: results/phase6_li_comparison_headline.csv (joint_full_cells rows, ours first); results/jpl/phase6_li_comparison_headline.csv (joint_full_cells rows, product first, converted as 1 - 1/(1 - s))
+\label{fig:crossing}
+\end{figure*}
 
 \subsection{Weighting sensitivity: standardized against raw centimeters}
 \label{sec:results-weighting}
@@ -1010,7 +1121,13 @@ plain filter at every lead
 (5.231 to 6.774\,cm against 5.128 to 6.690). Damped persistence is worst
 in this weighting too, at
 % source: results/conventional_metrics_summary.csv, pooled_rmse_cm: damped_persistence (5.321, 6.156, 6.383, 6.447, 6.689, 6.935)
-5.321 to 6.935\,cm. The filter's margin over persistence is therefore not
+5.321 to 6.935\,cm. The deposited file also carries a stacked LSTM
+ensemble from an extended run that is not a retained model and supports no
+claim in this paper; a reader of the file will find it at
+% source: results/conventional_metrics_summary.csv, pooled_rmse_cm: stacked_ens (5.144, 5.743, 5.935, 6.019, 6.226, 6.510) vs kalman_own_ridge h4-h6 (6.064, 6.288, 6.603)
+5.144, 5.743, 5.935, 6.019, 6.226 and 6.510\,cm at leads 1 to 6, below the
+state ridge at leads 4 to 6. The filter's margin over persistence is
+therefore not
 a property of the weighting, but the forcing window's gain is: it lives in
 the low-variance basins of Fig.~\ref{fig:era5where}, which the standardized
 metric counts in full and the centimeter metric barely counts. A ranking
@@ -1071,12 +1188,15 @@ three-parameter filter extracts. The fix costs three parameters per basin
 and no data.
 
 The comparison with the published product shows what the fix changes in
-practice. GRACE-FCast is a serious system, and at leads 4 to 6 it beats
-% source: results/phase6_li_comparison_headline.csv, joint_full_cells, the four pairs of Table 5 at h4-h6 (losses from 10.1 to 35.4)
-everything we built by 10 to 35\,\%; its forcing history carries
-information that no own-basin model has. At leads 1 and 2 it loses to a
-filter of the observation it does not use. Neither statement is visible in
-a full-signal correlation score. \citet{li2026fcast} document the same
+practice. GRACE-FCast is a serious system, and at leads 4 to 6 every
+model we built gives up
+% source: results/phase6_li_comparison_headline.csv, joint_full_cells, the four pairs of Table 5 at h4-h6, ours first (-10.1 to -35.4);
+% the same rows with the product first read +9.2 to +26.1 (li_lstm_nonseas vs ridge_own_era5_flat12 h4 0.0917; li_lstm_full vs kalman_ar1 h6 0.2613)
+10 to 35\,\% of skill to it; its forcing history carries information that
+no own-basin model has. At lead 1 it loses to any forecast anchored on the
+observation it does not use, damped persistence included, and at lead 2
+its non-seasonal component loses to the filter. Neither statement is
+visible in a full-signal correlation score. \citet{li2026fcast} document the same
 target sensitivity from the other side: they report correlation above 0.8
 over about 72\,\% of global land at lead 1 for the full signal but only
 20\,\% once the seasonal cycle and trend are removed, and attribute the
@@ -1140,9 +1260,13 @@ pechlivanidis2020drivers}. Those results were established for streamflow
 and soil moisture in ensemble streamflow prediction experiments. The
 comparison of Sect.~\ref{sec:results-li} locates the same shape on
 satellite-observed storage between two real forecast systems, one built
-entirely on the observed state and one built entirely on forcing: the
-filter wins at leads 1 and 2, the two tie at lead 3, and the
-forcing-driven product wins from lead 4, on both mascon solutions. We
+entirely on the observed state and one built entirely on forcing. On both
+mascon solutions the filter wins at lead 1 against both product variants
+and at lead 2 against the non-seasonal variant, the two tie for one lead
+on CSR and two on JPL, and the forcing-driven product wins from lead 3 or
+4 on CSR and from lead 4 or 5 on JPL. The short-lead half of that shape
+belongs to the reference class rather than to the filter, since damped
+persistence wins at lead 1 as well (Sect.~\ref{sec:results-li}). We
 describe the crossing as consistent with the partition rather than as a
 decomposition of skill into sources. The two systems differ in
 architecture, training data, gap handling and predictor sets at once, so
@@ -1166,20 +1290,27 @@ its short-lead half should be scored against.
 \begin{enumerate}
 \item \emph{No climate forecasts, so long leads are out of reach.} None
 of our models uses forecast forcing, and the ERA5 window ends at the issue
-month. The published product's advantage from lead 3 or 4 is the
-advantage of a forcing history read with a model trained on it, and the
+month. The published product's advantage from lead 3 or 4 on CSR and
+from lead 4 or 5 on JPL is the advantage of a forcing history read with a
+model trained on it, and the
 reference we propose has nothing to offer at those leads beyond what the
 filtered state carries. A hybrid that hands over from the filter to a
 forcing-driven system at the crossing is the obvious next system; we do
 not build it here, and the crossing lead would have to be chosen on data
 we have not used.
-\item \emph{The JPL comparison is Kalman-only until the rerun.} The JPL
-tables hold no flat-12 models, so the two-product claim applies to the
-reference alone. The JPL strict subset is 67 large basins, and the JPL
-member of the published product was trained on an earlier release than we
-score it against; the size of the lead-1 margin there should not be
-compared with CSR's until the rerun with the current default pipeline
-lands.
+\item \emph{The JPL comparison covers the Kalman reference only.} The JPL
+analysis was completed before the flat-12 models were built; they will be
+added. Until then the two-product claim applies to the reference alone.
+The JPL strict subset is 67 large basins, and the JPL member of the
+published product was trained on an earlier release than we score it
+against; the size of the lead-1 margin there should not be compared with
+CSR's.
+\item \emph{The mission gap is handled by construction, not by test.} The
+filter is defined across the 2017--2018 gap because its predict step runs
+when an update is skipped, whereas persistence has no anchor there; but no
+scored forecast in this study is issued across the gap
+(Sect.~\ref{sec:methods-folds}), so this property is stated, not
+demonstrated.
 \item \emph{Standardized weighting favors small basins.} The ranking of
 corrections above the filter depends on weighting, and the forcing
 window's gain is concentrated in low-variance basins that pooled
@@ -1201,8 +1332,9 @@ directly.
 \item \emph{Comparison asymmetries with the published product.} Their
 training uses the gap reconstruction of \citet{yin2023gtws}; their full
 product re-extrapolates the seasonal cycle and trend monthly, an edge the
-non-seasonal comparison removes; our lead-1 win partly reflects a filter
-tuned to exactly this target definition; and the matched sample excludes
+non-seasonal comparison removes; our lead-1 win is one that damped
+persistence shares and partly reflects a reference tuned to exactly this
+target definition; and the matched sample excludes
 fold 5 and the basins their grid does not cover.
 \item \emph{Sample and era.} Two mascon products of one set of
 observations; five test folds all in the post-2019 climate era; per-basin
@@ -1225,16 +1357,22 @@ leads 3 to 6 on 234 basins over five test folds, and the per-basin lag
 ridge at five of six leads. Removing the noise term removes the margin;
 splitting the noise variance by mission makes the filter worse. On a
 second mascon solution the margin holds at leads 2 to 6 and is a tie at
-lead 1. We propose the filter as the reference forecast for this task.
+lead 1. The filter is defined across the mission gap by construction;
+forecasts across the gap are not scored here. We propose the filter as the
+reference forecast for this task.
 
 Scored against it, the strongest own-basin model in standardized units at
 leads 1 to 4 is a linear ridge over a flat twelve-month window of filtered
 state and ERA5-Land forcing, worth 7.6\,\% over the filter at lead 1; at
 leads 5 and 6 a single coefficient on the filtered state is marginally
 better; and every sequence model we trained loses to the flat ridge on the
-same history. Against a published deep-learning product on two mascon
-solutions, the filter alone wins at leads 1 and 2 and loses from lead 3 or
-4, where that product's forcing history carries it. Short leads on this
+same history. Against a published deep-learning product that takes no
+lagged storage, on two mascon solutions, the filter wins at lead 1 against
+both product variants and at lead 2 against the non-seasonal variant, ties
+for one lead on CSR and two on JPL, and loses from lead 3 or 4 on CSR and
+from lead 4 or 5 on JPL, where that product's forcing history carries it.
+The lead-1 win is one damped persistence shares; the filter's own
+contribution there is its margin over damped persistence. Short leads on this
 target are a filtering problem; longer leads are a forcing problem; and a
 forecast's skill on observed GRACE storage should be stated against the
 filter, not against persistence of the observation.
@@ -1270,7 +1408,7 @@ denote single training seeds and \texttt{\_ens} the seed ensemble.
 \caption{Model names used in the paper and the corresponding identifiers in
 the archived result files.}
 \label{tab:codes}
-\begin{tabular}{p{5.4cm}p{9.8cm}}
+\begin{tabular}{>{\raggedright\arraybackslash}p{5.4cm}>{\raggedright\arraybackslash}p{9.8cm}}
 \tophline
 Paper name & Identifier(s) \\
 \middlehline
@@ -1290,7 +1428,7 @@ LSTM & \texttt{lstm\_own\_era5\_s0}, \texttt{lstm\_own\_era5\_s1}, \texttt{lstm\
 Flat-history MLP & \texttt{mlp\_own\_era5\_flat12\_s0}, \texttt{mlp\_own\_era5\_flat12\_s1} \\
 Residual MLP & \texttt{resmlp\_own\_era5\_s0}, \texttt{resmlp\_own\_era5\_s1}, \texttt{resmlp\_own\_era5\_s2} \\
 Neighbor corrections, correlation- and distance-selected & \texttt{kalman\_corr\_top1}, \texttt{kalman\_geo\_top1} \\
-GRACE-FCast, full and non-seasonal & \texttt{li\_lstm\_full}, \texttt{li\_lstm\_nonseas} \\
+Published product (GRACE-FCast), full and non-seasonal & \texttt{li\_lstm\_full}, \texttt{li\_lstm\_nonseas} \\
 Strict comparison subset & \texttt{joint\_full\_cells}; matched population \texttt{all\_matched} \\
 \bottomhline
 \end{tabular}

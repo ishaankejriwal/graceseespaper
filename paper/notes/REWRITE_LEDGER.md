@@ -7,11 +7,13 @@ also has a `% source:` comment on the line before it in `main.tex`. Skills are s
 fractions in the CSVs and printed as percent (x100) in the paper; RMSE is in standardized
 units unless the column name ends in `_cm`.
 
-Sign conventions. In `results/paper_baseline_contrasts.csv` and `results/flat12_ridge_summary.csv`
-the challenger is listed first and positive skill means the challenger is better. In the two
-`phase6_li_comparison_headline.csv` files the CSR rows are quoted challenger-first
-(`kalman_ar1 vs li_lstm_full`, positive = ours better); the JPL rows are quoted as stored,
-Li-first (`li_lstm_nonseas vs kalman_ar1`, negative = ours better).
+Sign conventions. Every skill printed in the paper is ours-first (positive = our model has the
+lower error). In `results/paper_baseline_contrasts.csv` and `results/flat12_ridge_summary.csv`
+the challenger is listed first, so the stored value is used as is. In
+`results/phase6_li_comparison_headline.csv` (CSR) the ours-first rows exist and are used as
+stored. In `results/jpl/phase6_li_comparison_headline.csv` the rows are stored Li-first; the
+paper converts them with the reciprocal `s' = 1 - 1/(1 - s)` (never `-s`) and Sect. 3.7 says so.
+Updated 2026-09-11 (manuscript audit fixes): entries marked [audit] below were added or changed.
 
 ## Sample
 
@@ -22,7 +24,7 @@ Li-first (`li_lstm_nonseas vs kalman_ar1`, negative = ours better).
 | Fold issue windows 2019-06, 2020-11, 2022-04, 2023-09, 2025-02; targets to 2026-05 | `src/gracefc/evaluate.py` | `DEFAULT_FOLDS` |
 | 83 lead-1 issue months per basin (17+17+17+17+15) | `src/gracefc/evaluate.py` | `DEFAULT_FOLDS` |
 | n = 19,422 / 19,188 / 18,954 / 18,720 / 18,486 / 18,252 (CSR, leads 1-6) | `results/paper_baseline_ladder.csv` | `n` |
-| n = 19,152 at lead 1 (JPL) | `results/jpl/paper_baseline_ladder.csv` | `n`, horizon 1 |
+| n = 19,152 at lead 1 (JPL) = 228 basins x 84 issue months; 19,422 = 234 x 83 on CSR [audit] | `results/jpl/paper_baseline_ladder.csv`, `results/paper_baseline_ladder.csv` | `n`, horizon 1 |
 | 11 ERA5-Land variables | `src/gracefc/era5.py` | variable list |
 | 79 basins < 90 % ERA5 land coverage, 13 < 50 %, minimum 24.5 % | `data/processed/era5_basin_coverage.csv` | `era5_coverage` over the 234 keep basins |
 | 12 NOAA indices; AMM and PDO dropped | `scripts/run_phase2_baselines.py` | index list |
@@ -31,7 +33,7 @@ Li-first (`li_lstm_nonseas vs kalman_ar1`, negative = ours better).
 | GRACE-FCast: 174 CSR initializations 2009-12 to 2024-05; 173 JPL to 2024-04 | results log Li ingestion entry; `results/jpl/RUN_PROVENANCE.md` | |
 | CSR member training uncertainty 3.0 cm vs 2.8 cm | `docs/reference/li_kusche_2026_core.md` | sect. 4.1 |
 | Li JPL member trained on RL06.1, scored against RL06.3Mv04 | `results/jpl/RUN_PROVENANCE.md` | "Li and Kusche comparison source" |
-| 60 matched months on CSR (folds 1-4); 59 on JPL | `results/phase6_li_comparison_headline.csv`, `results/jpl/phase6_li_comparison_headline.csv` | `n_months` |
+| 60 matched months on CSR = 17+17+17+9 (fold 4 truncated at the May 2024 final initialization); 59 on JPL = 17+17+17+8 [audit] | `results/phase6_li_comparison_headline.csv`, `results/jpl/phase6_li_comparison_headline.csv`; `src/gracefc/evaluate.py` DEFAULT_FOLDS | `n_months` |
 | 227 matched basins on CSR; 227 of 228 on JPL | `results/phase6_li_comparison_summary.csv`, `results/jpl/phase6_li_comparison_summary.csv` | `n_basins`, subset `all_matched` |
 | 229 basins with >= 1 full native CSR mascon; 211 with >= 1 full Li cell; 209 both | `data/processed/li2026_basin_coverage.csv` | `n_full_native_mascons`, `n_full_li_cells` |
 | 209 strict basins on CSR; 67 on JPL | `results/phase6_li_comparison_summary.csv`, `results/jpl/phase6_li_comparison_summary.csv` | `n_basins`, subset `joint_full_cells` |
@@ -48,6 +50,7 @@ Li-first (`li_lstm_nonseas vs kalman_ar1`, negative = ours better).
 | DM p: 3.5e-12 / 6.3e-19 / 5.7e-19 / 2.6e-11 / 7.9e-7 / 2.0e-9 | `results/paper_baseline_ladder.csv` | `dm_p_vs_damped`, `kalman_ar1` |
 | Lead-1 CI +3.9 to +6.1 % | `results/paper_baseline_contrasts.csv` | `ci_lo`, `ci_hi`, `kalman_ar1` vs `damped_persistence_rho`, h1 |
 | Weaker damped variant: -1.3 (h1, reg); -0.6 / -6.4 / -11.8 / -12.0 / -10.0 (h2-6, rho) | `results/paper_baseline_ladder.csv` | `skill_vs_damped` |
+| JPL: AR(1) variant stronger at h1-h2, regression at h3-h6 [audit] | `results/jpl/paper_baseline_ladder.csv` | `damped_ref` |
 | Kalman vs per-basin lag ridge: +1.99 / +3.04 / +1.43 / +1.04 / +2.17 / +3.92 %; p 6.6e-4 / 7.7e-7 / 0.013 / 0.078 / 0.0051 / 8.3e-6; h4 CI +0.02..+2.20 | `results/paper_baseline_contrasts.csv` | `kalman_ar1` vs `ridge_own_perbasin` |
 | Kalman vs pooled lag ridge: +3.86 / +4.21 / +0.57 / -0.59 / -0.64 / +1.17 %; p 9.1e-6 / 1.2e-11 / 0.45 / 0.46 / 0.44 / 0.19 | `results/paper_baseline_contrasts.csv` | `kalman_ar1` vs `ridge_own_lags` |
 | Persistence gap 16 to 23 % | `results/paper_baseline_ladder.csv` | `skill_vs_damped`, `persistence` (-0.158 to -0.227) |
@@ -57,6 +60,9 @@ Li-first (`li_lstm_nonseas vs kalman_ar1`, negative = ours better).
 | Damped-persistence lead-1 RMSE 0.67 (JPL) vs 1.08 (CSR) | `results/jpl/paper_baseline_ladder.csv`, `results/paper_baseline_ladder.csv` | `rmse_std`, `damped_persistence_rho`, h1 |
 | Noise-free ablation: +5.35 / +9.63 / +11.67 / +12.48 / +12.65 / +12.27 %; p <= 7.2e-14 | `results/r0_ablation_summary.csv` | `skill_pct`, `dm_p`, component `noise_filtering_term` |
 | Noise-free filter vs regression-damped: +0.90 (p 1.6e-5) / -0.93 / -6.84 / -10.75 / -11.57 / -9.85 % | `results/r0_ablation_summary.csv` | `skill_pct`, component `rho_estimation_term` |
+| Noise-free filter vs AR(1)-damped at h1: -0.40 % (RMSE 1.0783 vs 1.0761) [audit] | `results/r0_ablation_summary.csv` (`rmse_a`, `rho_estimation_term`, h1), `results/paper_baseline_ladder.csv` (`rmse_std`, `damped_persistence_rho`, h1) | 1 - (1.078260/1.076129)^2 |
+| Lead-1 decomposition: (1 - 0.05354) x (1.078260/1.076129)^2 = 0.95021 = 1 - 0.0498 [audit] | same two files | `noise_filtering_term` h1 and the row above |
+| Kalman vs regression-damped at h1 (Fig. 3a zero line): +6.21 % [audit] | `results/r0_ablation_summary.csv` | `skill_pct`, component `full_margin`, h1 |
 | Mission split vs Kalman: -1.84 / -0.80 / -0.65 / -0.57 / -0.53 / -0.38 %; p 1.7e-7 / 1.1e-4 / 2.7e-4 / 5.3e-4 / 0.0020 / 0.0060 | `results/kalman_mission_summary.csv` | `skill_pct`, `dm_p`, component `mission_split_term` |
 | Per-basin BH at lead 1: 0 helped, 0 hurt, 234 tested | `results/kalman_mission_summary.csv` | diagnostic rows `perbasin_h1_helped_bh`, `perbasin_h1_hurt_bh`, `perbasin_h1_n_tested` |
 | 234 of 1170 basin-fold fits fall back to one variance; split 2018-01; minimum 12 FO months | `results/kalman_mission_summary.csv` | diagnostic rows `n_fallback_r_fo`, `n_fits`, `mission_split`, `min_fo_obs` |
@@ -75,7 +81,9 @@ Li-first (`li_lstm_nonseas vs kalman_ar1`, negative = ours better).
 | Table 3 (corrections vs Kalman) | `results/flat12_ridge_summary.csv` (state ridge), `results/paper_baseline_contrasts.csv` (flat-12 ridges) | `skill_vs_kalman`/`dm_p_vs_kalman`; `skill`/`dm_p` |
 | Table 4 RMSE at leads 1-3: Kalman 1.0490/1.1954/1.2734; ERA5 lag ridge 1.0254/1.1930/1.2685; flat-12 1.0448/1.1865/1.2622; ERA5 flat-12 1.0081/1.1627/1.2462; LSTM s0 1.0132/1.1758/1.2578, s1 1.0188/1.1851/1.2630; MLP s0 1.0235/1.1783/1.2602, s1 1.0291/1.1935/1.2799 | `results/phase7_lstm_summary.csv` | `rmse_std` |
 | Residual MLP RMSE s0/s1/s2: 1.0148/1.0156/1.0145; 1.1760/1.1788/1.1773; 1.2635/1.2530/1.2540 | `results/phase7_resmlp_summary.csv` | `rmse_std`, `resmlp_own_era5_s{0,1,2}` |
-| Flat-history MLP worse than flat ridge in every seed and lead, p <= 1.1e-6 | `results/phase7_lstm_summary.csv` | `dm_vs_ridge_twin` (positive), `dm_p`, `mlp_own_era5_flat12_s{0,1}` (h1 1.9e-10, 1.1e-6; h2 2.3e-6, 4.1e-8; h3 5.5e-7, 8.3e-13) |
+| Flat-history MLP worse than flat ridge in every seed and lead, p <= 2.3e-6 (max over the six cells; was misprinted 1.1e-6) [audit] | `results/phase7_lstm_summary.csv` | `dm_vs_ridge_twin` (positive), `dm_p`, `mlp_own_era5_flat12_s{0,1}` (h1 1.9e-10, 1.1e-6; h2 2.3e-6, 4.1e-8; h3 5.5e-7, 8.3e-13) |
+| Flat-12 ridge vs Kalman range quoted in Sect. 4.3: +0.63 to +1.81 % (lead 6 is the minimum) [audit] | `results/paper_baseline_contrasts.csv` | `ridge_own_flat12` vs `kalman_ar1` |
+| Fig. 5 (sequence models) plots `mlp_own_era5_flat12_s0/s1` = the flat-history MLP, not the residual MLP [audit] | `results/phase7_lstm_predictions.csv`, `results/phase7_lstm_summary.csv` | |
 | Row-matched flat ridge vs LSTM ensemble: +1.02 (p 0.094) / +2.76 (2.7e-10) / +2.27 (4.3e-9) % | `results/flat12_train85_sensitivity.csv` | `skill_pct`, `dm_p`, `ridge_own_era5_flat12_train85` vs `lstm_own_era5_ens` |
 | Row-matched vs full-row flat ridge: -0.17 / +0.04 / +0.19 %, p 0.50 / 0.83 / 0.19 | `results/flat12_train85_sensitivity.csv` | vs `ridge_own_era5_flat12` |
 
@@ -87,11 +95,14 @@ Li-first (`li_lstm_nonseas vs kalman_ar1`, negative = ours better).
 | Kalman vs non-seasonal (CSR): +28.4 (2.7e-10) / +7.5 (0.018) / -4.0 (0.13) / -13.4 (4.3e-6) / -20.3 (7.8e-9) / -27.1 (5.9e-10) | same | `kalman_ar1` vs `li_lstm_nonseas` |
 | ERA5 flat-12 vs full (CSR): +21.5 (4.0e-4) / -1.8 (0.74) / -12.1 (0.032) / -19.6 (1.7e-3) / -26.4 (7.3e-5) / -34.6 (4.8e-7) | same | `ridge_own_era5_flat12` vs `li_lstm_full` |
 | ERA5 flat-12 vs non-seasonal (CSR): +32.8 (CI +24.0..+40.8, 2.4e-10) / +11.2 (CI +3.5..+18.5, 2.1e-3) / -0.2 (0.94) / -10.1 (3.2e-3) / -18.0 (6.7e-6) / -26.4 (3.3e-8) | same | `ridge_own_era5_flat12` vs `li_lstm_nonseas` |
-| Full product vs damped (CSR strict): -13.5 (p 0.029) / +14.4 / +23.6 / +29.7 / +32.4 / +35.2 | same | `li_lstm_full` vs `damped_persistence_rho` |
-| "10 to 35 %" losses at leads 4-6 | same | minimum 10.1, maximum 35.4 across the four pairs at h4-h6 |
+| Damped persistence vs full product (CSR strict, ours first): +11.9 (p 0.029) / -16.9 / -30.9 / -42.2 / -47.9 / -54.3 [audit] | same | `damped_persistence_rho` vs `li_lstm_full`, `skill`, `dm_p` |
+| "gives up 10 to 35 % of skill" at leads 4-6 (ours first: -10.1 to -35.4; the same rows product-first read +9.2 to +26.1) [audit] | same | the four pairs of Table 5 at h4-h6, both directions |
+| Lead-by-lead pattern vs the product (tie = DM p >= 0.05): CSR full win/tie/loss from h3; CSR non-seasonal win/win/tie/loss from h4; JPL full win/tie/tie/loss from h4; JPL non-seasonal win/win/tie/tie/loss from h5 [audit] | both headline files | `dm_p`, subset `joint_full_cells` |
 | Per-basin: full product beats Kalman in 98 (h1) ... 157 (h6) of 209; beats ERA5 flat-12 in 87 (h1) ... 162 (h6) | `results/phase6_li_comparison_perbasin.csv` | `a_better` summed by `model`, `vs`, `horizon` (Li first, so `a_better` = Li better) |
-| JPL non-seasonal vs Kalman (Li-first): -1.124 (1.3e-13) / -0.286 (2.1e-5) / -0.075 (0.15) / +0.058 (0.16) / +0.152 (1.1e-4) / +0.218 (2.8e-6) | `results/jpl/phase6_li_comparison_headline.csv` | subset `joint_full_cells`, `li_lstm_nonseas` vs `kalman_ar1` |
-| JPL full vs Kalman (Li-first): -0.777 (7.1e-14) / -0.109 (0.087) / +0.058 (0.31) / +0.160 (1.7e-3) / +0.243 (1.2e-6) / +0.295 (1.5e-8) | same | `li_lstm_full` vs `kalman_ar1` |
+| JPL Kalman vs non-seasonal (ours first, converted 1 - 1/(1 - s) from stored -1.1238 / -0.2857 / -0.0750 / +0.0581 / +0.1525 / +0.2178): +52.9 (1.3e-13) / +22.2 (2.1e-5) / +7.0 (0.15) / -6.2 (0.16) / -18.0 (1.1e-4) / -27.9 (2.8e-6) [audit] | `results/jpl/phase6_li_comparison_headline.csv` | subset `joint_full_cells`, `li_lstm_nonseas` vs `kalman_ar1`, `skill` converted, `dm_p` |
+| JPL Kalman vs full (ours first, converted from stored -0.7768 / -0.1091 / +0.0580 / +0.1604 / +0.2431 / +0.2952): +43.7 (7.1e-14) / +9.8 (0.087) / -6.2 (0.31) / -19.1 (1.7e-3) / -32.1 (1.2e-6) / -41.9 (1.5e-8) [audit] | same | `li_lstm_full` vs `kalman_ar1`, converted |
+| JPL damped persistence vs full product at h1 (ours first): +43.2 (p 1.2e-13), converted from stored -0.7609 [audit] | same | `li_lstm_full` vs `damped_persistence_rho`, h1 |
+| JPL Kalman vs damped at h1: +0.56 % (p 0.60), the lead-1 tie [audit] | `results/jpl/paper_baseline_contrasts.csv` | `kalman_ar1` vs `damped_persistence_rho`, h1 |
 
 ## Weighting sensitivity and Appendix C
 
@@ -100,6 +111,9 @@ Li-first (`li_lstm_nonseas vs kalman_ar1`, negative = ours better).
 | Pooled RMSE cm: flat-12 5.118 / 5.634 / 5.915 (h1-3); Kalman 5.128 (h1), 5.128..6.690; ERA5 flat-12 5.231..6.774; state ridge 6.064 / 6.288 / 6.603 (h4-6); damped 5.321..6.935 | `results/conventional_metrics_summary.csv` | `pooled_rmse_cm` |
 | Table C1 (all cells) | `results/conventional_metrics_summary.csv` | `pooled_rmse_cm` (3 dp), `rmse_cm_med`, `cc_anom_med`, `cc_full_med`, `nse_anom_med`, `nse_full_med` (2 dp) |
 | Damped persistence lead-1 full-signal CC 0.86, NSE 0.72 | `results/conventional_metrics_summary.csv` | `cc_full_med`, `nse_full_med`, `damped_persistence`, h1 |
+| Stacked LSTM ensemble (not a retained model) pooled RMSE 5.144 / 5.743 / 5.935 / 6.019 / 6.226 / 6.510 cm, below the state ridge at h4-h6 [audit] | `results/conventional_metrics_summary.csv` | `pooled_rmse_cm`, `stacked_ens` |
+| Fig. 3c: filter better in 158 of 234 basins, worse in 76 (lead 1, RMSE in cm, AR(1) damped variant) [audit] | `results/conventional_metrics_perbasin.csv` | `rmse_cm`, `kalman_ar1` vs `damped_persistence`, horizon 1 |
+| Fig. 4b: 3 basins below the -42 % axis limit [audit] | `results/flat12_ridge_predictions.csv` via `scripts/make_figures.py` | per-basin lead-1 skill |
 
 ## Dropped neighbor experiments
 
@@ -119,4 +133,10 @@ Li-first (`li_lstm_nonseas vs kalman_ar1`, negative = ours better).
 
 ## Numbers that appear in the abstract and conclusions
 
-All are repeats of entries above: +5.0 / +8.8 / +2.5..+5.6 % (ladder, `kalman_ar1`), +7.6 % (`ridge_own_era5_flat12` vs `kalman_ar1`, h1), 234 basins, five folds, 2019 to 2026 issue window.
+All are repeats of entries above: +5.0 / +8.8 / +2.5..+5.6 % (ladder, `kalman_ar1`), +7.6 % (`ridge_own_era5_flat12` vs `kalman_ar1`, h1), the row-matched LSTM p values (0.094 / 2.7e-10 / 4.3e-9), the lead-by-lead win/tie/loss pattern against the product, the +5.0 % (CSR) and +0.56 % (JPL, p 0.60) filter-over-damped margins at lead 1, 234 basins, five folds, 2019 to 2026 issue window.
+
+## Figure numbering (2026-09-11)
+
+Figures are numbered by first citation: Fig. 1 basins, Fig. 2 ladder, Fig. 3 filter mechanism
+(`fig03_filter_mechanism`), Fig. 4 where ERA5 helps (`fig04_era5_where`), Fig. 5 sequence models
+(`fig05_sequence_models`), Fig. 6 crossing against the published product (`fig06_crossing`).

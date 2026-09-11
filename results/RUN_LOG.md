@@ -1747,3 +1747,51 @@ items fixed in this commit; JPL items deferred to the JPL rerun.
    while `results/jpl/RUN_PROVENANCE.md` records the June-2026 CRI file with scale factors;
    and that provenance file says the bootstrap block length comes from loss autocorrelation,
    whereas `stats.py` uses `max(3, horizon)`. Both to be fixed when the JPL rerun is set up.
+
+## 2026-09-11 - Manuscript audit fixes
+
+Applied the manuscript audit to `paper/main.tex`, `scripts/make_figures.py`, `figures/*`,
+`figures/BUILD_NOTES.md`, `paper/notes/REWRITE_LEDGER.md` and `docs/ARCHIVE_MANIFEST.md`. No
+result CSV, `src/` module or other script changed. Items by the audit's numbering:
+
+1. Lead-by-lead crossing wording stated per pairing (abstract, Sect. 4.4, Sect. 5.3, Fig. 6
+   caption, conclusions): CSR full win/tie/loss from h3; CSR non-seasonal win/win/tie/loss
+   from h4; JPL full win/tie/tie/loss from h4; JPL non-seasonal win/win/tie/tie/loss from h5.
+2. Lead-1 win presented as a reference-class result: damped persistence beats the full product
+   at h1 on the CSR strict subset (+11.9 %, p 0.029) and on JPL (+43.2 %); the filter's own
+   contribution is its margin over damped persistence (+4.98 % CSR; +0.56 %, p 0.60, JPL).
+3. Sect. 5.1 "beats everything we built by 10 to 35 %" rewritten as "every model we built gives
+   up 10 to 35 % of skill" (ours-first); product-first margins +9.2 to +26.1 % recorded.
+4. Sect. 4.1 "strongest own-basin forecast on the storage series at leads 1-2" removed (the
+   flat-12 ridge beats it); now "strongest forecast of the reference class".
+5. All skills ours-first: Sect. 3.7 states the convention and the reciprocal conversion; JPL
+   prose in Sect. 4.4 converted (+43.7 / +9.8 / -6.2 / -19.1 / -32.1 / -41.9 % full;
+   +52.9 / +22.2 / +7.0 / -6.2 / -18.0 / -27.9 % non-seasonal); contradictory sentence deleted.
+6. Abstract: row equalization claim limited to the LSTM ensemble, significant at leads 2-3.
+7. Mission gap reframed as a design property (abstract, intro, Sect. 3.2, 3.4, limitations,
+   conclusions); a new limitation says it is untested because no forecast is issued across it.
+8. Reference switching: Sect. 4.2 decomposes the lead-1 margin (+5.35 % noise term; noise-free
+   filter -0.40 % vs the AR(1) variant, RMSE 1.0783 vs 1.0761; ratios multiply to +4.98 %);
+   every caption names its reference; Sect. 3.3 qualified "on CSR" with the JPL variant order.
+9. Fig. 5 legend and caption name the flat-history MLP; manifest row corrected.
+10. Fig. 3 caption: panel (a) regression variant, no CI; panel (c) from RMSE in cm; manifest
+    Fig. 3c row points at conventional_metrics_perbasin.csv.
+11. Figures renumbered by first citation: 3 mechanism, 4 ERA5 where, 5 sequence models,
+    6 crossing (float moved into Sect. 4.4); files, functions, asserts, BUILD_NOTES, manifest.
+12. All six figures in figure* at width=\textwidth (503.6 pt = 17.7 cm >= 17 cm built width).
+13. Sect. 4.3: max MLP-cell p 2.3e-6; flat-12 range +0.63 to +1.81 %; ordering claim replaced.
+14. Fig. 1 caption states panel (b) is the strict JPL roster over a neutral CSR sample.
+15. "Retained models" defined in Sect. 3.5; Sect. 4.5 quotes the deposited stacked_ens rows.
+16. Table 3 h5 best value bolded.
+17. Fig. 2 caption lists the models plotted and which carry CIs.
+18. Fig. 4b caption notes the three basins below the axis.
+19. "reference ladder" deferred to its definition; "anchor observation" defined in the
+    introduction; rerun/pipeline/run wording removed.
+20. Training window ends May 2019; fold-4 truncation (9 of 17 months) stated; JPL sample
+    228 x 84; Table 1 neighbor row points to Methods; map legends carry the excluded-land
+    entry; Table 1 and Table A1 columns set ragged-right.
+21. Figure legends use the manuscript's model names; Table 1 lists every one.
+
+Checks: `make_figures.py` exit 0 with all asserts; PDF compiles with zero errors, zero
+undefined references and zero missing files; `pytest tests -q` 28 passed.
+
