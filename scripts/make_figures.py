@@ -5,10 +5,14 @@ Six figures, each a single file, vector PDF plus a 150 dpi PNG preview, into
 
     fig01_basins            the sample and the two comparison subsets
     fig02_benchmark_ladder  where the filter sits on the conventional ladder
-    fig03_crossing          the crossover against the published product
-    fig04_filter_mechanism  which half of the filter does the work
-    fig05_era5_where        where the ERA5 window pays
-    fig06_sequence_models   the sequence models against the flat-12 ridge
+    fig03_filter_mechanism  which half of the filter does the work
+    fig04_era5_where        where the ERA5 window pays
+    fig05_sequence_models   the sequence models against the flat-12 ridge
+    fig06_crossing          the crossover against the published product
+
+Figure numbers follow the order of first citation in paper/main.tex (the
+crossing is cited last, in Sect. 4.4), so the fig0N_ prefix is the manuscript
+figure number.
 
 Every number plotted is read from ``results/*.csv`` or ``data/processed/*.csv``;
 nothing is typed in by hand. Every headline value is asserted against its source
@@ -100,17 +104,17 @@ COASTGRAY = "0.55"
 # no code identifiers ever reach a legend.
 STYLE = {
     "kalman_ar1":            dict(label="Kalman reference",     c=BATLOW["navy"],   ls="-",  m="o", lw=1.7),
-    "kalman_own_ridge":      dict(label="own-state ridge",      c=BATLOW["teal"],   ls="-",  m="^", lw=1.3),
+    "kalman_own_ridge":      dict(label="state ridge",          c=BATLOW["teal"],   ls="-",  m="^", lw=1.3),
     "ridge_own_flat12":      dict(label="flat-12 ridge",        c=BATLOW["green"],  ls="-",  m="s", lw=1.3),
-    "ridge_own_era5_flat12": dict(label="flat-12 ERA5 ridge",   c=BATLOW["gold"],   ls="-",  m="D", lw=1.5),
-    "ridge_own_perbasin":    dict(label="per-basin ridge",      c=BATLOW["blue"],   ls="--", m="v", lw=1.2),
-    "ridge_own_lags":        dict(label="lag-feature ridge",    c=BATLOW["olive"],  ls="--", m="<", lw=1.2),
-    "ridge_own_era5":        dict(label="lag-feature ERA5 ridge", c=BATLOW["olive"], ls="--", m="<", lw=1.2),
+    "ridge_own_era5_flat12": dict(label="ERA5 flat-12 ridge",   c=BATLOW["gold"],   ls="-",  m="D", lw=1.5),
+    "ridge_own_perbasin":    dict(label="per-basin lag ridge",  c=BATLOW["blue"],   ls="--", m="v", lw=1.2),
+    "ridge_own_lags":        dict(label="pooled lag ridge",     c=BATLOW["olive"],  ls="--", m="<", lw=1.2),
+    "ridge_own_era5":        dict(label="ERA5 lag ridge",       c=BATLOW["olive"], ls="--", m="<", lw=1.2),
     "persistence":           dict(label="persistence",          c=BATLOW["orange"], ls="-.", m=">", lw=1.2),
     "climatology_zero":      dict(label="climatology",          c=BATLOW["pink"],   ls=":",  m="x", lw=1.4),
     "damped_persistence":    dict(label="damped persistence",   c=REFGRAY,          ls="-",  m=None, lw=1.2),
-    "mlp_own_era5_flat12":   dict(label="residual MLP (flat-12 window)", c=BATLOW["orange"], ls="--", m="P", lw=1.2),
-    "lstm_own_era5_ens":     dict(label="LSTM ensemble (own state + ERA5)", c=BATLOW["blue"], ls="-", m="h", lw=1.3),
+    "mlp_own_era5_flat12":   dict(label="flat-history MLP",     c=BATLOW["orange"], ls="--", m="P", lw=1.2),
+    "lstm_own_era5_ens":     dict(label="LSTM ensemble",        c=BATLOW["blue"], ls="-", m="h", lw=1.3),
     "li_lstm_full":          dict(label="published product (full)", c=BATLOW["navy"], ls="-", m="o", lw=1.5),
     "li_lstm_nonseas":       dict(label="published product (non-seasonal)", c=BATLOW["gold"], ls="--", m="D", lw=1.5),
 }
@@ -580,7 +584,7 @@ def fig02_benchmark_ladder():
 
     note(stem, "Panel (a) shading is the 95 % block-bootstrap CI from "
                "paper_baseline_contrasts.csv; persistence, climatology and the "
-               "lag-feature ridge have no contrast rows in that file and are "
+               "pooled lag ridge have no contrast rows in that file and are "
                "drawn without a band.")
     note(stem, "Panel (a) has a broken vertical axis: climatology and "
                "persistence sit far below the rest of the field.")
@@ -590,7 +594,7 @@ def fig02_benchmark_ladder():
 
 
 # ===========================================================================
-# Figure 3 -- the crossover against the published product
+# Figure 6 -- the crossover against the published product
 # ===========================================================================
 
 def _li_series(df, model, vs, subset="joint_full_cells"):
@@ -602,8 +606,8 @@ def _li_series(df, model, vs, subset="joint_full_cells"):
             sub["ci_hi"].to_numpy() * 100.0, sub["dm_p"].to_numpy(), sub)
 
 
-def fig03_crossing():
-    stem = "fig03_crossing"
+def fig06_crossing():
+    stem = "fig06_crossing"
     print(f"{stem}")
     csr = pd.read_csv(RESULTS / "phase6_li_comparison_headline.csv")
     jpl = pd.read_csv(JPL / "phase6_li_comparison_headline.csv")
@@ -622,7 +626,7 @@ def fig03_crossing():
         y, lo, hi, p, sub = got
         rev = _li_series(csr, vs, model)
         assert rev is not None, f"CSR reverse rows missing for {vs} vs {model}"
-        assert_source(f"F3a reciprocal identity, {model} vs {vs}",
+        assert_source(f"F6a reciprocal identity, {model} vs {vs}",
                       y, ours_over(rev[0] / 100.0) * 100.0, tol=0.002)
         A[(model, vs)] = (y, lo, hi, p)
         n_rows, n_months = int(sub["n_rows"].iloc[0]), int(sub["n_months"].iloc[0])
@@ -631,9 +635,9 @@ def fig03_crossing():
     )
     assert n_rows // n_months == 209, "CSR strict sample is not 209 basins"
 
-    assert_source("F3a Kalman reference over the published product (full), lead 1 = +16.4 %",
+    assert_source("F6a Kalman reference over the published product (full), lead 1 = +16.4 %",
                   A[("kalman_ar1", "li_lstm_full")][0][:1], [16.354], tol=0.01)
-    assert_source("F3a flat-12 ERA5 ridge over the published product "
+    assert_source("F6a ERA5 flat-12 ridge over the published product "
                   "(non-seasonal), leads 1-2",
                   A[("ridge_own_era5_flat12", "li_lstm_nonseas")][0][:2],
                   [32.781, 11.231], tol=0.01)
@@ -653,16 +657,16 @@ def fig03_crossing():
         lo = ours_over(hi_t / 100.0) * 100.0
         hi = ours_over(lo_t / 100.0) * 100.0
         from_rmse = (1.0 - (piv.loc["kalman_ar1"] / piv.loc[vs]) ** 2).to_numpy() * 100.0
-        assert_source(f"F3b inversion == recompute from rmse_std, {vs}", y, from_rmse,
+        assert_source(f"F6b inversion == recompute from rmse_std, {vs}", y, from_rmse,
                       tol=0.002)
         B[vs] = (y, lo, hi, p)
     n_jpl = int(jpl[(jpl["subset"] == "joint_full_cells")]["n_rows"].iloc[0])
     n_jpl_m = int(jpl[(jpl["subset"] == "joint_full_cells")]["n_months"].iloc[0])
     assert (n_jpl, n_jpl_m) == (3953, 59), f"JPL strict sample is {n_jpl} / {n_jpl_m}"
 
-    assert_source("F3b Kalman reference over the published product (full), "
+    assert_source("F6b Kalman reference over the published product (full), "
                   "JPL lead 1 = +43.7 %", B["li_lstm_full"][0][:1], [43.718], tol=0.01)
-    assert_source("F3b JPL source row (product first), lead 1 = -77.68 %",
+    assert_source("F6b JPL source row (product first), lead 1 = -77.68 %",
                   [jpl[(jpl["subset"] == "joint_full_cells")
                        & (jpl["model"] == "li_lstm_full")
                        & (jpl["vs"] == "kalman_ar1")
@@ -764,19 +768,19 @@ def fig03_crossing():
                "inverts it as 1 - MSE(ours)/MSE(theirs), which is the reciprocal "
                "of the stored skill, not its negation; the script asserts the "
                "inverted values against rmse_std in the JPL summary.")
-    note(stem, "Both panels use the joint_full_cells subset. The JPL run "
-               "predates the flat-12 step, so panel (b) carries the Kalman "
-               "reference only.")
+    note(stem, "Both panels use the joint_full_cells subset. The JPL analysis "
+               "was completed before the flat-12 models were built, so panel "
+               "(b) carries the Kalman reference only.")
     save(fig, stem)
     return crossings
 
 
 # ===========================================================================
-# Figure 4 -- which half of the filter does the work
+# Figure 3 -- which half of the filter does the work
 # ===========================================================================
 
-def fig04_filter_mechanism():
-    stem = "fig04_filter_mechanism"
+def fig03_filter_mechanism():
+    stem = "fig03_filter_mechanism"
     print(f"{stem}")
     r0 = pd.read_csv(RESULTS / "r0_ablation_summary.csv")
     ms = pd.read_csv(RESULTS / "kalman_mission_summary.csv")
@@ -795,13 +799,13 @@ def fig04_filter_mechanism():
     y_full = full["skill_pct"].to_numpy()
     y_zero = zero["skill_pct"].to_numpy()
     y_gap = gap["skill_pct"].to_numpy()
-    assert_source("F4a filter with observation noise, lead 1 (vs damped, reg)",
+    assert_source("F3a filter with observation noise, lead 1 (vs damped, reg)",
                   y_full[:1], [6.206], tol=0.001)
-    assert_source("F4a filter with r forced to zero, lead 1", y_zero[:1], [0.900],
+    assert_source("F3a filter with r forced to zero, lead 1", y_zero[:1], [0.900],
                   tol=0.001)
-    assert_source("F4a skill given up when r = 0, lead 1", y_gap[:1], [5.354],
+    assert_source("F3a skill given up when r = 0, lead 1", y_gap[:1], [5.354],
                   tol=0.001)
-    assert_source("F4a skill given up when r = 0, leads 1-6", y_gap,
+    assert_source("F3a skill given up when r = 0, leads 1-6", y_gap,
                   [5.354, 9.633, 11.667, 12.481, 12.653, 12.272], tol=0.001)
 
     # (b) two observation-noise variances (one per mission) against one
@@ -812,7 +816,7 @@ def fig04_filter_mechanism():
     y_ms = split["skill_pct"].to_numpy()
     lo_ms = split["ci_lo_pct"].to_numpy()
     hi_ms = split["ci_hi_pct"].to_numpy()
-    assert_source("F4b mission-split filter over the one-variance filter, lead 1 "
+    assert_source("F3b mission-split filter over the one-variance filter, lead 1 "
                   "= -1.84 %", y_ms[:1], [-1.837], tol=0.005)
     assert (y_ms < 0).all() and (hi_ms < 0).all(), (
         "the mission split is no longer a loss at every lead"
@@ -877,30 +881,39 @@ def fig04_filter_mechanism():
     draw_choropleth(axc, paint(sk.to_dict()), norm, cm.vik)
     hcolorbar(fig, axc, norm, cm.vik,
               "per-basin lead-1 skill of the Kalman reference over damped "
-              "persistence (%), from RMSE in cm\nred: the filter is better;  "
-              "blue: damped persistence is better;  scale clipped at "
+              "persistence, AR(1) variant (%), from RMSE in cm\nred: the filter "
+              "is better;  blue: damped persistence is better;  scale clipped at "
               f"$\\pm${VLIM:.0f} %", shrink=0.62, pad=0.04)
     panel_head(axc, "(c)", f"where the filter helps: better in {n_pos} of 234 "
                f"basins, worse in {n_neg}", y=1.02)
+    import matplotlib.patches as mpatches
+    axc.legend(handles=[mpatches.Patch(fc=LANDGRAY, ec="none",
+                                       label="land outside the basin sample")],
+               loc="lower left", bbox_to_anchor=(0.0, 0.0), fontsize=7,
+               handlelength=1.0, handleheight=1.0, borderaxespad=0.3)
 
-    note(stem, "Panels (a) and (b) are scored against the regression damped "
-               "variant at every lead, which is the reference r0_ablation_summary.csv "
-               "and kalman_mission_summary.csv use. Fig. 2 instead uses the "
-               "stronger variant per lead, so the lead-1 Kalman value differs "
-               "(+6.21 % here, +4.98 % there).")
-    note(stem, "Panel (c) is a per-basin RMSE ratio in raw cm, not the pooled "
-               "standardized skill, and the colour scale is clipped at "
+    note(stem, "Panel (a) is scored against the regression damped variant at "
+               "every lead, which is the reference r0_ablation_summary.csv uses, "
+               "and carries no confidence interval: the shading is the gap "
+               "between the two curves. Fig. 2 and Table 2 use the stronger "
+               "variant per lead, so the lead-1 Kalman value differs (+6.21 % "
+               "here, +4.98 % there). Panel (b) is the mission-split filter "
+               "against the one-variance filter, with a 95 % block-bootstrap CI.")
+    note(stem, "Panel (c) is a per-basin RMSE ratio in raw cm "
+               "(conventional_metrics_perbasin.csv), not the pooled standardized "
+               "skill; its reference is the AR(1) damped variant, the stronger "
+               "one at lead 1; and the colour scale is clipped at "
                f"{VLIM:.0f} % (both ends extended).")
     save(fig, stem)
     return dict(n_pos=n_pos, n_neg=n_neg)
 
 
 # ===========================================================================
-# Figure 5 -- where the ERA5 window pays
+# Figure 4 -- where the ERA5 window pays
 # ===========================================================================
 
-def fig05_era5_where():
-    stem = "fig05_era5_where"
+def fig04_era5_where():
+    stem = "fig04_era5_where"
     print(f"{stem}")
     from scipy.stats import spearmanr
     from gracefc.stats import per_basin_dm_fdr
@@ -923,7 +936,7 @@ def fig05_era5_where():
     skill = (1.0 - loss_e.groupby("name").mean() / loss_k.groupby("name").mean()) * 100.0
     pooled = 100.0 * (1.0 - loss_e.mean() / loss_k.mean())
     assert len(skill) == 234, f"per-basin skill covers {len(skill)} basins"
-    assert_source("F5 pooled lead-1 skill of the flat-12 ERA5 ridge over the "
+    assert_source("F4 pooled lead-1 skill of the ERA5 flat-12 ridge over the "
                   "Kalman reference = +7.65 %", [pooled], [7.646], tol=0.005)
 
     # per-basin Diebold-Mariano with a HAC lag of h-1 (the repository helper),
@@ -935,7 +948,7 @@ def fig05_era5_where():
     n_sig = len(sig_names)
     n_sig_better = int((sig["a_better"]).sum())
     n_sig_worse = n_sig - n_sig_better
-    assert_source("F5 BH-FDR q=0.10: significant / better / worse",
+    assert_source("F4 BH-FDR q=0.10: significant / better / worse",
                   [n_sig, n_sig_better, n_sig_worse], [45, 44, 1], tol=0.0)
     # the DM sign must agree with the plotted skill for every significant basin
     agree = [(skill[n] > 0) == bool(fdr.set_index("name").loc[n, "a_better"])
@@ -959,7 +972,7 @@ def fig05_era5_where():
     x = train_std.loc[common].to_numpy()
     y = skill.loc[common].to_numpy()
     rho, p_rho = spearmanr(x, y)
-    assert_source("F5b Spearman rho between training-window std and ERA5 gain",
+    assert_source("F4b Spearman rho between training-window std and ERA5 gain",
                   [rho], [-0.1436], tol=0.0005)
     assert rho < 0, "the ERA5 gain no longer concentrates in low-variance basins"
 
@@ -972,11 +985,16 @@ def fig05_era5_where():
     draw_choropleth(axa, paint(skill.to_dict()), norm, cm.vik)
     hatch_basins(axa, sig_names)
     hcolorbar(fig, axa, norm, cm.vik,
-              "lead-1 skill of the flat-12 ERA5 ridge over the Kalman reference (%)\n"
+              "lead-1 skill of the ERA5 flat-12 ridge over the Kalman reference (%)\n"
               f"hatched: {n_sig} of 234 basins pass BH-FDR at $q$ = 0.10 "
               f"({n_sig_better} for, {n_sig_worse} against)",
               shrink=0.88, pad=0.045)
     panel_head(axa, "(a)", "where the ERA5 window pays", y=1.02)
+    import matplotlib.patches as mpatches
+    axa.legend(handles=[mpatches.Patch(fc=LANDGRAY, ec="none",
+                                       label="land outside the basin sample")],
+               loc="lower left", bbox_to_anchor=(0.0, 0.0), fontsize=7,
+               handlelength=1.0, handleheight=1.0, borderaxespad=0.3)
 
     axb = fig.add_subplot(gs[1])
     axb.grid(True, axis="both")
@@ -1013,6 +1031,8 @@ def fig05_era5_where():
                "squared-loss differential with a Newey-West HAC lag of max(h-1, 1) "
                "(gracefc.stats.per_basin_dm_fdr, the same routine the per-basin "
                "FDR scripts use), then Benjamini-Hochberg at q = 0.10.")
+    note(stem, f"Panel (b) clips {n_off} basin(s) below its lower axis limit of "
+               f"{YLO:.0f} %; the panel says so in its corner annotation.")
     note(stem, "The x axis of panel (b) is the median, across the five "
                "expanding-window folds, of the per-basin training-window standard "
                "deviation of the deseasonalized target, recomputed with "
@@ -1025,11 +1045,11 @@ def fig05_era5_where():
 
 
 # ===========================================================================
-# Figure 6 -- the sequence models against the flat-12 ridge
+# Figure 5 -- the sequence models against the flat-12 ridge
 # ===========================================================================
 
-def fig06_sequence_models():
-    stem = "fig06_sequence_models"
+def fig05_sequence_models():
+    stem = "fig05_sequence_models"
     print(f"{stem}")
     from gracefc.stats import block_bootstrap_skill_ci
 
@@ -1069,9 +1089,9 @@ def fig06_sequence_models():
     published = series(sens[sens["reference"] == "lstm_own_era5_ens"],
                        {"challenger": "ridge_own_era5_flat12_train85"}, "skill_pct",
                        leads=L3)
-    assert_source("F6 two-seed ensemble reproduces the published "
+    assert_source("F5 two-seed ensemble reproduces the published "
                   "lstm_own_era5_ens comparison", recon, published, tol=0.002)
-    assert_source("F6b equalized-window flat-12 ERA5 ridge over the LSTM "
+    assert_source("F5b equalized-window ERA5 flat-12 ridge over the LSTM "
                   "ensemble, leads 1-3", published, [1.02, 2.76, 2.27], tol=0.005)
 
     # panel (a): skill over the Kalman reference, with block-bootstrap CIs
@@ -1091,26 +1111,29 @@ def fig06_sequence_models():
               "mlp_own_era5_flat12_s0", "mlp_own_era5_flat12_s1"]:
         from_summary = (1.0 - (piv.loc[m, L3] / piv.loc["kalman_ar1", L3]) ** 2
                         ).to_numpy() * 100.0
-        assert_source(f"F6a {m} == rmse_std in phase7_lstm_summary.csv", pt[m],
+        assert_source(f"F5a {m} == rmse_std in phase7_lstm_summary.csv", pt[m],
                       from_summary, tol=0.002)
     # and the flat-12 arms must match the published contrasts against the filter
     for m in ["ridge_own_era5_flat12", "ridge_own_flat12"]:
         c = series(con[(con["reference"] == "kalman_ar1") & (con["horizon"] <= 3)],
                    {"challenger": m}, "skill", leads=L3) * 100.0
-        assert_source(f"F6a {STYLE[m]['label']} == paper_baseline_contrasts.csv",
+        assert_source(f"F5a {STYLE[m]['label']} == paper_baseline_contrasts.csv",
                       pt[m], c, tol=0.01)
-    assert_source("F6a flat-12 ERA5 ridge over the Kalman reference, lead 1 = +7.65 %",
+    assert_source("F5a ERA5 flat-12 ridge over the Kalman reference, lead 1 = +7.65 %",
                   pt["ridge_own_era5_flat12"][:1], [7.65], tol=0.006)
-    assert_source("F6a LSTM ensemble over the Kalman reference, leads 1-3",
+    assert_source("F5a LSTM ensemble over the Kalman reference, leads 1-3",
                   pt["lstm_own_era5_ens"], [6.534, 2.743, 2.186], tol=0.005)
 
     LOOK = {
-        "ridge_own_era5":         dict(c=BATLOW["olive"],  m="<", label="lag-feature ERA5 ridge"),
+        # mlp_own_era5_flat12_s* is the flat-history MLP of the manuscript (the
+        # MLP on the ERA5 flat-12 ridge's feature vector), NOT the residual MLP
+        # (resmlp_own_era5_s*), which has no prediction rows in this file.
+        "ridge_own_era5":         dict(c=BATLOW["olive"],  m="<", label="ERA5 lag ridge"),
         "ridge_own_flat12":       dict(c=BATLOW["green"],  m="s", label="flat-12 ridge"),
-        "ridge_own_era5_flat12":  dict(c=BATLOW["gold"],   m="D", label="flat-12 ERA5 ridge"),
-        "mlp_own_era5_flat12_s0": dict(c=BATLOW["orange"], m="P", label="residual MLP, flat-12 window (seed 0)"),
-        "mlp_own_era5_flat12_s1": dict(c=BATLOW["pink"],   m="X", label="residual MLP, flat-12 window (seed 1)"),
-        "lstm_own_era5_ens":      dict(c=BATLOW["blue"],   m="h", label="LSTM ensemble, own state + ERA5"),
+        "ridge_own_era5_flat12":  dict(c=BATLOW["gold"],   m="D", label="ERA5 flat-12 ridge"),
+        "mlp_own_era5_flat12_s0": dict(c=BATLOW["orange"], m="P", label="flat-history MLP (seed 0)"),
+        "mlp_own_era5_flat12_s1": dict(c=BATLOW["pink"],   m="X", label="flat-history MLP (seed 1)"),
+        "lstm_own_era5_ens":      dict(c=BATLOW["blue"],   m="h", label="LSTM ensemble"),
     }
     OFF = np.linspace(-0.27, 0.27, len(arms))
 
@@ -1135,7 +1158,7 @@ def fig06_sequence_models():
     axa.set_xlabel("forecast lead $h$ (months)")
     axa.set_ylabel("skill over the Kalman reference (%)")
     axa.set_ylim(-4.5, 11.5)
-    panel_head(axa, "(a)", "every sequence model sits behind the flat-12 ERA5 ridge")
+    panel_head(axa, "(a)", "every sequence model sits behind the ERA5 flat-12 ridge")
 
     axb.axhline(0.0, color=REFGRAY, lw=0.9, zorder=2)
     dmp = series(sens[sens["reference"] == "lstm_own_era5_ens"],
@@ -1150,7 +1173,7 @@ def fig06_sequence_models():
     axb.set_xlim(0.5, 3.5)
     axb.set_ylim(0, 4.4)
     axb.set_xlabel("forecast lead $h$ (months)")
-    axb.set_ylabel("skill of the flat-12 ERA5 ridge\nover the LSTM ensemble (%)")
+    axb.set_ylabel("skill of the ERA5 flat-12 ridge\nover the LSTM ensemble (%)")
     panel_head(axb, "(b)", "training window equalized")
 
     handles, labels = axa.get_legend_handles_labels()
@@ -1158,8 +1181,11 @@ def fig06_sequence_models():
                ncol=3, handlelength=1.2, columnspacing=1.6, handletextpad=0.5,
                fontsize=7.5)
 
-    note(stem, "Leads 1-3 only: the LSTM and residual-MLP arms in "
+    note(stem, "Leads 1-3 only: the LSTM and flat-history MLP rows in "
                "phase7_lstm_summary.csv were never run past lead 3.")
+    note(stem, "The MLP plotted is the flat-history MLP (mlp_own_era5_flat12_s0/s1), "
+               "not the residual MLP; the residual MLP has no prediction rows and "
+               "appears in Table 4 only.")
     note(stem, "Error bars are 95 % moving-block bootstrap CIs recomputed from "
                "phase7_lstm_predictions.csv with gracefc.stats."
                "block_bootstrap_skill_ci; the summary file stores no CI. The "
@@ -1167,7 +1193,7 @@ def fig06_sequence_models():
     note(stem, "The LSTM ensemble is the mean of the two seed predictions. That "
                "reconstruction reproduces the published lstm_own_era5_ens "
                "comparison in flat12_train85_sensitivity.csv to 0.002 %.")
-    note(stem, "Panel (b) is the equalized-training-window run: the flat-12 ERA5 "
+    note(stem, "Panel (b) is the equalized-training-window comparison: the ERA5 flat-12 "
                "ridge refit on 85 % of the window the LSTM sees, so neither model "
                "has a history-length advantage.")
     save(fig, stem)
@@ -1178,7 +1204,7 @@ def fig06_sequence_models():
 # Build notes
 # ===========================================================================
 
-def write_build_notes(f1, f3x, f4, f5, f6):
+def write_build_notes(f1, f3, f4, f5, f6x):
     lines = []
     A = lines.append
     A("# Figure build notes")
@@ -1197,11 +1223,14 @@ def write_build_notes(f1, f3x, f4, f5, f6):
     A("Sign convention: `skill = 1 - MSE(first)/MSE(second)`, so positive means the")
     A("first-named model is better.")
     A("")
-    A("Model names are fixed across figures: Kalman reference, own-state ridge,")
-    A("flat-12 ridge, flat-12 ERA5 ridge, per-basin ridge, lag-feature ridge,")
-    A("lag-feature ERA5 ridge, damped persistence, persistence, climatology,")
-    A("residual MLP (flat-12 window), LSTM ensemble, published product (full),")
-    A("published product (non-seasonal). No code identifier appears in a legend.")
+    A("Model names in legends are the manuscript's (Table 1): Kalman reference,")
+    A("state ridge, flat-12 ridge, ERA5 flat-12 ridge, ERA5 lag ridge, per-basin")
+    A("lag ridge, pooled lag ridge, damped persistence, persistence, climatology,")
+    A("flat-history MLP, LSTM ensemble, published product (full), published")
+    A("product (non-seasonal). No code identifier appears in a legend.")
+    A("")
+    A("Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,")
+    A("3 filter mechanism, 4 where ERA5 helps, 5 sequence models, 6 crossing.")
     A("")
 
     def block(stem, width, shows, sources, asserts):
@@ -1249,35 +1278,13 @@ def write_build_notes(f1, f3x, f4, f5, f6):
            "results/conventional_metrics_summary.csv"],
           ["Kalman reference lead-1 skill +4.98 % (and +8.79/+5.62/+3.07/+2.55/"
            "+3.63 % at leads 2-6)",
-           "flat-12 ERA5 ridge +12.24/+13.71/+9.61/+6.16/+4.58/+4.47 %",
+           "ERA5 flat-12 ridge +12.24/+13.71/+9.61/+6.16/+4.58/+4.47 %",
            "pooled lead-1 RMSE 5.128 cm (Kalman reference), 5.118 cm (flat-12 "
-           "ridge), 5.231 cm (flat-12 ERA5 ridge)",
+           "ridge), 5.231 cm (ERA5 flat-12 ridge)",
            "every CI ribbon's point estimate equals the ladder curve it wraps",
            "`damped_ref` is rho at lead 1 and the regression variant at leads 2-6"])
 
-    cross = ", ".join(f"{k[0]} {STYLE[k[1]]['label']} vs {STYLE[k[2]]['label']}: "
-                      f"h = {v:.2f}" for k, v in f3x.items() if v is not None)
-    block("fig03_crossing", "double column (17 cm), two panels, shared y axis",
-          "skill of our models over the published product by lead, with 95 % CIs, "
-          "on CSR (a) and JPL (b); the crossover from ahead to behind sits between "
-          "leads 2 and 3 on both products",
-          ["results/phase6_li_comparison_headline.csv",
-           "results/jpl/phase6_li_comparison_headline.csv",
-           "results/jpl/phase6_li_comparison_summary.csv"],
-          ["CSR Kalman reference over the published product (full), lead 1 = "
-           "+16.354 %",
-           "CSR flat-12 ERA5 ridge over the published product (non-seasonal), "
-           "leads 1-2 = +32.781 / +11.231 %",
-           "JPL Kalman reference over the published product (full), lead 1 = "
-           "+43.718 %, inverted from the stored -77.678 % and cross-checked "
-           "against rmse_std",
-           "for all four CSR pairs, the value the file stores with our model "
-           "first equals the reciprocal inversion of the reverse-direction row",
-           "CSR strict sample 12540 rows / 60 months / 209 basins; JPL 3953 "
-           "rows / 59 months",
-           f"interpolated zero crossings: {cross}"])
-
-    block("fig04_filter_mechanism", "double column (17 cm), three panels",
+    block("fig03_filter_mechanism", "double column (17 cm), three panels",
           "(a) the filter with and without the observation-noise term; (b) the "
           "two-variance mission-split filter against the one-variance filter; "
           "(c) per-basin lead-1 skill of the filter over damped persistence",
@@ -1292,10 +1299,10 @@ def write_build_notes(f1, f3x, f4, f5, f6):
            "mission-split filter -1.837 % at lead 1, and its CI stays below zero "
            "at every lead",
            f"per-basin map covers 234 basins; the filter is better in "
-           f"{f4['n_pos']} and worse in {f4['n_neg']}"])
+           f"{f3['n_pos']} and worse in {f3['n_neg']}"])
 
-    block("fig05_era5_where", "double column (17 cm), two panels",
-          "(a) per-basin lead-1 skill of the flat-12 ERA5 ridge over the Kalman "
+    block("fig04_era5_where", "double column (17 cm), two panels",
+          "(a) per-basin lead-1 skill of the ERA5 flat-12 ridge over the Kalman "
           "reference, with BH-FDR significant basins hatched; (b) the same skill "
           "against each basin's training-window storage variability",
           ["results/flat12_ridge_predictions.csv",
@@ -1304,19 +1311,20 @@ def write_build_notes(f1, f3x, f4, f5, f6):
            "src/gracefc/stats.py (per_basin_dm_fdr)",
            "src/gracefc/evaluate.py (deseasonalize_fold, DEFAULT_FOLDS)",
            "HydroShed+Mascon_Basins_L3.nc"],
-          [f"pooled lead-1 skill +{f5['pooled']:.3f} % (expected +7.646 %, the "
+          [f"pooled lead-1 skill +{f4['pooled']:.3f} % (expected +7.646 %, the "
            "+7.65 % quoted in docs/STUDY_CONTEXT.md)",
-           f"BH-FDR q = 0.10: {f5['n_sig']} of 234 basins significant, "
-           f"{f5['n_sig_better']} of them in our favour",
-           f"Spearman rho = {f5['rho']:+.4f} (p = {f5['p']:.4f}), pinned to -0.1436",
+           f"BH-FDR q = 0.10: {f4['n_sig']} of 234 basins significant, "
+           f"{f4['n_sig_better']} of them in our favour",
+           f"Spearman rho = {f4['rho']:+.4f} (p = {f4['p']:.4f}), pinned to -0.1436",
            "the DM sign agrees with the plotted per-basin skill for every "
            "significant basin"])
 
-    pubs = " / ".join(f"+{v:.2f} %" for v in f6["published"])
-    block("fig06_sequence_models", "double column (17 cm), two panels",
-          "(a) leads 1-3 skill over the Kalman reference for the ridge, MLP and "
-          "LSTM arms; (b) the same flat-12 ERA5 ridge against the LSTM ensemble "
-          "once the training window is equalized",
+    pubs = " / ".join(f"+{v:.2f} %" for v in f5["published"])
+    block("fig05_sequence_models", "double column (17 cm), two panels",
+          "(a) leads 1-3 skill over the Kalman reference for the ERA5 lag ridge, "
+          "the two flat-12 ridges, the flat-history MLP seeds and the LSTM "
+          "ensemble; (b) the ERA5 flat-12 ridge against the LSTM ensemble once "
+          "the training window is equalized",
           ["results/phase7_lstm_summary.csv",
            "results/phase7_lstm_predictions.csv",
            "results/flat12_train85_sensitivity.csv",
@@ -1326,12 +1334,34 @@ def write_build_notes(f1, f3x, f4, f5, f6):
            "`phase7_lstm_summary.csv` to 0.002 %",
            "the flat-12 arms also reproduce their rows in "
            "`paper_baseline_contrasts.csv` against `kalman_ar1`",
-           "flat-12 ERA5 ridge over the Kalman reference, lead 1 = +7.65 %",
+           "ERA5 flat-12 ridge over the Kalman reference, lead 1 = +7.65 %",
            "LSTM ensemble over the Kalman reference = +6.534/+2.743/+2.186 %",
-           f"equalized-window flat-12 ERA5 ridge over the LSTM ensemble = {pubs} "
+           f"equalized-window ERA5 flat-12 ridge over the LSTM ensemble = {pubs} "
            "(expected +1.02 / +2.76 / +2.27 %)",
            "the seed-mean ensemble reproduces the published `lstm_own_era5_ens` "
            "comparison to 0.002 %"])
+
+    cross = ", ".join(f"{k[0]} {STYLE[k[1]]['label']} vs {STYLE[k[2]]['label']}: "
+                      f"h = {v:.2f}" for k, v in f6x.items() if v is not None)
+    block("fig06_crossing", "double column (17 cm), two panels, shared y axis",
+          "skill of our models over the published product by lead, with 95 % CIs, "
+          "on CSR (a) and JPL (b); the crossover from ahead to behind sits between "
+          "leads 2 and 3 on both products",
+          ["results/phase6_li_comparison_headline.csv",
+           "results/jpl/phase6_li_comparison_headline.csv",
+           "results/jpl/phase6_li_comparison_summary.csv"],
+          ["CSR Kalman reference over the published product (full), lead 1 = "
+           "+16.354 %",
+           "CSR ERA5 flat-12 ridge over the published product (non-seasonal), "
+           "leads 1-2 = +32.781 / +11.231 %",
+           "JPL Kalman reference over the published product (full), lead 1 = "
+           "+43.718 %, inverted from the stored -77.678 % and cross-checked "
+           "against rmse_std",
+           "for all four CSR pairs, the value the file stores with our model "
+           "first equals the reciprocal inversion of the reverse-direction row",
+           "CSR strict sample 12540 rows / 60 months / 209 basins; JPL 3953 "
+           "rows / 59 months",
+           f"interpolated zero crossings: {cross}"])
 
     A("## Things this build could not do as specified")
     A("")
@@ -1340,10 +1370,10 @@ def write_build_notes(f1, f3x, f4, f5, f6):
     A("  compact headline, summary and per-basin CSVs are versioned here. The")
     A("  panel therefore shades the 67 strict basins and leaves the other 167 of")
     A("  the 234 CSR-kept basins neutral, and says so on the figure.")
-    A("- Fig. 6 covers leads 1-3 only. The LSTM and residual-MLP arms were never")
+    A("- Fig. 5 covers leads 1-3 only. The LSTM and flat-history MLP were never")
     A("  run past lead 3, so there is no lead 4-6 row to plot.")
     A("- `results/phase7_lstm_summary.csv` has no `skill_vs_kalman` column and no")
-    A("  CI columns, so Fig. 6 recomputes both from")
+    A("  CI columns, so Fig. 5 recomputes both from")
     A("  `results/phase7_lstm_predictions.csv` and asserts the point estimates")
     A("  back against the summary file's `rmse_std`.")
     A("- The JPL skill is inverted with the reciprocal transform")
@@ -1361,11 +1391,11 @@ def main():
     FIGURES.mkdir(exist_ok=True)
     f1 = fig01_basins()
     fig02_benchmark_ladder()
-    f3x = fig03_crossing()
-    f4 = fig04_filter_mechanism()
-    f5 = fig05_era5_where()
-    f6 = fig06_sequence_models()
-    write_build_notes(f1, f3x, f4, f5, f6)
+    f3 = fig03_filter_mechanism()
+    f4 = fig04_era5_where()
+    f5 = fig05_sequence_models()
+    f6x = fig06_crossing()
+    write_build_notes(f1, f3, f4, f5, f6x)
     print("\nall six figures built; every source assert passed")
 
 
