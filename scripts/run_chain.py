@@ -9,27 +9,32 @@ existed, crashed, and the chain sailed on. This runner declares each step's inpu
 output files, verifies inputs BEFORE launching, verifies outputs (existence + fresh
 mtime) after, stops at the first failure, and logs each step to results/chain_<name>.log.
 
-The default list is the whole study from processed-and-raw data to figures and the
-checksum manifest. What stays manual is only what needs a network or credentials:
-downloading the CSR mascon + ancillary files, the basin mask, ERA5
-(scripts/download_era5.py), the Li 2026 archive, and the climate indices
+The default list is the paper spine: processed-and-raw data, the baselines, the
+Kalman reference forecast and its flat-12 ridge correction, the mission-split
+sensitivity, the ladder, the Li comparison, figures and the checksum manifest. It
+needs neither torch nor any neighbor experiment. Everything neighbor-only or
+torch-heavy sits in the EXTENDED list, run with --extended or named in --steps; no
+script was deleted when the spine was narrowed. What stays manual is only what needs
+a network or credentials: downloading the CSR mascon + ancillary files, the basin
+mask, ERA5 (scripts/download_era5.py), the Li 2026 archive, and the climate indices
 (scripts/download_indices.py). See README "Getting set up".
 
 Usage:
   python scripts/run_chain.py             # default step list, in order
+  python scripts/run_chain.py --extended  # the neighbor and torch steps
   python scripts/run_chain.py --source jpl # same experiments, isolated JPL outputs
   python scripts/run_chain.py --steps a b # explicit subset, in the order given
   python scripts/run_chain.py --list      # show steps and their dependencies
 
-phase7_gnn is defined but not in the default list: its real arms (the only quoted
-numbers — the GNN never beats ridge) are unaffected by the placebo seed repair, and its
-full-batch training is by far the most expensive step. Run it explicitly if the GNN
-placebo ranks are ever quoted.
+The figures step reads several extended outputs (phase 3b, phase 5, phase 6 ERA5,
+phase 8), so a machine that has only ever run the default list is blocked there with
+the missing files named. That is the dependency check working, not a defect.
 
 kalman_fold_params.pkl is deliberately absent from every step's OUTPUT list: it is a
-content-addressed cache (src/gracefc/cache.py) that phase3b creates when missing but
-legitimately leaves untouched when its fingerprint still matches, which would fail the
-fresh-mtime output check. Steps that need it declare it as an INPUT.
+content-addressed cache (src/gracefc/cache.py) that flat12_ridge (default) and phase3b
+(extended) create when missing but legitimately leave untouched when the fingerprint
+still matches, which would fail the fresh-mtime output check. Steps that need it
+declare it as an INPUT; the two steps that can build it do not.
 """
 import argparse
 import os
@@ -76,6 +81,19 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
       RESULTS / "phase2_baseline_predictions.csv"],
      [RESULTS / "kalman_predictions.csv"]),
+
+    ("flat12_ridge",
+     ["scripts/run_flat12_ridge.py"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      DATA / "era5_basin_month.csv"],
+     [RESULTS / "flat12_ridge_predictions.csv", RESULTS / "flat12_ridge_summary.csv"]),
+
+    ("kalman_mission",
+     ["scripts/run_kalman_mission_sensitivity.py"],
+     [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
+      RESULTS / "kalman_predictions.csv", RESULTS / "phase2_baseline_predictions.csv"],
+     [RESULTS / "kalman_mission_predictions.csv", RESULTS / "kalman_mission_params.csv",
+      RESULTS / "kalman_mission_summary.csv", RESULTS / "kalman_mission_perbasin_h1.csv"]),
 
     ("phase3b",
      ["scripts/run_phase3b_kalman_neighbors.py"],
@@ -143,7 +161,8 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      ["scripts/run_phase6_li_comparison.py"],
      [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
       DATA / "li2026_csr_basin_forecasts.csv", DATA / "li2026_basin_coverage.csv",
-      RESULTS / "phase3b_predictions.csv", RESULTS / "phase2_baseline_predictions.csv"],
+      RESULTS / "kalman_predictions.csv", RESULTS / "flat12_ridge_predictions.csv",
+      RESULTS / "phase2_baseline_predictions.csv"],
      [RESULTS / "phase6_li_comparison_predictions.csv", RESULTS / "phase6_li_comparison_summary.csv",
       RESULTS / "phase6_li_comparison_headline.csv", RESULTS / "phase6_li_comparison_perbasin.csv"]),
 
@@ -242,14 +261,14 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 
     ("ladder",
      ["scripts/build_paper_ladder.py"],
-     [RESULTS / "phase2_baseline_predictions.csv", RESULTS / "phase3b_predictions.csv"],
+     [RESULTS / "phase2_baseline_predictions.csv", RESULTS / "kalman_predictions.csv",
+      RESULTS / "flat12_ridge_predictions.csv"],
      [RESULTS / "paper_baseline_ladder.csv", RESULTS / "paper_baseline_contrasts.csv"]),
 
     ("conventional_metrics",
      ["scripts/compute_conventional_metrics.py"],
      [DATA / "basin_month_twsa_global.csv", RESULTS / "phase2_baseline_predictions.csv",
-      RESULTS / "kalman_predictions.csv", RESULTS / "phase8_lstm_combined_predictions.csv",
-      RESULTS / "phase8b_lstm_h46_predictions.csv"],
+      RESULTS / "kalman_predictions.csv"],
      [RESULTS / "conventional_metrics_perbasin.csv", RESULTS / "conventional_metrics_summary.csv"]),
 
     ("figures",
@@ -272,7 +291,17 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      [],
      [RESULTS / "SHA256_MANIFEST_LIVE.csv"]),
 ]
-DEFAULT = [s[0] for s in STEPS if s[0] != "phase7_gnn"]
+# The default chain is the reframed paper spine: processed tables, the baselines, the
+# Kalman reference forecast and its flat-12 ridge correction, the mission-split
+# sensitivity, the ladder, the cross-product comparison, figures and the manifest.
+# It needs no torch and touches no neighbor experiment.
+DEFAULT = [
+    "build_basin", "build_era5", "build_li", "phase2", "kalman", "flat12_ridge",
+    "kalman_mission", "r0_ablation", "ladder", "li_comparison",
+    "conventional_metrics", "figures", "manifest",
+]
+# Everything neighbor-only or torch-heavy. Run with --extended, or name in --steps.
+EXTENDED = [s[0] for s in STEPS if s[0] not in DEFAULT]
 
 SHARED_DATA_FILES = {
     "indices.csv", "era5_basin_month.csv", "era5_basin_coverage.csv",
@@ -359,6 +388,9 @@ def main() -> None:
     ap.add_argument("--no-scale-factors", action="store_true",
                     help="disable scale factors when building a JPL CRI target")
     ap.add_argument("--steps", nargs="+", default=None)
+    ap.add_argument("--extended", action="store_true",
+                    help="run the extended steps (neighbor experiments, torch models) "
+                         "instead of the default list")
     ap.add_argument("--list", action="store_true")
     args = ap.parse_args()
     if args.mascon_file is not None and args.source != "jpl":
@@ -366,6 +398,8 @@ def main() -> None:
     if args.no_scale_factors and args.source != "jpl":
         ap.error("--no-scale-factors applies only to --source jpl")
     mascon_file = args.mascon_file.resolve() if args.mascon_file is not None else None
+    if args.steps and args.extended:
+        ap.error("--steps and --extended are mutually exclusive")
     steps, default, results = steps_for_source(
         args.source, mascon_file, args.no_scale_factors
     )
@@ -375,7 +409,7 @@ def main() -> None:
             if args.source == "jpl" and name in JPL_UNAVAILABLE:
                 flag = "  [unavailable for JPL]"
             else:
-                flag = "" if name in default else "  [not in default list]"
+                flag = "" if name in default else "  [extended]"
             print(f"{name}{flag}\n  cmd: {' '.join(cmd)}")
             for label, paths in (("in", inputs), ("out", outputs)):
                 for p in paths:
@@ -385,7 +419,7 @@ def main() -> None:
                         shown = p
                     print(f"  {label}:  {shown}")
         return
-    chosen = args.steps or default
+    chosen = args.steps or (list(EXTENDED) if args.extended else default)
     unknown = [s for s in chosen if s not in by_name]
     if unknown:
         raise SystemExit(f"unknown steps: {unknown}; use --list")

@@ -15,8 +15,9 @@ correlation and NSE differ between the two spaces because the observed variance
 does (the seasonal cycle is in the full signal only).
 
 Models: damped persistence (the ladder's stronger variant: rho at lead 1,
-regression at leads 2-6), the Kalman forecast, and the stacked-system two-seed
-ensemble. Rows are asserted identical across models at each lead.
+regression at leads 2-6), the Kalman forecast, and — when the extended chain has
+produced them — the stacked-system two-seed ensemble. Rows are asserted identical
+across models at each lead.
 
 Outputs: results/conventional_metrics_perbasin.csv, results/conventional_metrics_summary.csv
 """
@@ -67,16 +68,24 @@ def load_model_rows() -> pd.DataFrame:
     kal = kal[kal["model"] == "kalman_ar1"]
     frames.append(kal[["name", "issue_date", "target_date", "fold", "horizon", "model", "pred", "target"]])
 
-    stack = pd.concat([
-        pd.read_csv(RES / "phase8_lstm_combined_predictions.csv", parse_dates=["issue_date", "target_date"]),
-        pd.read_csv(RES / "phase8b_lstm_h46_predictions.csv", parse_dates=["issue_date", "target_date"]),
-    ])
-    seeds = stack[stack["model"].isin(["lstmres_corr_top1_s0", "lstmres_corr_top1_s1"])]
-    key = ["name", "issue_date", "target_date", "fold", "horizon"]
-    ens = seeds.groupby(key, as_index=False).agg(pred=("pred", "mean"), target=("target", "mean"), n=("pred", "size"))
-    assert (ens["n"] == 2).all(), "stack ensemble expects exactly two seeds per row"
-    ens["model"] = "stacked_ens"
-    frames.append(ens[key + ["model", "pred", "target"]])
+    # The stacked system is an extended (torch) step. Its prediction files are absent
+    # on a default-chain machine, so the two systems that ARE in the default chain
+    # still get their conventional metrics and the table simply has one fewer row.
+    stack_files = [RES / "phase8_lstm_combined_predictions.csv",
+                   RES / "phase8b_lstm_h46_predictions.csv"]
+    if all(f.exists() for f in stack_files):
+        stack = pd.concat([pd.read_csv(f, parse_dates=["issue_date", "target_date"])
+                           for f in stack_files])
+        seeds = stack[stack["model"].isin(["lstmres_corr_top1_s0", "lstmres_corr_top1_s1"])]
+        key = ["name", "issue_date", "target_date", "fold", "horizon"]
+        ens = seeds.groupby(key, as_index=False).agg(
+            pred=("pred", "mean"), target=("target", "mean"), n=("pred", "size"))
+        assert (ens["n"] == 2).all(), "stack ensemble expects exactly two seeds per row"
+        ens["model"] = "stacked_ens"
+        frames.append(ens[key + ["model", "pred", "target"]])
+    else:
+        missing = [f.name for f in stack_files if not f.exists()]
+        print(f"note: stacked_ens skipped, absent {missing} (extended chain step)")
 
     rows = pd.concat(frames, ignore_index=True)
 
