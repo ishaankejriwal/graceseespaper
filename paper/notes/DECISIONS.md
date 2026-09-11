@@ -259,7 +259,8 @@ rewritten to match; these are the decisions the rewrite has to implement.
     to it once history length is equalized
     (`results/phase7_lstm_summary.csv`,
     `results/flat12_train85_sensitivity.csv`). (3) Both are compared with Li and
-    Kusche's GRACE-FCast on CSR and JPL mascons under one protocol and one
+    Kusche's GRACE-FCast on CSR mascons, and the Kalman reference alone on JPL
+    so far (the JPL run predates the flat-12 step), under one protocol and one
     strict subset rule.
 38. **One strict subset rule, applied to both mascon products.**
     `joint_full_cells`: a basin must fully contain at least one native mascon of
@@ -301,3 +302,14 @@ rewritten to match; these are the decisions the rewrite has to implement.
     `figures` chain step still reads extended outputs, so a default-only machine
     stops there; and `run_phase8b_merge.py` and `run_phase6_hybrid.py` still
     gate `joint_full_cells` on `source() == "jpl"`.
+43. **Two corrections from the external audit (2026-09-11).** (a) The two-product
+    claim applies to the Kalman reference only until the JPL rerun: the versioned JPL
+    tables contain no `ridge_own_era5_flat12` rows. (b) "Strongest own-basin model"
+    is a statement about pooled standardized MSE with equal basin weighting. In
+    pooled raw centimetres `ridge_own_flat12` is lowest at leads 1 to 3 (5.118 cm at
+    lead 1 against 5.128 for `kalman_ar1` and 5.231 for `ridge_own_era5_flat12`) and
+    the ERA5 ridge trails the plain filter at every lead
+    (`results/conventional_metrics_summary.csv`, `pooled_rmse_cm`). The manuscript
+    must name the weighting whenever it ranks models. JPL-side audit findings (chain
+    default JPL file differs from the provenance file; provenance sentence on
+    bootstrap block length) are deferred to the JPL rerun.

@@ -65,12 +65,25 @@ against it at lead 5 and -0.73% at lead 6 (`results/flat12_ridge_summary.csv`, c
 `skill_vs_ridge_own`), which in RMSE is 1.3804 against 1.3764 at lead 5 and 1.4421 against
 1.4369 at lead 6 (`results/paper_baseline_ladder.csv`).
 
+"Strongest" here means lowest pooled MSE in standardized units, where every basin counts
+equally. In raw centimetres, where the largest basins dominate, the ranking changes: the plain
+flat-12 ridge without ERA5, `ridge_own_flat12`, has the lowest pooled RMSE at leads 1 to 3
+(5.118 cm at lead 1 against 5.128 for the filter and 5.231 for the ERA5 ridge), the own-state
+ridge correction is lowest among retained models at leads 4 to 6, and the ERA5 ridge sits behind
+the plain filter at every lead (`results/conventional_metrics_summary.csv`, column
+`pooled_rmse_cm`). The ERA5 gain is therefore concentrated in basins with small storage
+variance, and the paper has to state which weighting a ranking refers to.
+
 Every sequence model trained in this repository loses to it once history length is equalized.
 At lead 1 it has the lowest RMSE of every arm in `results/phase7_lstm_summary.csv`, and with the
 training window matched at 85% it is ahead of the two-seed LSTM ensemble by +1.02/+2.76/+2.27%
 at leads 1 to 3 (`results/flat12_train85_sensitivity.csv`).
 
-### 3. Both models against Li and Kusche's GRACE-FCast, on two mascon products, one protocol
+### 3. Against Li and Kusche's GRACE-FCast: both models on CSR, the Kalman reference on JPL, one protocol
+
+The JPL run predates the flat-12 step, so only `kalman_ar1` has JPL comparison rows so far
+(`results/jpl/phase6_li_comparison_headline.csv`); the JPL rerun with the current default chain
+is pending.
 
 One strict subset rule for both products: `joint_full_cells` keeps a basin only if it fully
 contains at least one native mascon of the product being scored and at least one valid 1-degree

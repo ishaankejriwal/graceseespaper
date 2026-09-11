@@ -1723,3 +1723,27 @@ than own-basin, and the real graph is worse than all 99 of them.
 CSR, for contrast, is logged under the 2026-08-12 to 2026-08-17 entries, where the neighbor
 correction was still a live claim: the phase 3b, surrogate and jump-screen runs and their
 audit passes, and the 2026-08-16 chain completion that regenerated them on corrected data.
+
+## 2026-09-11 - External audit round: corrections
+
+An external audit run from `docs/EXTERNAL_AUDIT_PROMPT.md` returned six findings. Non-JPL
+items fixed in this commit; JPL items deferred to the JPL rerun.
+
+1. Correction to the entry "JPL neighbor experiments: non-replication record": the phrase
+   "all eleven arms" is wrong. `results/jpl/phase3b_summary.csv` holds nine neighbor arms plus
+   two comparators (`kalman_ar1`, `kalman_own_ridge`). Every one of the nine neighbor arms is
+   worse than the own-basin ridge at every lead; that claim stands.
+2. The versioned JPL tables contain no `ridge_own_era5_flat12` rows (the JPL run predates the
+   flat-12 step). README, STUDY_CONTEXT, CODE_MAP and DECISIONS now say the two-product
+   comparison covers the Kalman reference only until the JPL rerun.
+3. Weighting sensitivity of "strongest own-basin model": in pooled raw centimetres
+   (`results/conventional_metrics_summary.csv`, `pooled_rmse_cm`) `ridge_own_flat12` is lowest
+   at leads 1 to 3 (5.118 / 5.634 / 5.915 cm), `kalman_own_ridge` lowest among retained models
+   at leads 4 to 6 (6.064 / 6.288 / 6.603 cm), and `ridge_own_era5_flat12` trails `kalman_ar1`
+   at every lead (5.231 vs 5.128 cm at lead 1). The standardized ranking (equal basin weight)
+   is unchanged; the docs now name the weighting.
+4. CODE_MAP pipeline diagram no longer lists `make_figures.py` in the default chain.
+5. Deferred: `scripts/run_chain.py` defaults the JPL source to the April-2026 non-CRI file
+   while `results/jpl/RUN_PROVENANCE.md` records the June-2026 CRI file with scale factors;
+   and that provenance file says the bootstrap block length comes from loss autocorrelation,
+   whereas `stats.py` uses `max(3, horizon)`. Both to be fixed when the JPL rerun is set up.
