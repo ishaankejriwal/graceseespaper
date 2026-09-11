@@ -51,31 +51,28 @@ observation noise in every monthly basin value. We propose a per-basin
 Kalman filter with an autoregressive state and additive observation noise
 as the reference forecast for deseasonalized basin storage. It has three
 parameters per basin, removes noise before extrapolating, and stays
-defined through months without an observation, including the eleven-month
-gap between the missions. On 234 basins over five test folds issued from
-2019 to 2026, the filter beats the stronger of two damped-persistence
-variants by
+defined through months without an observation. On 234 basins over five
+test folds issued from 2019 to 2026, the filter beats the stronger of two
+damped-persistence variants by
 % source: results/paper_baseline_ladder.csv, kalman_ar1 rows, skill_vs_damped (0.0498, 0.0879, 0.0562..0.0255)
 5.0\,\% at a lead of one month, 8.8\,\% at two months, and 2.5 to 5.6\,\% at
 leads three to six. Fixing the noise variance at zero removes the whole
-margin; a separate noise variance for GRACE-FO makes the filter worse.
-Scored against the filter, the strongest own-basin model in standardized
-units is a linear ridge over a flat twelve-month window of filtered state
-and ERA5-Land forcing, worth
+margin. Scored against the filter, the strongest own-basin model in
+standardized units is a linear ridge over a flat twelve-month window of
+filtered state and ERA5-Land forcing, worth
 % source: results/paper_baseline_contrasts.csv, ridge_own_era5_flat12 vs kalman_ar1 h1 (0.0765)
 7.6\,\% at lead one; every sequence model we trained loses to it,
 significantly at leads two and three against a row-matched LSTM ensemble.
 % source: results/flat12_train85_sensitivity.csv, ridge_own_era5_flat12_train85 vs lstm_own_era5_ens (skill_pct 1.02, 2.76, 2.27; dm_p 0.094, 2.7e-10, 4.3e-9)
 Against a published deep-learning product that uses no lagged storage, on
-two mascon solutions, the filter wins at lead one against both the full
-product and its non-seasonal component, wins at lead two against the
-non-seasonal component only, ties for one lead on CSR and two on JPL, and
-loses from lead three or four on CSR and four or five on JPL, where the
-product's forcing history carries it.
+two mascon solutions, the filter wins at lead one, wins at lead two only
+against the product's non-seasonal component, ties for one or two leads,
+and loses from lead three to five on, where the product's forcing history
+carries it.
 % source: results/phase6_li_comparison_headline.csv and results/jpl/phase6_li_comparison_headline.csv, joint_full_cells, kalman_ar1 vs li_lstm_full / li_lstm_nonseas, dm_p by lead (tie = p >= 0.05)
-The lead-one win belongs to the reference class: damped persistence also
-beats the product there, and the filter's own contribution is its margin
-over damped persistence,
+The lead-one win belongs to the whole reference class: damped persistence
+also beats the product there, and the filter's own contribution is its
+margin over damped persistence,
 % source: results/paper_baseline_ladder.csv, kalman_ar1 h1 skill_vs_damped 0.0498 (CSR); results/jpl/paper_baseline_contrasts.csv, kalman_ar1 vs damped_persistence_rho h1 (0.0056, dm_p 0.60);
 % results/phase6_li_comparison_headline.csv, joint_full_cells, damped_persistence_rho vs li_lstm_full h1 (0.1188, dm_p 0.029)
 5.0\,\% on CSR and indistinguishable from zero on JPL. Skill reported over
