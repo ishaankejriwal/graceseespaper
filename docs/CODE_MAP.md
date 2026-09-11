@@ -188,13 +188,14 @@ the reference ladder: climatology, persistence, damped persistence, three ridges
 CLAIM 1: the Kalman filter is the reference forecast these should be scored against
     |  run_flat12_ridge.py
 CLAIM 2: filter + ridge over a flat 12-month window of filtered state and ERA5 is the
-         strongest own-basin model at leads 1 to 4 (at 5 and 6 the own-state ridge
-         correction edges it)
+         strongest own-basin model at leads 1 to 4 in standardized units (at 5 and 6
+         the own-state ridge correction edges it; in raw cm the plain flat-12 ridge leads)
     |  run_kalman_mission_sensitivity.py, run_r0_ablation.py
 the two sensitivities: the mission split loses, the noise removal is what earns the win
     |  build_paper_ladder.py, run_phase6_li_comparison.py
-CLAIM 3: both models against the published product, CSR and JPL, one subset rule
-    |  compute_conventional_metrics.py, make_figures.py, make_manifest.py
+CLAIM 3: both models against the published product on CSR, the Kalman reference on JPL
+         (JPL rerun pending), one subset rule
+    |  compute_conventional_metrics.py, make_manifest.py   (make_figures.py is extended)
 paper/main.tex
 ```
 

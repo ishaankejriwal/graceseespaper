@@ -98,7 +98,16 @@ At leads 5 and 6 the own-state ridge correction `kalman_own_ridge` is marginally
 (`results/flat12_ridge_summary.csv`, column `skill_vs_ridge_own`), which in RMSE is 1.3804
 against 1.3764 at lead 5 and 1.4421 against 1.4369 at lead 6
 (`results/paper_baseline_ladder.csv`). The ERA5 window stops paying for itself at the long
-leads. Measured against the Kalman reference itself, `ridge_own_era5_flat12` adds +7.6% at
+leads.
+
+"Strongest" here means lowest pooled MSE in standardized units, where every basin counts
+equally. In raw centimetres, where the largest basins dominate, the ranking changes: the plain
+flat-12 ridge without ERA5, `ridge_own_flat12`, has the lowest pooled RMSE at leads 1 to 3
+(5.118 cm at lead 1 against 5.128 for the filter and 5.231 for the ERA5 ridge), the own-state
+ridge correction is lowest among retained models at leads 4 to 6, and the ERA5 ridge sits behind
+the plain filter at every lead (`results/conventional_metrics_summary.csv`, column
+`pooled_rmse_cm`). The ERA5 gain is therefore concentrated in basins with small storage
+variance, and the paper has to state which weighting a ranking refers to. Measured against the Kalman reference itself, `ridge_own_era5_flat12` adds +7.6% at
 lead 1, decaying to +0.9% and not significant by lead 6
 (`results/paper_baseline_contrasts.csv`).
 
@@ -110,8 +119,10 @@ equalized the flat ridge is ahead of the two-seed LSTM ensemble by +1.0/+2.8/+2.
 
 ### Claim 3: against a published product we win at short leads and lose at long ones
 
-We compare both of our models against Li and Kusche's published GRACE-FCast product, on the CSR
-mascons and on the JPL mascons, under one protocol and one strict subset rule. The rule
+We compare both of our models against Li and Kusche's published GRACE-FCast product on the CSR
+mascons, and the Kalman reference alone on the JPL mascons, under one protocol and one strict
+subset rule. The JPL run predates the flat-12 step, so `ridge_own_era5_flat12` has no JPL rows
+yet (`results/jpl/phase6_li_comparison_headline.csv`); the JPL rerun is pending. The rule
 (`joint_full_cells`) keeps a basin only if it fully contains at least one native mascon of the
 product being scored and at least one valid 1-degree Li cell. That leaves 209 of 227 basins on
 CSR and 67 on JPL (`results/phase6_li_comparison_summary.csv`,
