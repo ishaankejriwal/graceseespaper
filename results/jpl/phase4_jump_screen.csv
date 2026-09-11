@@ -1,0 +1,3 @@
+screen,n_flagged,real_rmse,own_ridge_rmse,skill_vs_own,beats_placebos,p_rank,flagged_basins
+full_series_6sigma,0,0.6668492627788989,0.665129741500829,-0.005177167279919459,0/50,1.0,
+train_only_6sigma,0,0.6668492627788989,0.665129741500829,-0.005177167279919459,0/50,1.0,

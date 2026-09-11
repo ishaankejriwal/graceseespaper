@@ -17,13 +17,15 @@ from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.kalman import kalman_predictions  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
 from gracefc.stats import pooled_monthly_dm  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir  # noqa: E402
 
-OUT_DIR = ROOT / "results"
+OUT_DIR = results_dir(ROOT)
+DATA = processed_dir(ROOT)
 
 
 def main() -> None:
-    long_df = pd.read_csv(ROOT / "data/processed/basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")
+    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
+    meta = pd.read_csv(DATA / "basin_meta.csv")
     keep = meta[meta["exclude_reason"] == "keep"]["name"]
     wide = pivot_wide(long_df[long_df["name"].isin(keep)])
 
@@ -54,7 +56,7 @@ def main() -> None:
 
 
 def compare(kal: pd.DataFrame) -> None:
-    other = pd.read_csv(ROOT / "results/phase2_baseline_predictions.csv", parse_dates=["issue_date", "target_date"])
+    other = pd.read_csv(OUT_DIR / "phase2_baseline_predictions.csv", parse_dates=["issue_date", "target_date"])
     print(f"{'h':>2} {'kalman':>8} {'perbasin':>9} {'damped':>8}  kalman-vs-ridge DM p")
     for h in range(1, 7):
         k = kal[kal["horizon"] == h]

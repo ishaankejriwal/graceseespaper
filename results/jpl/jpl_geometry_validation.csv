@@ -1,0 +1,2 @@
+n_official_tiles,n_fingerprint_tiles,cell_weighted_purity_fp_in_off,cell_weighted_purity_off_in_fp,adjusted_rand_index
+4551,5302,0.9999537037037037,0.9584336419753087,0.9794083627024821

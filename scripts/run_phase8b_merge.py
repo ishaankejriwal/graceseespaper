@@ -1,4 +1,4 @@
-"""Phase 8b: merge the h1-3 and h4-6 stacked-LSTM runs and score h1-6 against Li & Kusche.
+"""Phase 8b: merge stacked-LSTM runs and compare to Li on common spatial support.
 
 Part 1 concatenates the phase 8 (h1-3) and phase 8b (h4-6) summary/headline tables into
 one h1-6 comparison table. Part 2 restricts our arms (per-seed and 2-seed ensemble) and
@@ -19,9 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.models import rmse  # noqa: E402
+from gracefc.comparison import li_joint_support_table  # noqa: E402
 from gracefc.stats import block_bootstrap_skill_ci, per_basin_dm_fdr, pooled_monthly_dm  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir, source  # noqa: E402
 
-OUT = ROOT / "results"
+OUT = results_dir(ROOT)
+DATA = processed_dir(ROOT)
 TAG_H13 = "phase8_lstm_combined"
 TAG_H46 = "phase8b_lstm_h46"
 HORIZONS = range(1, 7)
@@ -120,7 +123,7 @@ def main() -> None:
     ours = add_ensembles(ours[ours["model"].isin(OUR_MODELS)])
     li = pd.read_csv(OUT / "phase6_li_comparison_predictions.csv",
                      parse_dates=["issue_date", "target_date"])
-    li = li[li["model"].isin(LI_MODELS)].drop(columns=["li_coverage"])
+    li = li[li["model"].isin(LI_MODELS)][ours.columns]
 
     all_rows = pd.concat([ours, li[ours.columns]], ignore_index=True)
     n_models = all_rows["model"].nunique()
@@ -136,11 +139,17 @@ def main() -> None:
     if not (gap < 1e-6):
         raise AssertionError(f"target mismatch vs Li rows: max |diff| = {gap}")
 
-    coverage = pd.read_csv(ROOT / "data/processed/li2026_basin_coverage.csv")
-    matched = matched.merge(coverage, on="name")
+    coverage = pd.read_csv(DATA / "li2026_basin_coverage.csv")
+    support = coverage
+    if source() == "jpl":
+        meta = pd.read_csv(DATA / "basin_meta.csv")
+        support = li_joint_support_table(meta, coverage)
+    matched = matched.merge(support, on="name")
     matched.to_csv(OUT / "phase8b_li_comparison_predictions.csv", index=False)
 
-    subsets = {"all_matched": matched, "coverage_ge_0.5": matched[matched["li_coverage"] >= 0.5]}
+    subsets = {"all_matched": matched}
+    if source() == "jpl":
+        subsets["joint_full_cells"] = matched[matched["joint_full_cells"]].copy()
     summary_rows, headline_rows = [], []
     for label, sub in subsets.items():
         for (model, h), grp in sub.groupby(["model", "horizon"]):
@@ -171,10 +180,11 @@ def main() -> None:
     summary.to_csv(OUT / "phase8b_li_comparison_summary.csv", index=False)
     pd.DataFrame(headline_rows).to_csv(OUT / "phase8b_li_comparison_headline.csv", index=False)
 
-    # Per-basin: who wins where, ensemble vs Li full product
+    # Per-basin: who wins where on the strict JPL/Li support when available.
+    perbasin_sample = subsets.get("joint_full_cells", matched)
     pb_rows = []
     for h in HORIZONS:
-        s = matched[matched["horizon"] == h]
+        s = perbasin_sample[perbasin_sample["horizon"] == h]
         df = per_basin_dm_fdr(s, "lstmres_corr_top1_ens", "li_lstm_full", h)
         df["model"], df["vs"], df["horizon"] = "lstmres_corr_top1_ens", "li_lstm_full", h
         pb_rows.append(df)
@@ -185,8 +195,9 @@ def main() -> None:
         print(f"\n===== {label} =====")
         print(summary[summary["subset"] == label].to_string(index=False))
     hl = pd.DataFrame(headline_rows)
-    print("\n===== headline (all_matched) =====")
-    print(hl[hl["subset"] == "all_matched"].round(4).to_string(index=False))
+    headline_subset = "joint_full_cells" if "joint_full_cells" in subsets else "all_matched"
+    print(f"\n===== headline ({headline_subset}) =====")
+    print(hl[hl["subset"] == headline_subset].round(4).to_string(index=False))
     wins = perbasin.groupby("horizon").agg(
         we_win=("dm_stat", lambda s: int((s < 0).sum())), n=("name", "nunique"))
     print("\nper-basin win counts (lstmres_ens beats li_full, dm_stat<0):")
