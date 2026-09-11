@@ -24,8 +24,11 @@ from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.graphs import corr_topk, distance_matrix_km  # noqa: E402
 from gracefc.stats import diebold_mariano  # noqa: E402
 from gracefc.cache import load_params_cache  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir, shared_processed_dir  # noqa: E402
 
-OUT = ROOT / "results"
+OUT = results_dir(ROOT)
+DATA = processed_dir(ROOT)
+SHARED_DATA = shared_processed_dir(ROOT)
 RNG = 0
 
 
@@ -33,13 +36,13 @@ RNG = 0
 
 def build_neighbor_table() -> pd.DataFrame:
     """Reconstruct the fold-specific corr_top1 graphs exactly as the experiments built them."""
-    long_df = pd.read_csv(ROOT / "data/processed/basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")
+    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
+    meta = pd.read_csv(DATA / "basin_meta.csv")
     keep = meta[meta["exclude_reason"] == "keep"]["name"]
     wide = pivot_wide(long_df[long_df["name"].isin(keep)])
     meta_kept = meta[meta["name"].isin(wide.columns)].reset_index(drop=True)
     dist = distance_matrix_km(meta_kept)
-    cache = load_params_cache(OUT / "kalman_fold_params.pkl", ROOT / "data/processed/basin_month_twsa_global.csv")
+    cache = load_params_cache(OUT / "kalman_fold_params.pkl", DATA / "basin_month_twsa_global.csv")
     assert cache, "params cache missing or stale for current data/protocol - run phase3b first"
 
     rows = []
@@ -77,7 +80,7 @@ def build_covariates() -> pd.DataFrame:
 
     strata = pd.read_csv(OUT / "phase2_strata.csv", index_col=0).rename_axis("name").reset_index()
     cov = cov.merge(strata, on="name", how="left")
-    era5 = pd.read_csv(ROOT / "data/processed/era5_basin_coverage.csv")
+    era5 = pd.read_csv(SHARED_DATA / "era5_basin_coverage.csv")
     cov = cov.merge(era5, on="name", how="left")
     cov = cov.merge(nbr, on="name", how="left")
 

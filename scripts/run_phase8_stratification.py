@@ -26,8 +26,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.stats import (  # noqa: E402
     _paired_losses, block_bootstrap_skill_ci, diebold_mariano, pooled_monthly_dm)
+from gracefc.runtime import results_dir  # noqa: E402
 
-OUT = ROOT / "results"
+OUT = results_dir(ROOT)
 KEY = ["name", "target_date", "horizon"]
 
 

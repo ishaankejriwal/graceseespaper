@@ -1,10 +1,11 @@
-"""Aggregate Li & Kusche (2026) CSR-FCast 1-degree forecasts to our L3 basin means.
+"""Aggregate Li & Kusche (2026) CSR/JPL-FCast forecasts to L3 basin means.
 
 Spatial matching: each 0.25-degree mask cell is assigned to the 1-degree Li cell that
 contains it, so basin weights on the coarse grid are exact sums of the fine-grid
 cos-lat weights. NaN-aware renormalization mirrors basins.py; per-basin coverage of
 Li's land mask is reported so poorly covered coastal basins can be screened.
 """
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -16,13 +17,15 @@ import xarray as xr
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-LI_DIR = ROOT / "data/raw/li2026/CSR-FCast/global_gridded"
-OUT = ROOT / "data/processed/li2026_csr_basin_forecasts.csv"
-COV_OUT = ROOT / "data/processed/li2026_basin_coverage.csv"
+from gracefc.comparison import fully_contained_group_counts  # noqa: E402
 
-
-def build_weight_matrix(basin_idx: np.ndarray, li_lat: np.ndarray, li_lon: np.ndarray) -> np.ndarray:
-    """(n_basins, n_li_cells) weight matrix on the flattened (lon, lat) Li grid.
+def build_weight_matrix(
+    basin_idx: np.ndarray,
+    li_lat: np.ndarray,
+    li_lon: np.ndarray,
+    valid_li_cells: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Weights and count of wholly contained valid Li cells for every basin.
 
     Streams the 1 GB mask file one basin at a time to stay within memory.
     """
@@ -38,35 +41,60 @@ def build_weight_matrix(basin_idx: np.ndarray, li_lat: np.ndarray, li_lon: np.nd
 
     n_cells = len(li_lon) * len(li_lat)  # Li variables are (time, lon, lat)
     W = np.zeros((len(basin_idx), n_cells))
+    basin_cells = []
     for row, b in enumerate(basin_idx):
         sel = dm["mask"].isel(mask=int(b)).values > 0  # (lat, lon), ~4 MB
         lat_i, lon_i = np.nonzero(sel)
+        basin_cells.append(np.flatnonzero(sel))
         li_flat = lon_map[lon_i] * len(li_lat) + lat_map[lat_i]
         np.add.at(W[row], li_flat, coslat[lat_i])
+    # Each Li cell is represented by its sixteen 0.25-degree mask cells. Count
+    # it only when all sixteen belong to the basin and the Li forecast is finite.
+    li_group_grid = lon_map[None, :] * len(li_lat) + lat_map[:, None]
+    full_counts = fully_contained_group_counts(
+        li_group_grid, basin_cells, valid_groups=valid_li_cells
+    )
     dm.close()
-    return W
+    return W, full_counts
 
 
 def main() -> None:
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--source", choices=("csr", "jpl"), default="csr")
+    args = ap.parse_args()
+    label = args.source.upper()
+    data_dir = ROOT / "data" / "processed"
+    if args.source != "csr":
+        data_dir = data_dir / args.source
+    li_dir = ROOT / "data" / "raw" / "li2026" / f"{label}-FCast" / "global_gridded"
+    out = data_dir / f"li2026_{args.source}_basin_forecasts.csv"
+    cov_out = data_dir / "li2026_basin_coverage.csv"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    meta = pd.read_csv(data_dir / "basin_meta.csv")
     # Only the hydrology sample: excluded basins never enter any comparison
     keep_meta = meta[meta["exclude_reason"] == "keep"].reset_index(drop=True)
-    files = sorted(LI_DIR.glob("CSR_FCast_gridded_initialized_in_*.nc"))
+    files = sorted(li_dir.glob(f"{label}_FCast_gridded_initialized_in_*.nc"))
+    if not files:
+        raise FileNotFoundError(f"no {label}-FCast files found in {li_dir}")
     print(f"{len(files)} init files | {len(keep_meta)} kept basins")
 
     ds0 = xr.open_dataset(files[0])
     li_lat, li_lon = ds0["lat"].values, ds0["lon"].values
-    W = build_weight_matrix(keep_meta["basin_idx"].values, li_lat, li_lon)
-    w_tot = W.sum(axis=1)
-
     # Static land coverage from the first file: Li's mask is the same in every file
     finite0 = np.isfinite(ds0["TWSC_full"].values[0].reshape(-1))
+    W, n_full_li_cells = build_weight_matrix(
+        keep_meta["basin_idx"].values, li_lat, li_lon, finite0
+    )
+    w_tot = W.sum(axis=1)
     ds0.close()
     coverage = (W @ finite0) / w_tot
-    keep_meta = keep_meta.assign(li_coverage=coverage)
-    keep_meta[["name", "li_coverage"]].to_csv(COV_OUT, index=False)
+    keep_meta = keep_meta.assign(
+        li_coverage=coverage, n_full_li_cells=n_full_li_cells
+    )
+    keep_meta[["name", "li_coverage", "n_full_li_cells"]].to_csv(cov_out, index=False)
     print(f"coverage: min={coverage.min():.3f} | <0.9: {(coverage < 0.9).sum()} "
           f"| <0.5: {(coverage < 0.5).sum()}")
+    print(f"basins containing >=1 complete valid Li cell: {(n_full_li_cells >= 1).sum()}")
 
     rows = []
     names = keep_meta["name"].values
@@ -91,8 +119,8 @@ def main() -> None:
 
     df = pd.DataFrame(rows, columns=["name", "issue_date", "target_date", "horizon",
                                      "li_full_cm", "li_nonseasonal_cm"])
-    df.to_csv(OUT, index=False)
-    print(f"wrote {len(df)} rows -> {OUT}")
+    df.to_csv(out, index=False)
+    print(f"wrote {len(df)} rows -> {out}")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Phase 6: head-to-head against the Li & Kusche (2026) LSTM hindcast (CSR-FCast).
+"""Phase 6: matched comparison with the Li & Kusche (2026) LSTM hindcast.
 
 Places their basin-aggregated forecasts into our evaluation space: subtract OUR
 fold-specific climatology (full variant) and a train-window-only mean offset that
@@ -21,13 +21,16 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from gracefc.comparison import li_joint_support_table  # noqa: E402
 from gracefc.decompose import fit_climatology  # noqa: E402
 from gracefc.evaluate import DEFAULT_FOLDS  # noqa: E402
 from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
 from gracefc.stats import block_bootstrap_skill_ci, diebold_mariano, per_basin_dm_fdr, pooled_monthly_dm  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir, source  # noqa: E402
 
-OUT_DIR = ROOT / "results"
+OUT_DIR = results_dir(ROOT)
+DATA = processed_dir(ROOT)
 HORIZONS = range(1, 7)
 OUR_MODELS = {
     # file -> models to pull (phase3b is already in std units; phase2 has *_std_units cols)
@@ -92,13 +95,21 @@ def build_li_pred_rows(li: pd.DataFrame, wide: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    long_df = pd.read_csv(ROOT / "data/processed/basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")
-    keep = meta[meta["exclude_reason"] == "keep"]["name"]
-    wide = pivot_wide(long_df[long_df["name"].isin(keep)])
-    li = pd.read_csv(ROOT / "data/processed/li2026_csr_basin_forecasts.csv",
+    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
+    meta = pd.read_csv(DATA / "basin_meta.csv")
+    coverage = pd.read_csv(DATA / "li2026_basin_coverage.csv")
+    keep_names = meta[meta["exclude_reason"] == "keep"]["name"]
+    wide = pivot_wide(long_df[long_df["name"].isin(keep_names)])
+    li = pd.read_csv(DATA / f"li2026_{source()}_basin_forecasts.csv",
                      parse_dates=["issue_date", "target_date"])
-    coverage = pd.read_csv(ROOT / "data/processed/li2026_basin_coverage.csv")
+    li = li[li["name"].isin(keep_names)]
+
+    support = coverage
+    if source() == "jpl":
+        support = li_joint_support_table(meta, coverage)
+        n_joint = int(support["joint_full_cells"].sum())
+        print(f"strict joint spatial support: {n_joint} basins contain >=1 complete "
+              "native JPL mascon and >=1 complete valid Li cell")
 
     li_rows = build_li_pred_rows(li, wide)
     print(f"li rows: {len(li_rows)} | basins: {li_rows['name'].nunique()}")
@@ -125,10 +136,12 @@ def main() -> None:
     counts = all_rows.groupby(["horizon", "name", "target_date"])["model"].nunique()
     matched_keys = counts[counts == n_models].reset_index()[["horizon", "name", "target_date"]]
     matched = all_rows.merge(matched_keys, on=["horizon", "name", "target_date"])
-    matched = matched.merge(coverage, on="name")
+    matched = matched.merge(support, on="name")
     matched.to_csv(OUT_DIR / "phase6_li_comparison_predictions.csv", index=False)
 
-    subsets = {"all_matched": matched, "coverage_ge_0.5": matched[matched["li_coverage"] >= 0.5]}
+    subsets = {"all_matched": matched}
+    if source() == "jpl":
+        subsets["joint_full_cells"] = matched[matched["joint_full_cells"]].copy()
     summary_rows, headline_rows = [], []
     for label, sub in subsets.items():
         for (model, h), grp in sub.groupby(["model", "horizon"]):
@@ -160,11 +173,13 @@ def main() -> None:
     summary.to_csv(OUT_DIR / "phase6_li_comparison_summary.csv", index=False)
     pd.DataFrame(headline_rows).to_csv(OUT_DIR / "phase6_li_comparison_headline.csv", index=False)
 
-    # Per-basin: DM per basin with FDR, both key pairs, every horizon
+    # Per-basin outputs feed later analyses. For JPL, keep the strict spatial
+    # support so those downstream summaries cannot reintroduce partial cells.
+    perbasin_sample = subsets.get("joint_full_cells", matched)
     pb_rows = []
     for model_a, model_b in [("li_lstm_full", "kalman_corr_top1"), ("li_lstm_nonseas", "kalman_corr_top1")]:
         for h in HORIZONS:
-            s = matched[matched["horizon"] == h]
+            s = perbasin_sample[perbasin_sample["horizon"] == h]
             if not len(s):
                 continue
             df = per_basin_dm_fdr(s, model_a, model_b, h)
@@ -176,8 +191,9 @@ def main() -> None:
         print(f"\n===== {label} =====")
         print(summary[summary["subset"] == label].to_string(index=False))
     hl = pd.DataFrame(headline_rows)
-    print("\n===== headline (all_matched) =====")
-    print(hl[hl["subset"] == "all_matched"].to_string(index=False))
+    headline_subset = "joint_full_cells" if "joint_full_cells" in subsets else "all_matched"
+    print(f"\n===== headline ({headline_subset}) =====")
+    print(hl[hl["subset"] == headline_subset].to_string(index=False))
 
 
 if __name__ == "__main__":

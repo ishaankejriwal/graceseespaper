@@ -26,20 +26,23 @@ from gracefc.models import rmse  # noqa: E402
 from gracefc.phase7 import fold_setup, horizon_frame, train_val_mask  # noqa: E402
 from gracefc.stats import pooled_monthly_dm  # noqa: E402
 from gracefc.cache import load_params_cache  # noqa: E402
+from gracefc.runtime import processed_dir, results_dir, shared_processed_dir  # noqa: E402
 
-OUT_DIR = ROOT / "results"
+OUT_DIR = results_dir(ROOT)
+DATA = processed_dir(ROOT)
+SHARED_DATA = shared_processed_dir(ROOT)
 HORIZONS = range(1, 4)  # flat12 exists at h1-3 only
 
 
 def main() -> None:
-    long_df = pd.read_csv(ROOT / "data/processed/basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv")
+    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
+    meta = pd.read_csv(DATA / "basin_meta.csv")
     keep = meta[meta["exclude_reason"] == "keep"]["name"]
     wide = pivot_wide(long_df[long_df["name"].isin(keep)])
-    era5_long = pd.read_csv(ROOT / "data/processed/era5_basin_month.csv", parse_dates=["date"])
+    era5_long = pd.read_csv(SHARED_DATA / "era5_basin_month.csv", parse_dates=["date"])
     era5_wide = era5_wide_by_var(era5_long[era5_long["name"].isin(keep)])
     cache = load_params_cache(OUT_DIR / "kalman_fold_params.pkl",
-                              ROOT / "data/processed/basin_month_twsa_global.csv")
+                              DATA / "basin_month_twsa_global.csv")
     assert cache, "params cache missing or stale - run phase3b first"
 
     out = []

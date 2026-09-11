@@ -23,8 +23,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.models import rmse  # noqa: E402
 from gracefc.stats import block_bootstrap_skill_ci, diebold_mariano, pooled_monthly_dm  # noqa: E402
+from gracefc.runtime import results_dir, source  # noqa: E402
 
-OUT_DIR = ROOT / "results"
+OUT_DIR = results_dir(ROOT)
 HORIZONS = range(1, 7)
 SHORT_H = (1, 2)
 HYBRIDS = {
@@ -56,6 +57,10 @@ def pooled_all_horizon_dm(rows: pd.DataFrame, model_a: str, model_b: str) -> tup
 def main() -> None:
     matched = pd.read_csv(OUT_DIR / "phase6_li_comparison_predictions.csv",
                           parse_dates=["issue_date", "target_date"])
+    if source() == "jpl":
+        if "joint_full_cells" not in matched:
+            raise ValueError("JPL Li comparison is missing joint spatial-support diagnostics")
+        matched = matched[matched["joint_full_cells"]].copy()
 
     era5 = pd.read_csv(OUT_DIR / "phase6_era5_predictions.csv",
                        parse_dates=["issue_date", "target_date"])

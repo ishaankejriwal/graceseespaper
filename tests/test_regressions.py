@@ -5,20 +5,63 @@ bugs has been reintroduced. Fast, no heavy compute; data-dependent checks live i
 test_data_invariants.py.
 """
 import sys
+import importlib.util
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc import stats  # noqa: E402
-from gracefc.basins import _assign_continent  # noqa: E402
+from gracefc.basins import (  # noqa: E402
+    _assign_continent, _nearest_grid_indices, assign_solution_months,
+    build_basin_series,
+)
+from gracefc.comparison import (  # noqa: E402
+    fully_contained_group_counts, li_joint_support_names,
+)
 from gracefc.evaluate import Fold, split_fold  # noqa: E402
 from gracefc.kalman import fit_kalman_ar1, kalman_forecast_series  # noqa: E402
 from gracefc.surrogates import iaaft  # noqa: E402
+
+
+def test_fully_contained_group_counts_are_literal():
+    groups = np.array([
+        [0, 0, 1, 1],
+        [0, 0, 1, 1],
+    ])
+    basins = [
+        np.array([0, 1, 4, 5]),       # all of group 0
+        np.array([0, 1, 2, 3]),       # half of both groups
+        np.array([2, 3, 6, 7]),       # all of group 1
+    ]
+    np.testing.assert_array_equal(
+        fully_contained_group_counts(groups, basins), [1, 0, 1]
+    )
+    np.testing.assert_array_equal(
+        fully_contained_group_counts(groups, basins, valid_groups=[True, False]),
+        [1, 0, 0],
+    )
+
+
+def test_li_comparison_requires_complete_cells_from_both_products():
+    meta = pd.DataFrame({
+        "name": ["good", "no_jpl", "excluded", "low_coverage"],
+        "exclude_reason": ["keep", "keep", "jpl_unavailable", "keep"],
+        "n_full_jpl_mascons": [1, 0, 4, 2],
+    })
+    coverage = pd.DataFrame({
+        "name": meta["name"],
+        "li_coverage": [0.9, 0.9, 0.9, 0.1],
+        "n_full_li_cells": [1, 3, 5, 2],
+    })
+    # Coverage is diagnostic only: literal complete-cell containment determines
+    # spatial support, so low_coverage still qualifies in this synthetic case.
+    assert list(li_joint_support_names(meta, coverage)) == ["good", "low_coverage"]
 
 
 # ---------------------------------------------------------------- fold membership
@@ -176,6 +219,91 @@ def test_indonesian_basins_are_asia():
     # New Guinea and mainland Australia stay in the (Oceania-inclusive) group
     assert _assign_continent(-5.3, 140.5, "C_Papua_New_Guinea_Island") == "australia"
     assert _assign_continent(-25.0, 135.0, "E_Lake_Eyre_Basin") == "australia"
+
+
+# ---------------------------------------------------------------- mascon products
+def test_solution_months_use_metadata_for_jpl_without_bounds():
+    ds = xr.Dataset({"time": ("time", [15.0, 74.0])})
+    ds["time"].attrs["units"] = "days since 2002-01-01T00:00:00Z"
+    ds.attrs.update({
+        "time_coverage_start": "2002-01-01T00:00:00Z",
+        "time_coverage_end": "2002-03-31T23:59:59Z",
+        "months_missing": "2002-02",
+    })
+    got = assign_solution_months(ds, product="jpl")
+    assert list(got) == [pd.Timestamp("2002-01-01"), pd.Timestamp("2002-03-01")]
+
+
+def test_nearest_longitude_mapping_wraps_at_dateline():
+    source = np.array([-179.75, -0.25, 0.25, 179.75])
+    target = np.array([180.1, 359.9, 0.1])
+    got = _nearest_grid_indices(source, target, circular=True)
+    np.testing.assert_array_equal(got, [0, 1, 2])
+
+
+def test_jpl_basin_aggregation_maps_grid_and_applies_scale(tmp_path):
+    mask = xr.Dataset(
+        {
+            "mask": (("basin", "lat", "lon"), np.ones((1, 2, 4), dtype=np.int8)),
+            "Name": ("basin", ["C_Test"]),
+            "ID": ("basin", ["1"]),
+        },
+        coords={"lat": [-0.1, 0.1], "lon": [0.1, 0.2, 0.8, 0.9]},
+    )
+    mascon = xr.Dataset(
+        {
+            "lwe_thickness": (("time", "lat", "lon"), [[[1.0, 2.0]], [[2.0, 4.0]]]),
+            "scale_factor": (("lat", "lon"), [[2.0, 3.0]]),
+            "mascon_ID": (("lat", "lon"), [[7, 7]]),
+        },
+        coords={"time": [15.0, 45.0], "lat": [0.0], "lon": [0.15, 0.85]},
+    )
+    mascon["time"].attrs["units"] = "days since 2002-01-01T00:00:00Z"
+    mascon.attrs.update({
+        "time_coverage_start": "2002-01-01T00:00:00Z",
+        "time_coverage_end": "2002-02-28T23:59:59Z",
+        "months_missing": "",
+    })
+    mask_path, mascon_path = tmp_path / "mask.nc", tmp_path / "jpl.nc"
+    mask.to_netcdf(mask_path)
+    mascon.to_netcdf(mascon_path)
+    long, meta = build_basin_series(mascon_path, mask_path, product="jpl")
+    np.testing.assert_allclose(long["twsa_cm"], [4.0, 8.0])
+    assert list(long["date"]) == [pd.Timestamp("2002-01-01"), pd.Timestamp("2002-02-01")]
+    assert meta.loc[0, "mascon_product"] == "jpl"
+    assert bool(meta.loc[0, "scale_factors_applied"])
+    assert meta.loc[0, "n_full_jpl_mascons"] == 1
+
+    # The expert non-CRI JPL file has no scale_factor and must remain supported.
+    unscaled_path = tmp_path / "jpl_non_cri.nc"
+    mascon.drop_vars("scale_factor").to_netcdf(unscaled_path)
+    unscaled, unscaled_meta = build_basin_series(unscaled_path, mask_path, product="jpl")
+    np.testing.assert_allclose(unscaled["twsa_cm"], [1.5, 3.0])
+    assert not bool(unscaled_meta.loc[0, "scale_factors_applied"])
+
+    # A JPL basin with no finite CRI-scaled observations remains in the audit
+    # table but must not enter models that require a fitted climatology.
+    unavailable = mascon.copy(deep=True)
+    unavailable["lwe_thickness"][:] = np.nan
+    unavailable_path = tmp_path / "jpl_unavailable.nc"
+    unavailable.to_netcdf(unavailable_path)
+    _, unavailable_meta = build_basin_series(unavailable_path, mask_path, product="jpl")
+    assert unavailable_meta.loc[0, "product_valid_months"] == 0
+    assert unavailable_meta.loc[0, "exclude_reason"] == "jpl_unavailable"
+
+
+def test_jpl_chain_paths_are_isolated():
+    spec = importlib.util.spec_from_file_location("run_chain_test", ROOT / "scripts/run_chain.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    steps, default, results = module.steps_for_source("jpl")
+    by_name = {step[0]: step for step in steps}
+    assert results == ROOT / "results" / "jpl"
+    assert "figures" not in default
+    assert by_name["phase2"][3][0].parent == results
+    assert by_name["phase2"][2][0].parent == ROOT / "data" / "processed" / "jpl"
+    # Source-independent forcings remain shared rather than duplicated.
+    assert by_name["phase6_era5"][2][2] == ROOT / "data" / "processed" / "era5_basin_month.csv"
 
 
 # ---------------------------------------------------------------- era5 download

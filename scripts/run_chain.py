@@ -17,6 +17,7 @@ downloading the CSR mascon + ancillary files, the basin mask, ERA5
 
 Usage:
   python scripts/run_chain.py             # default step list, in order
+  python scripts/run_chain.py --source jpl # same experiments, isolated JPL outputs
   python scripts/run_chain.py --steps a b # explicit subset, in the order given
   python scripts/run_chain.py --list      # show steps and their dependencies
 
@@ -31,6 +32,7 @@ legitimately leaves untouched when its fingerprint still matches, which would fa
 fresh-mtime output check. Steps that need it declare it as an INPUT.
 """
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -214,7 +216,7 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
       RESULTS / "phase8b_lstm_h46_predictions.csv",
       RESULTS / "phase8b_lstm_h46_summary.csv",
       RESULTS / "phase6_li_comparison_predictions.csv",
-      DATA / "li2026_basin_coverage.csv"],
+      DATA / "li2026_basin_coverage.csv", DATA / "basin_meta.csv"],
      [RESULTS / "phase8b_h16_headline.csv", RESULTS / "phase8b_h16_ensemble_headline.csv",
       RESULTS / "phase8b_li_comparison_headline.csv", RESULTS / "phase8b_li_comparison_perbasin.csv"]),
 
@@ -272,12 +274,67 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 ]
 DEFAULT = [s[0] for s in STEPS if s[0] != "phase7_gnn"]
 
+SHARED_DATA_FILES = {
+    "indices.csv", "era5_basin_month.csv", "era5_basin_coverage.csv",
+}
+JPL_UNAVAILABLE = {"figures"}
 
-def run_step(name: str, args: list[str], inputs: list[Path], outputs: list[Path]) -> None:
+
+def steps_for_source(source: str, mascon_file: Path | None = None,
+                     no_scale_factors: bool = False):
+    """Rewrite declared paths/commands into an isolated product namespace."""
+    if source == "csr":
+        return STEPS, DEFAULT, RESULTS
+    data_jpl = DATA / source
+    results_jpl = RESULTS / source
+    figures_jpl = FIGURES / source
+    jpl_mascon = mascon_file or (
+        RAW / "GRCTellus.JPL.200204_202604.GLO.RL06.3M.MSCNv04.nc"
+    )
+    converted = []
+    for name, cmd, inputs, outputs in STEPS:
+        cmd = list(cmd)
+        if name in {"build_basin", "build_li"}:
+            cmd += ["--source", source]
+        if name == "build_basin" and mascon_file is not None:
+            cmd += ["--mascon-file", str(jpl_mascon)]
+        if name == "build_basin" and no_scale_factors:
+            cmd += ["--no-scale-factors"]
+
+        def remap(path: Path) -> Path:
+            if path == MASCON_NC:
+                return jpl_mascon
+            if path == RAW / "li2026" / "CSR-FCast" / "global_gridded":
+                return RAW / "li2026" / "JPL-FCast" / "global_gridded"
+            if path.is_relative_to(DATA):
+                if path.name in SHARED_DATA_FILES:
+                    return path
+                relative = path.relative_to(DATA)
+                if relative.name == "li2026_csr_basin_forecasts.csv":
+                    relative = relative.with_name("li2026_jpl_basin_forecasts.csv")
+                return data_jpl / relative
+            if path.is_relative_to(RESULTS):
+                return results_jpl / path.relative_to(RESULTS)
+            if path.is_relative_to(FIGURES):
+                return figures_jpl / path.relative_to(FIGURES)
+            return path
+
+        mapped_inputs = [remap(p) for p in inputs]
+        if name == "resolution":
+            mapped_inputs = [jpl_mascon, MASK_NC,
+                             results_jpl / "phase3b_predictions.csv"]
+        converted.append((name, cmd, mapped_inputs, [remap(p) for p in outputs]))
+    default = [name for name in DEFAULT if name not in JPL_UNAVAILABLE]
+    return converted, default, results_jpl
+
+
+def run_step(name: str, args: list[str], inputs: list[Path], outputs: list[Path],
+             results: Path) -> None:
     missing = [str(p) for p in inputs if not p.exists()]
     if missing:
         raise SystemExit(f"[{name}] BLOCKED — missing inputs:\n  " + "\n  ".join(missing))
-    log = RESULTS / f"chain_{name}.log"
+    results.mkdir(parents=True, exist_ok=True)
+    log = results / f"chain_{name}.log"
     t0 = time.time()
     print(f"[{name}] start -> {log.name}", flush=True)
     with open(log, "w", encoding="utf-8") as fh:
@@ -296,25 +353,57 @@ def run_step(name: str, args: list[str], inputs: list[Path], outputs: list[Path]
 
 def main() -> None:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--source", choices=("csr", "jpl"), default="csr")
+    ap.add_argument("--mascon-file", type=Path,
+                    help="JPL NetCDF path (useful for the recommended CRI product)")
+    ap.add_argument("--no-scale-factors", action="store_true",
+                    help="disable scale factors when building a JPL CRI target")
     ap.add_argument("--steps", nargs="+", default=None)
     ap.add_argument("--list", action="store_true")
     args = ap.parse_args()
-    by_name = {s[0]: s for s in STEPS}
+    if args.mascon_file is not None and args.source != "jpl":
+        ap.error("--mascon-file currently applies only to --source jpl")
+    if args.no_scale_factors and args.source != "jpl":
+        ap.error("--no-scale-factors applies only to --source jpl")
+    mascon_file = args.mascon_file.resolve() if args.mascon_file is not None else None
+    steps, default, results = steps_for_source(
+        args.source, mascon_file, args.no_scale_factors
+    )
+    by_name = {s[0]: s for s in steps}
     if args.list:
-        for name, cmd, inputs, outputs in STEPS:
-            flag = "" if name in DEFAULT else "  [not in default list]"
+        for name, cmd, inputs, outputs in steps:
+            if args.source == "jpl" and name in JPL_UNAVAILABLE:
+                flag = "  [unavailable for JPL]"
+            else:
+                flag = "" if name in default else "  [not in default list]"
             print(f"{name}{flag}\n  cmd: {' '.join(cmd)}")
             for label, paths in (("in", inputs), ("out", outputs)):
                 for p in paths:
-                    print(f"  {label}:  {p.relative_to(ROOT)}")
+                    try:
+                        shown = p.relative_to(ROOT)
+                    except ValueError:
+                        shown = p
+                    print(f"  {label}:  {shown}")
         return
-    chosen = args.steps or DEFAULT
+    chosen = args.steps or default
     unknown = [s for s in chosen if s not in by_name]
     if unknown:
         raise SystemExit(f"unknown steps: {unknown}; use --list")
+    unavailable = sorted(set(chosen) & JPL_UNAVAILABLE) if args.source == "jpl" else []
+    if unavailable:
+        raise SystemExit(
+            "steps unavailable for JPL: " + ", ".join(unavailable)
+            + "; publication figures contain CSR publication-number assertions"
+        )
+    os.environ["GRACEFC_SOURCE"] = args.source
+    if mascon_file is not None:
+        os.environ["GRACEFC_MASCON_FILE"] = str(mascon_file)
+    else:
+        os.environ.pop("GRACEFC_MASCON_FILE", None)
+    print(f"source: {args.source}; results: {results.relative_to(ROOT)}", flush=True)
     print(f"chain: {' -> '.join(chosen)}", flush=True)
     for name in chosen:
-        run_step(*by_name[name])
+        run_step(*by_name[name], results)
     print("chain complete", flush=True)
 
 
