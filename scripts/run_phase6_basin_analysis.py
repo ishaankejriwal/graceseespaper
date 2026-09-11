@@ -272,7 +272,10 @@ def main() -> None:
 
     # Li long-lead edge as a covariate: does exogenous-forcing benefit align with neighbor benefit?
     li = pd.read_csv(OUT / "phase6_li_comparison_perbasin.csv")
-    li4 = (li[(li["model"] == "li_lstm_full") & (li["horizon"] == 4)]
+    # The Li per-basin table now carries two reference models; pin the one this
+    # analysis has always meant, or the merge below duplicates every basin row.
+    li4 = (li[(li["model"] == "li_lstm_full") & (li["horizon"] == 4)
+              & (li["vs"] == "kalman_ar1")]
            [["name", "dm_stat"]].rename(columns={"dm_stat": "li_dm_h4"}))
     merged = cov.merge(skills, on="name", how="inner").merge(li4, on="name", how="left")
 

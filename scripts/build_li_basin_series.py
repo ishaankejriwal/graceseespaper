@@ -4,8 +4,15 @@ Spatial matching: each 0.25-degree mask cell is assigned to the 1-degree Li cell
 contains it, so basin weights on the coarse grid are exact sums of the fine-grid
 cos-lat weights. NaN-aware renormalization mirrors basins.py; per-basin coverage of
 Li's land mask is reported so poorly covered coastal basins can be screened.
+
+The coverage table also carries n_full_native_mascons, the count of complete native
+mascons the basin contains, for BOTH products. With n_full_li_cells it defines the
+strict joint-support subset the cross-product comparison scores on, so CSR and JPL
+are screened by one rule instead of JPL alone.
 """
 import argparse
+import importlib.util
+import os
 import re
 import sys
 from pathlib import Path
@@ -19,13 +26,56 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.comparison import fully_contained_group_counts  # noqa: E402
 
+
+def csr_native_tile_grid() -> np.ndarray:
+    """CSR native mascon tile labels on the 0.25-degree basin-mask grid.
+
+    Reuses run_resolution_sensitivity's official-geometry loader so there is one
+    reading of CSR_GRACE_GRACE-FO_RL0603_mascons_mapping_file.nc in the repository.
+    The loader picks its product from GRACEFC_SOURCE at import time, so the
+    environment is pinned to csr across the import and restored afterwards.
+    """
+    saved = {k: os.environ.get(k) for k in ("GRACEFC_SOURCE", "GRACEFC_MASCON_FILE")}
+    os.environ["GRACEFC_SOURCE"] = "csr"
+    os.environ.pop("GRACEFC_MASCON_FILE", None)
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "_resolution_geometry", ROOT / "scripts" / "run_resolution_sensitivity.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        tile_id, _, _ = module.load_official_geometry()
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+    return tile_id
+
+
+def native_mascon_counts(source: str, basin_cells: list, meta: pd.DataFrame) -> np.ndarray:
+    """Complete native mascons contained in each kept basin, for either product.
+
+    Definition is the same on both sides and matches basins.py's JPL column: a native
+    tile counts only when every one of its 0.25-degree cells lies inside the basin
+    mask. JPL records this at build time (mascon_ID ships with the product); CSR has
+    no such column, so it is derived here from the official RL06.3 tile mapping.
+    """
+    if source == "jpl":
+        if "n_full_jpl_mascons" not in meta.columns:
+            raise ValueError("basin_meta.csv has no n_full_jpl_mascons column")
+        return meta["n_full_jpl_mascons"].to_numpy()
+    tile_id = csr_native_tile_grid()
+    return fully_contained_group_counts(tile_id, basin_cells)
+
+
 def build_weight_matrix(
     basin_idx: np.ndarray,
     li_lat: np.ndarray,
     li_lon: np.ndarray,
     valid_li_cells: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Weights and count of wholly contained valid Li cells for every basin.
+) -> tuple[np.ndarray, np.ndarray, list]:
+    """Weights, count of wholly contained valid Li cells, and flat cell indices per basin.
 
     Streams the 1 GB mask file one basin at a time to stay within memory.
     """
@@ -55,7 +105,7 @@ def build_weight_matrix(
         li_group_grid, basin_cells, valid_groups=valid_li_cells
     )
     dm.close()
-    return W, full_counts
+    return W, full_counts, basin_cells
 
 
 def main() -> None:
@@ -82,19 +132,26 @@ def main() -> None:
     li_lat, li_lon = ds0["lat"].values, ds0["lon"].values
     # Static land coverage from the first file: Li's mask is the same in every file
     finite0 = np.isfinite(ds0["TWSC_full"].values[0].reshape(-1))
-    W, n_full_li_cells = build_weight_matrix(
+    W, n_full_li_cells, basin_cells = build_weight_matrix(
         keep_meta["basin_idx"].values, li_lat, li_lon, finite0
     )
+    n_full_native = native_mascon_counts(args.source, basin_cells, keep_meta)
     w_tot = W.sum(axis=1)
     ds0.close()
     coverage = (W @ finite0) / w_tot
     keep_meta = keep_meta.assign(
-        li_coverage=coverage, n_full_li_cells=n_full_li_cells
+        li_coverage=coverage, n_full_li_cells=n_full_li_cells,
+        n_full_native_mascons=n_full_native,
     )
-    keep_meta[["name", "li_coverage", "n_full_li_cells"]].to_csv(cov_out, index=False)
+    keep_meta[["name", "li_coverage", "n_full_li_cells",
+               "n_full_native_mascons"]].to_csv(cov_out, index=False)
     print(f"coverage: min={coverage.min():.3f} | <0.9: {(coverage < 0.9).sum()} "
           f"| <0.5: {(coverage < 0.5).sum()}")
     print(f"basins containing >=1 complete valid Li cell: {(n_full_li_cells >= 1).sum()}")
+    print(f"basins containing >=1 complete native {label} mascon: "
+          f"{(np.asarray(n_full_native) >= 1).sum()}")
+    joint = (np.asarray(n_full_native) >= 1) & (np.asarray(n_full_li_cells) >= 1)
+    print(f"strict joint spatial support (both): {int(joint.sum())} basins")
 
     rows = []
     names = keep_meta["name"].values

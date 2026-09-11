@@ -1360,3 +1360,59 @@ litter removed. Chain is now 32 steps / 31 default; declared inputs verified pre
 - Paper: new tab:conventional (18 rows, 2 dp, rows generated programmatically from the
   CSV) + two paragraphs in Sect. 5.4; ARCHIVE_MANIFEST row; run_chain.py step
   "conventional_metrics" (after ladder); CODE_MAP row. PDF 41 pp clean, 17/17 tests.
+
+## 2026-09-10 — Diagnosis: why Li's all_matched RMSE inflates 8x on JPL and not at all on CSR
+
+Question put to this pass: on the JPL run, `li_lstm_full` scores rmse_std 5.47 at h1 on
+`all_matched` against 0.93 on `joint_full_cells` (results/jpl/phase6_li_comparison_summary.csv).
+Is that a leak — fill values, non-finite cells or ocean cells entering the basin means of
+partially covered basins — or does the transformation into our fold-standardized target space
+blow up for basins with few Li cells?
+
+**It is not a leak.** Three checks, all negative:
+
+1. No sentinel fills. The raw Li archive stores missing cells as NaN, not a numeric flag
+   (checked `data/raw/li2026/CSR-FCast/global_gridded/*.nc`: TWSC_full min -394.1, max 157.4,
+   32.2% of cells finite, no `_FillValue`/`missing_value` in the encoding). So the
+   `np.isfinite` guards do what they claim.
+2. Ocean and non-finite cells cannot enter a basin mean. scripts/build_li_basin_series.py:164-170
+   zeroes non-finite cells in the numerator (`np.where(finite, full, 0.0)`) AND removes their
+   weight from the denominator (`den = W @ finite.T`), so the mean is renormalized over exactly
+   the finite cells. A basin with no finite cell gets NaN (`den > 0` guard, line 169) and is
+   dropped downstream by the `np.isfinite(pred_resid)` mask in
+   scripts/run_phase6_li_comparison.py:84.
+3. The full and non-seasonal variants share one validity mask. `finite` is computed from
+   TWSC_full only (build_li_basin_series.py:164) and reused for TWSC_interannual +
+   TWSC_subseasonal (line 167). The two masks are bit-identical in the archive (0 mismatched
+   cells checked), so no NaN propagates into `li_nonseasonal_cm`.
+
+**The inflation is the standardization, aggravated by partial coverage.** Li's basin mean is
+converted into our space at run_phase6_li_comparison.py:87-93: a train-window MEAN offset is
+removed, then the series is divided by `train_std` (line 68), the train-window std of OUR
+product's deseasonalized residual for that basin. Nothing matches amplitude. So the reported
+rmse_std is Li's error measured in units of our product's own anomaly variance, and it explodes
+wherever that denominator is small relative to Li's signal. Two things make the denominator
+small on JPL and not on CSR:
+
+- JPL RL06 3-month mascons are 3 degrees and heavily smoothed, so a basin that does not fully
+  contain one is represented by a shared, low-variance series. The tell is in the JPL summary
+  itself: on `all_matched` our own AR(1) reaches rmse_std 0.669 and climatology_zero only 1.444,
+  i.e. an AR(1) already explains ~78% of the variance the target has left. On CSR the same
+  columns are 1.042 and 1.637. The JPL target on small basins is nearly a smooth curve; an
+  independent 1-degree product scored against it in those units looks catastrophic.
+- Partial Li coverage puts a sliver in the numerator. `den > 0` is the only coverage guard, so a
+  basin overlapping a single finite 1-degree Li cell still gets a "basin mean" from that cell.
+
+CSR is the control: on the rebuilt CSR run, `all_matched` (227 basins) gives li_lstm_full
+rmse_std 1.128 at h1 and `joint_full_cells` (209 basins) gives 1.122 — a 0.5% difference, not
+8x. Worst per-basin Li RMSE on CSR is 2.56 (C_Severnaya_Zemlya), and the 18 basins the strict
+rule removes are unremarkable (max 1.80). The per-basin Li RMSE is also flat in coverage on CSR
+(median 1.23 below 0.25 coverage, 0.98 above 0.9).
+
+**Action: no code fix.** There is no defect to repair in the aggregation; the mismatch is a
+property of comparing a 1-degree product against a coarse-mascon target in that target's own
+standardized units, and the correct remedy is the sample restriction, which is exactly what
+`joint_full_cells` is. That subset is now computed for BOTH products under one rule (this run),
+so the CSR tables no longer score partially covered basins either. What a reader should NOT do
+is quote the JPL `all_matched` Li rows as a statement about the Li product's accuracy: they are
+a statement about the JPL target's smoothness.
