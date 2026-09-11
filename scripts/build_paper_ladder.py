@@ -14,7 +14,8 @@ Inputs : results/phase2_baseline_predictions.csv (std-unit columns)
          ridge_own_flat12, ridge_own_era5_flat12; std units)
 
 Outputs: results/paper_baseline_ladder.csv  (one row per model x horizon)
-         results/paper_baseline_contrasts.csv (key pairwise DM/CI contrasts)
+         results/paper_baseline_contrasts.csv (key pairwise DM/CI contrasts, each
+         headline challenger against BOTH damped variants at every lead)
 
 The Kalman rows used to come from phase3b_predictions.csv, a neighbor experiment;
 that made the reference forecast a by-product of a claim the paper no longer makes.
@@ -54,6 +55,17 @@ FLAT12_MODELS = ["kalman_own_ridge", "ridge_own_flat12", "ridge_own_era5_flat12"
 OUR_MODELS = KALMAN_MODELS + FLAT12_MODELS
 
 KEY = ["name", "issue_date", "target_date", "horizon"]
+
+DAMPED_MODELS = ["damped_persistence_rho", "damped_persistence_reg"]
+# Challengers the paper quotes against damped persistence; each is contrasted with
+# both damped variants at every lead so no headline number is unsourced.
+CONTRAST_CHALLENGERS = [
+    "kalman_ar1",
+    "ridge_own_flat12",
+    "ridge_own_era5_flat12",
+    "kalman_own_ridge",
+    "ridge_own_perbasin",
+]
 
 
 def load() -> pd.DataFrame:
@@ -112,9 +124,7 @@ def main() -> None:
             )
             for m, g in sub_h.groupby("model")
         }
-        damped = min(
-            ["damped_persistence_rho", "damped_persistence_reg"], key=lambda m: rmse[m]
-        )
+        damped = min(DAMPED_MODELS, key=lambda m: rmse[m])
         ml_damped = monthly_losses(df, damped, h)
         for m in P2_MODELS + OUR_MODELS:
             ml = monthly_losses(df, m, h)
@@ -133,8 +143,9 @@ def main() -> None:
                     "dm_p_vs_damped": p,
                 }
             )
-        # key contrasts
-        for a, b in [
+        # Key contrasts. The first block is the original list, kept in its original
+        # order so the archived rows stay byte-for-byte where they were.
+        pairs = [
             ("kalman_ar1", damped),
             ("kalman_ar1", "ridge_own_perbasin"),
             ("kalman_ar1", "ridge_own_lags"),
@@ -143,7 +154,17 @@ def main() -> None:
             ("ridge_own_flat12", "kalman_ar1"),
             ("ridge_own_era5_flat12", "kalman_ar1"),
             ("ridge_own_era5_flat12", damped),
-        ]:
+        ]
+        # Audit 2026-09-10: storing only the stronger damped variant per lead left
+        # half the RUN_LOG headline numbers untraceable to this file (rho is the
+        # stronger variant at h1, reg at h2-6). Every challenger the paper quotes is
+        # now scored against BOTH damped variants at every lead; the pairs the block
+        # above already covers are not duplicated.
+        for m in CONTRAST_CHALLENGERS:
+            for d in DAMPED_MODELS:
+                if (m, d) not in pairs:
+                    pairs.append((m, d))
+        for a, b in pairs:
             la, lb = monthly_losses(df, a, h), monthly_losses(df, b, h)
             common = la.index.intersection(lb.index)
             skill = 1 - la[common].mean() / lb[common].mean()

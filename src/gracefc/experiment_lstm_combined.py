@@ -46,8 +46,8 @@ import pandas as pd
 
 from .era5 import era5_fold_features
 from .evaluate import DEFAULT_FOLDS, Fold
-from .experiment_lstm import (_era5_state_tensor, _state_channel, _window_channels,
-                              lstm_predict, train_lstm)
+from .experiment_flat12 import _era5_state_tensor, _state_channel, _window_channels
+from .experiment_lstm import lstm_predict, train_lstm
 from .experiment_nonlinear import _fit_head
 from .graphs import corr_topk, random_degree_matched
 from .phase7 import (fold_setup, horizon_frame, neighbor_rank_matrix,

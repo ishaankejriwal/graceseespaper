@@ -11,13 +11,20 @@ mtime) after, stops at the first failure, and logs each step to results/chain_<n
 
 The default list is the paper spine: processed-and-raw data, the baselines, the
 Kalman reference forecast and its flat-12 ridge correction, the mission-split
-sensitivity, the ladder, the Li comparison, figures and the checksum manifest. It
-needs neither torch nor any neighbor experiment. Everything neighbor-only or
-torch-heavy sits in the EXTENDED list, run with --extended or named in --steps; no
-script was deleted when the spine was narrowed. What stays manual is only what needs
-a network or credentials: downloading the CSR mascon + ancillary files, the basin
-mask, ERA5 (scripts/download_era5.py), the Li 2026 archive, and the climate indices
-(scripts/download_indices.py). See README "Getting set up".
+sensitivity, the ladder, the Li comparison, the conventional metrics and the
+checksum manifest. It needs neither torch nor any neighbor experiment. Everything
+neighbor-only or torch-heavy sits in the EXTENDED list, run with --extended or named
+in --steps; no script was deleted when the spine was narrowed. What stays manual is
+only what needs a network or credentials: downloading the CSR mascon + ancillary
+files, the basin mask, ERA5 (scripts/download_era5.py), the Li 2026 archive, and the
+climate indices (scripts/download_indices.py). See README "Getting set up".
+
+figures is EXTENDED, not default (audit 2026-09-10). The manuscript figures still
+read eleven files that only extended steps produce — phase8b_merge, phase8_strat,
+phase3b, surrogates, phase5_stats, phase6_era5 and the conditioned neighbor run — so
+declaring it default promised a spine that could not finish on a default-only
+machine. It moves back to DEFAULT when the manuscript figures are rebuilt on
+spine-only inputs.
 
 Usage:
   python scripts/run_chain.py             # default step list, in order
@@ -27,8 +34,8 @@ Usage:
   python scripts/run_chain.py --list      # show steps and their dependencies
 
 The figures step reads several extended outputs (phase 3b, phase 5, phase 6 ERA5,
-phase 8), so a machine that has only ever run the default list is blocked there with
-the missing files named. That is the dependency check working, not a defect.
+phase 8). Running it on a machine that has only ever run the default list is blocked
+with the missing files named. That is the dependency check working, not a defect.
 
 kalman_fold_params.pkl is deliberately absent from every step's OUTPUT list: it is a
 content-addressed cache (src/gracefc/cache.py) that flat12_ridge (default) and phase3b
@@ -52,6 +59,10 @@ PY = ROOT / ".venv" / "Scripts" / "python.exe"
 
 MASCON_NC = ROOT / "CSR_GRACE_GRACE-FO_RL0603_Mascons_all-corrections.nc"
 MASK_NC = ROOT / "HydroShed+Mascon_Basins_L3.nc"
+CSR_MAPPING_NC = RAW / "csr_ancillary" / "CSR_GRACE_GRACE-FO_RL0603_mascons_mapping_file.nc"
+CSR_LANDMASK_NC = RAW / "csr_ancillary" / "CSR_GRACE_GRACE-FO_RL06_Mascons_v02_LandMask.nc"
+# Read only by the CSR native-mascon geometry loader; the JPL paths never touch them.
+CSR_GEOMETRY_FILES = (MASCON_NC, CSR_MAPPING_NC, CSR_LANDMASK_NC)
 
 # (name, script args, input files, output files)
 STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
@@ -65,9 +76,15 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      [RAW / "era5", MASK_NC],
      [DATA / "era5_basin_month.csv", DATA / "era5_basin_coverage.csv"]),
 
+    # CSR-only extra inputs: build_li's native-mascon count exec-loads
+    # run_resolution_sensitivity.load_official_geometry, which reads the solutions
+    # file for its lat/lon axes plus the two CSR ancillary grids. The JPL source path
+    # reads mascon_ID out of the product itself and needs none of the three, so
+    # steps_for_source drops them (see remap/build_li there).
     ("build_li",
      ["scripts/build_li_basin_series.py"],
-     [RAW / "li2026" / "CSR-FCast" / "global_gridded", MASK_NC, DATA / "basin_meta.csv"],
+     [RAW / "li2026" / "CSR-FCast" / "global_gridded", MASK_NC, DATA / "basin_meta.csv",
+      *CSR_GEOMETRY_FILES],
      [DATA / "li2026_csr_basin_forecasts.csv", DATA / "li2026_basin_coverage.csv"]),
 
     ("phase2",
@@ -195,10 +212,7 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 
     ("resolution",
      ["scripts/run_resolution_sensitivity.py"],
-     [MASCON_NC, MASK_NC,
-      RAW / "csr_ancillary" / "CSR_GRACE_GRACE-FO_RL0603_mascons_mapping_file.nc",
-      RAW / "csr_ancillary" / "CSR_GRACE_GRACE-FO_RL06_Mascons_v02_LandMask.nc",
-      RESULTS / "phase3b_predictions.csv"],
+     [*CSR_GEOMETRY_FILES, MASK_NC, RESULTS / "phase3b_predictions.csv"],
      [RESULTS / "resolution_diagnostics.csv", RESULTS / "resolution_cross_2x2.csv",
       RESULTS / "resolution_cross_2x2_200k.csv"]),
 
@@ -293,12 +307,14 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 ]
 # The default chain is the reframed paper spine: processed tables, the baselines, the
 # Kalman reference forecast and its flat-12 ridge correction, the mission-split
-# sensitivity, the ladder, the cross-product comparison, figures and the manifest.
-# It needs no torch and touches no neighbor experiment.
+# sensitivity, the ladder, the cross-product comparison, the conventional metrics and
+# the manifest. It needs no torch and touches no neighbor experiment. figures is NOT
+# here: it declares eleven inputs that only extended steps produce (see the module
+# docstring), so a default-only machine would be blocked at it.
 DEFAULT = [
     "build_basin", "build_era5", "build_li", "phase2", "kalman", "flat12_ridge",
     "kalman_mission", "r0_ablation", "ladder", "li_comparison",
-    "conventional_metrics", "figures", "manifest",
+    "conventional_metrics", "manifest",
 ]
 # Everything neighbor-only or torch-heavy. Run with --extended, or name in --steps.
 EXTENDED = [s[0] for s in STEPS if s[0] not in DEFAULT]
@@ -349,6 +365,11 @@ def steps_for_source(source: str, mascon_file: Path | None = None,
             return path
 
         mapped_inputs = [remap(p) for p in inputs]
+        if name == "build_li":
+            # JPL reads mascon_ID straight out of the product, so the CSR geometry
+            # trio is not an input on that source (and MASCON_NC must not be remapped
+            # into it by remap()).
+            mapped_inputs = [remap(p) for p in inputs if p not in CSR_GEOMETRY_FILES]
         if name == "resolution":
             mapped_inputs = [jpl_mascon, MASK_NC,
                              results_jpl / "phase3b_predictions.csv"]
@@ -419,7 +440,11 @@ def main() -> None:
                         shown = p
                     print(f"  {label}:  {shown}")
         return
-    chosen = args.steps or (list(EXTENDED) if args.extended else default)
+    # --extended on JPL skips the CSR-only figures step rather than blocking on it;
+    # naming it in --steps still errors, because that asks for it explicitly.
+    extended = [n for n in EXTENDED
+                if not (args.source == "jpl" and n in JPL_UNAVAILABLE)]
+    chosen = args.steps or (extended if args.extended else default)
     unknown = [s for s in chosen if s not in by_name]
     if unknown:
         raise SystemExit(f"unknown steps: {unknown}; use --list")

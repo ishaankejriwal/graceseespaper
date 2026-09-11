@@ -18,8 +18,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.era5 import era5_fold_features, era5_wide_by_var  # noqa: E402
 from gracefc.evaluate import DEFAULT_FOLDS  # noqa: E402
-from gracefc.experiment_lstm import (_era5_state_tensor, _state_channel,  # noqa: E402
-                                     _window_channels)
+from gracefc.experiment_flat12 import (_era5_state_tensor, _state_channel,  # noqa: E402
+                                       _window_channels)
 from gracefc.experiment_nonlinear import _fit_head  # noqa: E402
 from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
