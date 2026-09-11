@@ -40,7 +40,7 @@ Running anything looks like this:
 | `kalman.py` | **The heart of the project.** Separates the real water level from satellite measurement noise, then forecasts. See README section 5 for how it works. |
 | `evaluate.py` | Decides which rows are training and which are testing, and scores forecasts. Refuses to run if it detects the model peeking at the future. |
 | `stats.py` | Answers "is this improvement real or luck?" — Diebold–Mariano tests, bootstrap confidence intervals, false-discovery-rate correction. |
-| `experiment_flat12.py` | Builds the flat 12-month window of filtered state and ERA5, and fits the ridge correction on it. The engine behind the study's strongest own-basin model. |
+| `experiment_flat12.py` | Builds the flat 12-month window of filtered state and ERA5, and fits the ridge correction on it. The engine behind `ridge_own_era5_flat12`, the strongest own-basin model at leads 1 to 4; at leads 5 and 6 the own-state ridge correction is marginally better (-0.58% and -0.73%, `results/flat12_ridge_summary.csv`). |
 | `comparison.py` | Puts the published Li and Kusche forecasts into our target space and builds the subset rules, including the strict `joint_full_cells` rule. |
 | `runtime.py` | Resolves every input and output path for the selected mascon product, so the same code scores CSR or JPL without hardcoded directories. |
 
@@ -64,7 +64,7 @@ by the default chain; everything marked *extended* is reached with `--extended` 
 
 | File | What it tries |
 |---|---|
-| `experiment_flat12.py` | Kalman forecast plus a ridge correction over a flat 12-month window of filtered state and ERA5. The strongest own-basin model in the study. |
+| `experiment_flat12.py` | Kalman forecast plus a ridge correction over a flat 12-month window of filtered state and ERA5. The strongest own-basin model at leads 1 to 4; at leads 5 and 6 the own-state ridge correction `kalman_own_ridge` is marginally better (-0.58% and -0.73%, `results/flat12_ridge_summary.csv`). |
 | `experiment_kalman.py` | *Extended.* Neighbours added to the Kalman baseline (phase 3b), with the seed-matched placebo graphs. |
 | `experiment.py` | *Extended.* The same question on ridge regression instead (phase 3, older). |
 | `experiment_nonlinear.py` | *Extended.* Gradient boosting and small neural nets on the same inputs (phase 5). |
@@ -87,14 +87,26 @@ manifest. Only the downloads themselves (network and credentials) stay manual. I
 reproduce anything, this is the file. `--list` shows the plan without running it, and marks each
 extended step `[extended]`.
 
-It keeps two lists. The **default** is the 13 steps behind the paper's claims:
+It keeps two lists. The **default** is the 12 steps behind the paper's claims:
 `build_basin`, `build_era5`, `build_li`, `phase2`, `kalman`, `flat12_ridge`, `kalman_mission`,
-`r0_ablation`, `ladder`, `li_comparison`, `conventional_metrics`, `figures`, `manifest`. The
-**extended** list is everything else, run with `--extended` or `--steps`. The default list needs
-no torch. One rough edge: `figures` is in the default list but still reads extended outputs
-(`phase3b_*`, `phase5_*`, `phase6_era5_*`, `phase8b_*`), because the manuscript figures have not
-been rebuilt for the reframe, so a default-only machine stops there with the missing files
-named.
+`r0_ablation`, `ladder`, `li_comparison`, `conventional_metrics`, `manifest`. It ends at
+`manifest`. The **extended** list is everything else, run with `--extended`, which runs the
+extended list and not the default list before it, or named with `--steps`. The default list
+needs no torch.
+
+`figures` sits in the extended list as of 2026-09-10. It declares sixteen inputs: the basin
+mask, `basin_meta.csv`, and fourteen results files. Two of the fourteen are default outputs
+(`paper_baseline_ladder.csv`, `paper_baseline_contrasts.csv`); the other twelve are produced
+only by extended steps, namely `phase8b_li_comparison_headline.csv`,
+`phase8b_li_comparison_perbasin.csv`, `phase8b_h16_ensemble_headline.csv`,
+`phase8b_h16_headline.csv`, `phase8_stratification.csv`, `phase3b_summary.csv`,
+`phase3b_placebo_monthly.csv`, `phase4_surrogate_summary.csv`, `phase5_perbasin_fdr_h1.csv`,
+`phase6_era5_headline.csv`, `phase6_era5_predictions.csv` and
+`phase4_conditioned_predictions.csv`. `make_figures.py` also opens four undeclared extended
+files at runtime (`phase8_lstm_combined_predictions.csv`, `phase8b_lstm_h46_predictions.csv` and
+the two matching `_placebo_monthly.csv`, at around lines 375 and 392), which the dependency
+check cannot see. The manuscript figures have not been rebuilt for the reframe; the step moves
+back to default when they are.
 
 ### Getting data in
 
@@ -117,13 +129,13 @@ The default list first, in the order the chain runs them.
 | Script | What question it answers |
 |---|---|
 | `run_phase2_baselines.py` | How good are the simple baselines: climatology, persistence, damped persistence, three ridges? |
-| `run_kalman_baseline.py` | Does the Kalman filter beat them? (Yes, at every lead.) |
+| `run_kalman_baseline.py` | Does the Kalman filter beat them? Against damped persistence and `ridge_own_perbasin`, yes at all six leads. Against `ridge_own_lags` it is ahead at leads 1 and 2 (+3.9%, +4.2%) and behind at leads 4 and 5 (-0.59%, -0.64%, neither significant), `results/paper_baseline_contrasts.csv`. |
 | `run_flat12_ridge.py` | Does a ridge over a flat 12-month window of filtered state and ERA5 improve on the filter? (Yes, most at lead 1.) No torch. |
 | `run_kalman_mission_sensitivity.py` | Does a separate GRACE-FO observation-noise variance help? (No, it hurts at every lead.) |
 | `run_r0_ablation.py` | Which half of the Kalman filter earns the win? (The noise removal.) |
 | `build_paper_ladder.py` | Recomputes the paper's main comparison table on exactly matched rows. |
 | `run_phase6_li_comparison.py` | How do we compare to a published forecast product, under one subset rule? (We win lead 1, they win the long leads.) |
-| `compute_conventional_metrics.py` | Restates the retained systems in the literature's own metrics (per-basin RMSE in cm, CC, NSE; anomaly and full signal). |
+| `compute_conventional_metrics.py` | Restates the five retained systems (damped persistence, `kalman_ar1`, `kalman_own_ridge`, `ridge_own_flat12`, `ridge_own_era5_flat12`) in the literature's own metrics: per-basin RMSE in cm, CC, NSE, anomaly and full signal. Adds the stacked ensemble as an extra row only when the extended phase-8 prediction files are present. |
 
 The extended list, which is every remaining experiment.
 
@@ -138,7 +150,7 @@ The extended list, which is every remaining experiment.
 | `run_phase7_*.py` | Three neural architectures on identical inputs, head to head. |
 | `run_phase8_lstm_combined.py`, `run_phase8b_merge.py` | The stacked system and its neighbour correction, across all six leads. |
 | `run_resolution_sensitivity.py` | Are results contaminated by the satellite's coarse resolution? Builds the leakage metric and the official tile geometry that the strict Li subset rule reuses. |
-| `run_phase8_stratification.py` | Was the neighbour result leakage in disguise? |
+| `run_phase8_stratification.py` | Were the neighbor experiments (extended) leakage in disguise? |
 | `run_flat12_train85_sensitivity.py` | Does the flat ridge still beat the LSTM when both get the same training window? (Yes.) |
 
 ---
@@ -151,7 +163,7 @@ The extended list, which is every remaining experiment.
 | `data/processed/` | The clean tables everything else reads, mainly `basin_month_twsa_global.csv`. |
 | `results/` | Every output. `*_headline.csv` and `*_summary.csv` = the scores (**start here**, and see `results/README.md`); `*_predictions.csv` = every individual forecast (large); `RUN_LOG.md` = the diary. `results/jpl/` holds the compact JPL tables from the collaborator's run. |
 | `figures/` | The paper's charts, plus `BUILD_NOTES.md` tracing every plotted number to its source file. |
-| `paper/` | `main.tex` is the manuscript. `paper/notes/` holds the drafting record — most importantly `REWRITE_LEDGER.md`, the only authoritative list of the paper's numbers. |
+| `paper/` | `main.tex` is the manuscript. `paper/notes/` holds the drafting record, most importantly `REWRITE_LEDGER.md`, the only authoritative list of the paper's numbers. The ledger is pre-reframe: it still lists the earlier three-finding numbers and will be regenerated after the manuscript rewrite, the same status `docs/STUDY_CONTEXT.md` and `docs/ARCHIVE_MANIFEST.md` record. |
 | `archive/` | A frozen snapshot of results from before the 2026-08-13 audit, checksummed. Never overwrite it — it's how we prove what changed. |
 | `notebooks/` | Two notebooks for interactive poking. They only read results; running them can't change anything. Outputs are cleared on purpose. |
 | `docs/reference/` | The Li & Kusche paper, compressed, for the head-to-head comparison. |
@@ -176,7 +188,8 @@ the reference ladder: climatology, persistence, damped persistence, three ridges
 CLAIM 1: the Kalman filter is the reference forecast these should be scored against
     |  run_flat12_ridge.py
 CLAIM 2: filter + ridge over a flat 12-month window of filtered state and ERA5 is the
-         strongest own-basin model
+         strongest own-basin model at leads 1 to 4 (at 5 and 6 the own-state ridge
+         correction edges it)
     |  run_kalman_mission_sensitivity.py, run_r0_ablation.py
 the two sensitivities: the mission split loses, the noise removal is what earns the win
     |  build_paper_ladder.py, run_phase6_li_comparison.py
@@ -199,10 +212,7 @@ an earlier version got it wrong and made results look better than they were.
 
 **2. Comparisons are genuinely fair.** Every pairwise number is computed on exactly matched
 rows, which is why `build_paper_ladder.py` exists: the per-model summary files lose rows as the
-lead grows, so their RMSEs are not cross-comparable. In the extended neighbour steps, a real
-graph and a random one get identical features, identical models, identical rows, and, after a
-bug fixed on 2026-08-15, the *same random seed*, so the only difference is which basins are
-connected.
+lead grows, so their RMSEs are not cross-comparable.
 
 **3. Reruns give identical numbers.** Seeds are fixed everywhere. If you rerun a phase and get
 different numbers, something is wrong; don't shrug it off.
@@ -214,5 +224,3 @@ different numbers, something is wrong; don't shrug it off.
   basin doesn't drown out a small one.
 - Every number in the manuscript carries a `% source:` comment naming the results file it
   came from.
-- Every phase gets an independent audit pass before the next one starts. Findings go in
-  `results/RUN_LOG.md`.

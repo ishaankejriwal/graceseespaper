@@ -1677,3 +1677,49 @@ would make the mapping file's own axes the alignment reference for the tile grid
 exists precisely because those axes are not assumed to match the solutions grid the basin
 diagnostics are built on. Removing it is not verifiable without rerunning `resolution`, which
 this pass was not allowed to do.
+
+---
+
+## 2026-09-10 - JPL neighbor experiments: non-replication record (from results/jpl/, collaborator run 2026-09-05/06)
+
+This record exists because the non-replication was being cited to RUN_LOG entries that never
+contained it. The numbers below are read out of the two versioned JPL tables, not rerun here:
+`results/jpl/phase3b_summary.csv` and `results/jpl/phase4_surrogate_summary.csv`. The run
+window is the collaborator's main suite, 2026-09-05 15:36 to 2026-09-06 01:21
+(`results/jpl/RUN_PROVENANCE.md`). Row-level JPL predictions are not in the repository, so
+nothing below was recomputed from predictions.
+
+Skill is against the own-basin ridge (`skill_vs_own_ridge`), so a negative number means the
+neighbor arm is worse than using the basin's own state alone. `placebo_beaten` counts how many
+of the 50 seed-matched random graphs the real graph beats; 0 of 50 means every random graph
+did at least as well as the real one. Surrogates are the 99 IAAFT draws
+(`beats_n_of` in the surrogate table), scored on `kalman_corr_top1`.
+
+| lead | corr_top1 skill vs own ridge | corr_top1 placebos beaten | geo_top1 skill vs own ridge | geo_top1 placebos beaten | surrogates beaten (corr_top1) |
+|---|---|---|---|---|---|
+| 1 | -0.518% | 0 of 50 | -0.094% | 0 of 50 | 0 of 99 |
+| 2 | -0.970% | 0 of 50 | -0.136% | 0 of 50 | 0 of 99 |
+| 3 | -1.160% | 0 of 50 | -0.125% | 0 of 50 | 0 of 99 |
+| 4 | -1.140% | 0 of 50 | -0.031% | 8 of 50 | 0 of 99 |
+| 5 | -1.162% | 0 of 50 | -0.003% | 26 of 50 | 0 of 99 |
+| 6 | -1.278% | 0 of 50 | -0.048% | 9 of 50 | 0 of 99 |
+
+Two things to carry into the write-up.
+
+1. Every neighbor arm in `results/jpl/phase3b_summary.csv` is worse than the own-basin ridge
+   at every lead. That holds for all eleven arms, not only the two tabulated: the worst is
+   `kalman_corr_top3` at -5.278% at lead 6, the mildest is `kalman_geo_top1` at -0.003% at
+   lead 5.
+2. "0 of 50 placebos" is true for the correlation-selected arms at every lead and for every
+   arm at leads 1 to 3, but it is NOT true of the distance-selected arms at the long leads.
+   `kalman_geo_top1` beats 8, 26 and 9 of 50 at leads 4, 5 and 6, and `kalman_geo_top2` beats
+   1 of 50 at lead 5. Those are the placebo counts of an arm sitting on top of the null, which
+   is the same conclusion, but the count has to be quoted correctly.
+
+The surrogate table is one-sided in the other direction too: `surr_skill_vs_own_mean` is
+between -0.003% and -0.022% at every lead, so the scrambled neighbors are also slightly worse
+than own-basin, and the real graph is worse than all 99 of them.
+
+CSR, for contrast, is logged under the 2026-08-12 to 2026-08-17 entries, where the neighbor
+correction was still a live claim: the phase 3b, surrogate and jump-screen runs and their
+audit passes, and the 2026-08-16 chain completion that regenerated them on corrected data.
