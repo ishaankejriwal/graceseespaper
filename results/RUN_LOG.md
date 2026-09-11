@@ -1550,3 +1550,53 @@ mission split is a sensitivity, not an improvement.
 
 The regenerated one-r forecasts reproduce results/kalman_predictions.csv to max |dpred| =
 8.9e-16, so the comparison is a clean paired contrast.
+
+
+## 2026-09-10 — Docs rewrite for the reframe
+
+No code, no CSVs, no manuscript. Six documentation files brought in line with the
+Kalman-benchmark reframe logged above. Every number written was copied from a results CSV or
+from that entry, with the file cited beside it.
+
+- `README.md`: "What did we find?" rewritten from three findings to the new spine (filter as the
+  reference forecast; filter plus flat-12 ERA5 ridge as the strongest own-basin model; both
+  against GRACE-FCast on CSR and JPL under one subset rule), plus one short "What we tested and
+  dropped" subsection for the neighbour effect, the mission split and the sequence models. The
+  neighbour-correction term is gone from the stacked-model explanation, which is now "Kalman
+  forecast plus ridge correction". The placebo section is replaced by "Controls that the default
+  chain does not run", which keeps one paragraph saying the placebo and surrogate machinery still
+  exists in extended steps. Section 7 gains the default/extended split, the 13-step default list,
+  the measured default-tail wall times from the entry above, and the plain statement that
+  `figures` is in the default list but still reads extended outputs and will stop a default-only
+  machine. Test count corrected to 28 passing in about 30 seconds. Glossary gains flat-12 window
+  and GRACE-FCast entries and marks the placebo and surrogate entries extended-only.
+- `docs/CODE_MAP.md`: library tables gain `experiment_flat12.py`, `kalman_mission.py`,
+  `comparison.py` and `runtime.py`; `graphs.py` and `surrogates.py` are marked extended-only;
+  every experiment engine except `experiment_flat12.py` is marked extended. Scripts are split
+  into a default table in chain order and an extended table, with `run_flat12_ridge.py` and
+  `run_kalman_mission_sensitivity.py` added. "The whole pipeline in one picture" redrawn to the
+  new default order with the three claims in place of the three findings. "Comparisons are
+  genuinely fair" rewritten around matched rows, keeping the seed-matched placebo note as an
+  extended-step fact.
+- `docs/STUDY_CONTEXT.md`: rewritten end to end. The 2026-08-13 audit section, the "CORRECTED
+  FINAL numbers" framing, the "novelty audited twice" section and the in-flight/next task lists
+  are gone. What remains is the study definition, the three claims with their numbers and source
+  files, what was tested and dropped, how to run the chain, the CSR/JPL/GSFC data state, an
+  explicit statement that `paper/main.tex` is still pre-reframe, and an open-items list.
+- `results/README.md`: "Which file do I open?" now leads with the headline files
+  (`paper_baseline_ladder`, `paper_baseline_contrasts`, `flat12_ridge_summary`,
+  `phase6_li_comparison_headline`, `kalman_mission_summary`, `r0_ablation_summary`,
+  `conventional_metrics_summary`, and the `results/jpl/` equivalents) before the generic file
+  patterns.
+- `docs/ARCHIVE_MANIFEST.md`: header note added saying the mapping is pre-reframe and will be
+  regenerated after the manuscript rewrite. No mapping rows were changed or invented.
+- `paper/notes/DECISIONS.md`: new section 8, entries 36 to 42, recording the reframe decisions
+  and their reasons: the neighbour claim dropped on the JPL non-replication, the new three-claim
+  spine, the single strict subset rule for both products, the JPL `all_matched` inflation
+  documented rather than fixed, the mission split reported as rejected, the audit narrative
+  removed from the living docs, and what was open at the time.
+
+Open items recorded in the docs: `paper/main.tex` and the figures still describe the
+three-finding structure; the `figures` chain step still depends on extended outputs; and
+`run_phase8b_merge.py` and `run_phase6_hybrid.py` still gate `joint_full_cells` on
+`source() == "jpl"`.

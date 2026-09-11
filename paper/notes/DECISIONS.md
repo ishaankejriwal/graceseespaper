@@ -215,3 +215,79 @@ Clone succeeded; `ml-paper-writing/SKILL.md` and its references were read.
 - Consider porting the ≥300 km + conditioning controls to the stacked arm
   before submission (limitations item 2 would then be deletable) — ranked
   next step 3 in results/phase8_analysis.md.
+
+---
+
+## 8. 2026-09-10 — the Kalman-benchmark reframe
+
+A decision record for the change of spine. The manuscript has not yet been
+rewritten to match; these are the decisions the rewrite has to implement.
+
+36. **The neighbour claim is dropped as a paper claim.** On CSR a neighbour's
+    propagated state, used as a correction, is worth +0.31% at lead 1 over the
+    own-basin ridge and beats 50/50 seed-matched placebo graphs and 99/99 IAAFT
+    surrogates (`results/phase3b_summary.csv`,
+    `results/phase4_surrogate_summary.csv`). On JPL none of it replicates: every
+    neighbour variant is worse than own-basin at every lead, 0/50 placebos and
+    0/99 surrogates (`results/jpl/phase3b_summary.csv`,
+    `results/jpl/phase4_surrogate_summary.csv`). A controlled effect that
+    reverses on a second mascon product of the same observations is not a
+    finding we are willing to publish. Working interpretation, stated as such:
+    JPL's 3-degree mascons with the CRI filter already perform the spatial
+    denoising a CSR neighbour supplied. The code is retained as extended chain
+    steps, not deleted, so the experiment stays reproducible.
+37. **The new spine is three claims.** (1) The per-basin Kalman AR(1) plus
+    observation-noise filter is proposed as the reference forecast for
+    deseasonalized basin TWSA, because it handles observation noise and the
+    2017-18 mission gap natively and persistence does neither: +4.98/+8.79% at
+    leads 1-2 against the stronger damped variant
+    (`results/paper_baseline_ladder.csv`). (2) The strongest own-basin model is
+    the Kalman filter plus a ridge correction over a flat 12-month history of
+    filtered state and ERA5, `ridge_own_era5_flat12`: +12.24% over damped
+    persistence at lead 1 and +7.65% over the filter itself (same file plus
+    `results/paper_baseline_contrasts.csv`), and every sequence model trained
+    here loses to it once history length is equalized
+    (`results/phase7_lstm_summary.csv`,
+    `results/flat12_train85_sensitivity.csv`). (3) Both are compared with Li and
+    Kusche's GRACE-FCast on CSR and JPL mascons under one protocol and one
+    strict subset rule.
+38. **One strict subset rule, applied to both mascon products.**
+    `joint_full_cells`: a basin must fully contain at least one native mascon of
+    the product being scored and at least one valid 1-degree Li cell. 209 of 227
+    basins on CSR, 67 on JPL. Previously the rule was gated on
+    `source() == "jpl"`, so CSR was scored on partially covered basins and JPL
+    was not; the two products are now comparable. Headline on
+    `joint_full_cells`: `kalman_ar1` beats Li's full product by +16.4% at lead 1
+    (p = 2.2e-3), ties at 2, loses from 3 on;
+    `ridge_own_era5_flat12` beats Li's non-seasonal product by +32.8% and +11.2%
+    at leads 1-2, ties at 3, loses from 4 on
+    (`results/phase6_li_comparison_headline.csv`).
+39. **The JPL `all_matched` inflation is documented, not fixed.** Li's
+    `rmse_std` reads 5.47 at lead 1 on `all_matched` against 0.93 on
+    `joint_full_cells`. Three leak checks came back negative (no sentinel fills,
+    ocean and non-finite cells cannot enter a basin mean, the full and
+    non-seasonal variants share one validity mask). The cause is the fold
+    standardization by our own product's residual std on partially covered,
+    low-variance basins, and the remedy is the sample restriction. Reason for no
+    code change: there is no defect in the aggregation to repair. The manuscript
+    must not quote the JPL `all_matched` Li rows as a statement about Li's
+    accuracy. Full diagnosis in the 2026-09-10 RUN_LOG entry.
+40. **The mission-split filter is reported as a tested-and-rejected variant,
+    not adopted.** A separate GRACE-FO observation-noise variance loses at every
+    lead, -1.84% at lead 1 (p = 1.7e-7) through -0.38% at lead 6, with 0 basins
+    helped and 0 hurt under BH correction at lead 1 and 234 of 1170 basin-folds
+    falling back to one variance because fold 1 has fewer than 12 GRACE-FO
+    training months (`results/kalman_mission_summary.csv`). The one-variance
+    filter is kept. Reason to report it at all: the obvious referee question is
+    whether the headline depends on treating two missions as one instrument.
+41. **Nothing in the August audit narrative survives into the current docs.**
+    `README.md`, `docs/CODE_MAP.md`, `docs/STUDY_CONTEXT.md` and
+    `results/README.md` were rewritten on 2026-09-10 to state what is true now,
+    with a source file cited beside each number. The history of how the numbers
+    moved stays in `results/RUN_LOG.md`, which remains append-only.
+42. **Open at the time of this record.** `paper/main.tex` still carries the
+    three-finding structure and pre-reframe figures; `docs/ARCHIVE_MANIFEST.md`
+    is flagged pre-reframe and will be regenerated after the rewrite; the
+    `figures` chain step still reads extended outputs, so a default-only machine
+    stops there; and `run_phase8b_merge.py` and `run_phase6_hybrid.py` still
+    gate `joint_full_cells` on `source() == "jpl"`.
