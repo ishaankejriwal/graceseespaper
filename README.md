@@ -69,25 +69,37 @@ shrinks the clean estimate. A missing month costs it nothing: the filter propaga
 forward until the next observation arrives.
 
 That change alone buys **+5.0% at lead 1 and +8.8% at lead 2**, and +2.5% to +5.6% at leads 3
-to 6, against the stronger damped variant at each lead
-(`results/paper_baseline_ladder.csv`; Diebold-Mariano p from 3.5e-12 at lead 1 to 7.9e-7 at
-lead 5). It also beats a per-basin ridge regression at five of the six leads
-(`results/paper_baseline_contrasts.csv`; lead 4 is +1.0% with p = 0.078).
+to 6, against the stronger damped variant at each lead (`results/paper_baseline_ladder.csv`).
+The Diebold-Mariano p-values do not run in order of lead: they are smallest at leads 2 and 3
+(6.3e-19 and 5.7e-19), 3.5e-12 at lead 1, and largest at lead 5 (7.9e-7), same file.
+
+It also beats a per-basin ridge regression at all six leads, by
++2.0/+3.0/+1.4/+1.0/+2.2/+3.9%, and the margin is significant at five of them
+(`results/paper_baseline_contrasts.csv`, `kalman_ar1` against `ridge_own_perbasin`). Lead 4 is
+the one that misses significance: it is still a gain, +1.04%, but at p = 0.078.
 
 We also know *which half* of the filter does the work. Switch the noise removal off and keep
-everything else, and the filter gives up 5.4% at lead 1 rising to 12.3% at lead 6
-(`results/r0_ablation_summary.csv`). That stripped version is *worse than plain damped
-persistence* at leads 2 to 6 (-0.9% to -11.6%, same file). The filtering is the win, not better
-drift estimation.
+everything else, and the filter gives up 5.4% at lead 1, rising to a peak of 12.7% at lead 5
+and easing back to 12.3% at lead 6 (`results/r0_ablation_summary.csv`). That stripped version
+is *worse than plain damped persistence* at leads 2 to 6 (-0.9% to -11.6%, same file). The
+filtering is the win, not better drift estimation.
 
-### Claim 2: the strongest own-basin model is the filter plus a small ridge correction
+### Claim 2: at leads 1 to 4 the strongest own-basin model is the filter plus a ridge correction
 
 Take the filtered state and the eleven ERA5 weather variables for the last 12 months, flatten
 that window into one long row of numbers, and fit a ridge regression to predict how wrong the
-Kalman forecast is about to be. That is `ridge_own_era5_flat12`, and it is the best own-basin
-model in the study: **+12.2% over damped persistence at lead 1**, then +13.7/+9.6/+6.2/+4.6/+4.5%
-at leads 2 to 6 (`results/paper_baseline_ladder.csv`). Measured against the Kalman reference
-itself it adds +7.6% at lead 1, decaying to +0.9% and not significant by lead 6
+Kalman forecast is about to be. That is `ridge_own_era5_flat12`, the strongest own-basin model
+in the study at leads 1 to 4: **+12.2% over damped persistence at lead 1**, then
++13.7/+9.6/+6.2% at leads 2 to 4, and +4.6/+4.5% at leads 5 and 6
+(`results/paper_baseline_ladder.csv`).
+
+At leads 5 and 6 the own-state ridge correction `kalman_own_ridge` is marginally better.
+`ridge_own_era5_flat12` scores -0.58% against it at lead 5 and -0.73% at lead 6
+(`results/flat12_ridge_summary.csv`, column `skill_vs_ridge_own`), which in RMSE is 1.3804
+against 1.3764 at lead 5 and 1.4421 against 1.4369 at lead 6
+(`results/paper_baseline_ladder.csv`). The ERA5 window stops paying for itself at the long
+leads. Measured against the Kalman reference itself, `ridge_own_era5_flat12` adds +7.6% at
+lead 1, decaying to +0.9% and not significant by lead 6
 (`results/paper_baseline_contrasts.csv`).
 
 The interesting part is what it beats. Every sequence model we trained loses to it once the two
@@ -103,7 +115,9 @@ mascons and on the JPL mascons, under one protocol and one strict subset rule. T
 (`joint_full_cells`) keeps a basin only if it fully contains at least one native mascon of the
 product being scored and at least one valid 1-degree Li cell. That leaves 209 of 227 basins on
 CSR and 67 on JPL (`results/phase6_li_comparison_summary.csv`,
-`results/jpl/phase6_li_comparison_summary.csv`).
+`results/jpl/phase6_li_comparison_summary.csv`). The 227 is the Li-matched population, the
+`all_matched` subset in that file, and not the 234 basins the study keeps overall: seven of the
+234 have no usable Li forecast and never enter this comparison.
 
 On CSR, over 209 basins and 60 months (`results/phase6_li_comparison_headline.csv`):
 
@@ -112,6 +126,12 @@ On CSR, over 209 basins and 60 months (`results/phase6_li_comparison_headline.cs
 - `ridge_own_era5_flat12` beats Li's non-seasonal product by **+32.8% at lead 1** and **+11.2%
   at lead 2** (p = 2.4e-10 and 2.1e-3), ties at lead 3 (-0.2%, p = 0.94), and loses from lead 4
   on.
+
+Basin by basin it is a close split that tips over as the lead grows: Li's full product has the
+lower error in 98 of the 209 basins against the Kalman reference at lead 1 and in 157 of 209 at
+lead 6, and in 87 of 209 against `ridge_own_era5_flat12` at lead 1 and 162 of 209 at lead 6
+(`results/phase6_li_comparison_perbasin.csv`, column `a_better`, scored on the
+`joint_full_cells` basins).
 
 On JPL, over 67 basins and 59 months, on the collaborator's run
 (`results/jpl/phase6_li_comparison_headline.csv`, reported Li-first, so a negative skill means
@@ -127,14 +147,19 @@ has washed out and what matters is what the weather is going to do.
 
 Three things were run properly and are not claims.
 
-- **Neighbouring-basin information.** On CSR a neighbour's propagated state, used as a
-  correction, is worth +0.31% at lead 1 over the own-basin ridge, beats 50 of 50 seed-matched
-  random graphs and 99 of 99 IAAFT surrogates (`results/phase3b_summary.csv`,
-  `results/phase4_surrogate_summary.csv`). On JPL none of it replicates: every neighbour variant
-  is worse than own-basin at every lead, 0 of 50 placebos and 0 of 99 surrogates
-  (`results/jpl/phase3b_summary.csv`, `results/jpl/phase4_surrogate_summary.csv`). Working
+- **Neighbouring-basin information.** It does not replicate on the JPL mascons, which is why it
+  is not a claim. Every neighbour variant there is worse than own-basin at every lead, and the
+  real graph beats 0 of 50 seed-matched placebo graphs for the correlation-selected neighbour at
+  every lead and for every arm at leads 1 to 3; the distance-selected arm is the exception and
+  beats at most 26 of 50, at lead 5. IAAFT surrogates are 0 of 99 at every lead
+  (`results/jpl/phase3b_summary.csv`, `results/jpl/phase4_surrogate_summary.csv`). What it was
+  on CSR: a neighbour's propagated state, used as a correction, worth +0.31% at lead 1 over the
+  own-basin ridge, beating 50 of 50 seed-matched random graphs and 99 of 99 IAAFT surrogates
+  (`results/phase3b_summary.csv`, `results/phase4_surrogate_summary.csv`). Working
   interpretation: JPL's 3-degree mascons with the CRI filter already do the spatial denoising
-  that a CSR neighbour was supplying. The experiments are kept as extended chain steps.
+  that a CSR neighbour was supplying. A controlled effect that reverses on a second mascon
+  solution of the same observations is not one we are willing to publish. The experiments are
+  kept as extended chain steps.
 - **A separate observation-noise variance for GRACE-FO.** It hurts at every lead, from -1.84% at
   lead 1 (p = 1.7e-7) to -0.38% at lead 6 (`results/kalman_mission_summary.csv`), and fold 1
   cannot fit it at all (234 of 1170 basin-folds fall back to one variance). The single-variance
@@ -142,7 +167,11 @@ Three things were run properly and are not claims.
 - **Sequence models.** LSTM, residual MLP, graph network and the stacked combination all lose to
   the flat 12-month ridge once history is equalized, as described in claim 2.
 
-Details and dates for all three are in `results/RUN_LOG.md` under the 2026-09-10 entries.
+Details and dates: the JPL non-replication is tabulated in the `results/RUN_LOG.md` entry
+"JPL neighbor experiments: non-replication record (from results/jpl/, collaborator run
+2026-09-05/06)"; the CSR neighbour runs it is contrasted with are under the 2026-08-12 to
+2026-08-17 entries; the mission-split and sequence-model decisions are under the 2026-09-10
+"Kalman-benchmark reframe" entry.
 
 ---
 
@@ -156,7 +185,7 @@ Details and dates for all three are in `results/RUN_LOG.md` under the 2026-09-10
 | `results/` | Every output table, plus `RUN_LOG.md`, the diary of what was run when. | Read only |
 | `figures/` | The charts that go in the paper. | Generated, don't hand-edit |
 | `paper/` | The manuscript itself (`main.tex`) and its drafting notes in `paper/notes/`. | Yes, if writing |
-| `docs/` | Longer explanations: code map, project status, past audits, reference papers. | Read |
+| `docs/` | Longer explanations: code map, project status, past audits, reference papers. The one past audit kept in full is [`docs/AUDIT_2026-08-13.md`](docs/AUDIT_2026-08-13.md), historical: it is the audit the `archive/pre_audit_2026-08-13/` freeze is named for, and its findings were fixed at the time. | Read |
 | `notebooks/` | Two Jupyter notebooks for poking at the data interactively. | Optional |
 | `data/`, `archive/` | Raw inputs and frozen old results. Not stored in git — see section 4. | Download once |
 
@@ -251,12 +280,14 @@ ablation we ran, and it loses. The filtering is the win.
 
 **One honest caveat.** We call `r` "measurement noise," but strictly we can't prove that's what
 it is — it's whatever part of the signal the model can't carry forward. 259 of 1170 basin-fits
-land at r ≈ 0. The paper is careful about this wording, and you should be too.
+land at r ≈ 0 (`results/kalman_mission_summary.csv`, diagnostic row `n_r_one_at_boundary`).
+The paper is careful about this wording, and you should be too.
 
 ### How the correction stage uses the filter
 
-Our strongest own-basin model is not a replacement for the Kalman filter, it is built on top of
-it. Its prediction is two things added together:
+Every own-basin model that beats the filter is a correction on top of it, not a replacement for
+it. Take `ridge_own_era5_flat12`, the strongest of them at leads 1 to 4. Its prediction is two
+things added together:
 
 ```
 prediction  =  kalman forecast  +  ridge correction
@@ -353,38 +384,57 @@ Run the default list:
 
 ### The default list and the extended list
 
-There are two lists. The **default** is the 13 steps that produce the paper's claims, in this
+There are two lists. The **default** is the 12 steps that produce the paper's claims, in this
 order:
 
 ```
 build_basin  build_era5  build_li  phase2  kalman  flat12_ridge  kalman_mission
-r0_ablation  ladder  li_comparison  conventional_metrics  figures  manifest
+r0_ablation  ladder  li_comparison  conventional_metrics  manifest
 ```
+
+It ends at `manifest`. `figures` used to be the second-to-last default step and moved to the
+extended list on 2026-09-10, for the reason two paragraphs down.
 
 Everything else is **extended**: every neighbour-only experiment, every torch model, the
 resolution and stratification work, the hybrid splice. Nothing was deleted and every extended
 step is still registered, still runnable, and still declares its inputs and outputs to `--list`.
-Reach them with `--extended` (default plus extended) or by naming them with
-`--steps name1 name2`.
+Reach them with `--extended`, which runs the extended list and only the extended list rather
+than the default list followed by it, or by naming steps with `--steps name1 name2`. If you
+want both lists, run the chain twice, default first.
 
 The default list needs no torch.
 
 Wall times for the default tail, measured on the 2026-09-10 CSR rerun on this machine
 (`results/RUN_LOG.md`, "Kalman-benchmark reframe"): `build_li` 5.9 min, `flat12_ridge` 2.0 min,
 `kalman_mission` 29 min, `ladder` 1.0 min, `li_comparison` 6.0 min, `conventional_metrics`
-0.7 min, `manifest` 0.2 min. The steps ahead of those (`build_basin`, `build_era5`, `phase2`,
-`kalman`, `r0_ablation`) were not re-timed in that run. The extended list is where the long
-runtimes live: the recorded 14-step partial extended rerun took about 34 hours, and the neural
-stages dominate it.
+0.7 min, `manifest` 0.2 min. Four steps were not re-timed in that run: `build_basin`,
+`build_era5`, `phase2` and `kalman`. `r0_ablation` was not re-timed either, and it is not ahead
+of the timed tail: it runs after `kalman_mission` and before `ladder`, and the 2026-08-16 chain
+put it at 4.4 min. The extended list is where the long runtimes live. The 14-step extended
+rerun of 2026-08-16 took about 30.5 hours of wall clock, while its fourteen recorded per-step
+times sum to about 33.6 hours; both figures are in the `results/RUN_LOG.md` entry "corrected
+rerun chain COMPLETE", and the neural stages dominate either one.
 
-**One caveat, and it will bite a fresh machine.** `figures` is in the default list but still
-reads extended outputs: `phase3b_summary.csv`, `phase3b_placebo_monthly.csv`,
-`phase4_surrogate_summary.csv`, `phase5_perbasin_fdr_h1.csv`, `phase6_era5_headline.csv`,
-`phase6_era5_predictions.csv`, `phase4_conditioned_predictions.csv`, and the four `phase8b_*`
-merge tables. A machine that has only ever run the default list does not have those files, and
-the chain stops at `figures` naming the ones it is missing. That is expected rather than broken:
-the manuscript figures have not been redone for the reframe yet. Until they are, either run the
-extended steps first or leave `figures` out with `--steps`.
+**Where `figures` went.** It is an extended step now, because it reads outputs only extended
+steps produce. It declares sixteen inputs: the basin mask, `basin_meta.csv`, and fourteen
+results files. Two of the fourteen come from the default list, `paper_baseline_ladder.csv` and
+`paper_baseline_contrasts.csv`. The other twelve exist only after extended steps have run, and
+they are `phase8b_li_comparison_headline.csv`, `phase8b_li_comparison_perbasin.csv`,
+`phase8b_h16_ensemble_headline.csv`, `phase8b_h16_headline.csv`, `phase8_stratification.csv`,
+`phase3b_summary.csv`, `phase3b_placebo_monthly.csv`, `phase4_surrogate_summary.csv`,
+`phase5_perbasin_fdr_h1.csv`, `phase6_era5_headline.csv`, `phase6_era5_predictions.csv` and
+`phase4_conditioned_predictions.csv`. `run_chain.py --list` prints the same list.
+
+`scripts/make_figures.py` also opens four files at runtime that the step does not declare:
+`phase8_lstm_combined_predictions.csv`, `phase8b_lstm_h46_predictions.csv`,
+`phase8_lstm_combined_placebo_monthly.csv` and `phase8b_lstm_h46_placebo_monthly.csv`, read at
+around lines 375 and 392. Those are extended outputs too, so the dependency check will not
+report them missing and the script fails on the open instead. A machine that has only ever run
+the default list has none of the sixteen files, twelve declared and four not. The manuscript
+figures have not been redone for the reframe; until they are, run the extended steps first, or
+name `figures` in `--steps` once
+its inputs exist. `--extended --source jpl` skips `figures` rather than failing on it, because
+the figure asserts pin archived CSR numbers.
 
 Each stage writes its own log to `results/chain_<name>.log`.
 
@@ -462,14 +512,17 @@ A few conventions. Please don't break them — each one exists because something
   Never edit an old entry to match a newer result. Add a new entry instead.
 - **`paper/notes/REWRITE_LEDGER.md` is the only authoritative source for numbers in the paper.**
   If you change a result, update the ledger and the matching hardcoded assert in
-  `scripts/make_figures.py`; the figure build then re-verifies the plotted values.
+  `scripts/make_figures.py`; the figure build then re-verifies the plotted values. The ledger as
+  it stands is pre-reframe: its numbers still describe the earlier three-finding manuscript, and
+  it will be regenerated after `paper/main.tex` is rewritten. `docs/STUDY_CONTEXT.md` and
+  `docs/ARCHIVE_MANIFEST.md` carry the same status note.
 - **Don't touch `archive/`.** It's a frozen snapshot of pre-audit results, checksummed. It exists
   so we can always show what changed and when.
 - **Big result files aren't in git.** They regenerate from the code plus raw data.
   `scripts/make_manifest.py` checksums them; `--check` verifies them later.
 - **The notebooks have their outputs deliberately cleared**, so old numbers sitting in a saved
   cell can't be mistaken for current ones.
-- **Run the tests before you commit.** `pytest tests/ -q`, 15 seconds.
+- **Run the tests before you commit.** `pytest tests/ -q`, about 30 seconds, as in section 4.
 - **`docs/STUDY_CONTEXT.md` and `docs/CODE_MAP.md` are living docs** — when a milestone lands,
   update their status lines in the same commit, or the next cold reader inherits a stale map.
 

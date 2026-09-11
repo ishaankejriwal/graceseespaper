@@ -228,11 +228,16 @@ rewritten to match; these are the decisions the rewrite has to implement.
     own-basin ridge and beats 50/50 seed-matched placebo graphs and 99/99 IAAFT
     surrogates (`results/phase3b_summary.csv`,
     `results/phase4_surrogate_summary.csv`). On JPL none of it replicates: every
-    neighbour variant is worse than own-basin at every lead, 0/50 placebos and
-    0/99 surrogates (`results/jpl/phase3b_summary.csv`,
-    `results/jpl/phase4_surrogate_summary.csv`). A controlled effect that
-    reverses on a second mascon product of the same observations is not a
-    finding we are willing to publish. Working interpretation, stated as such:
+    neighbour variant is worse than own-basin at every lead; the placebo count is
+    0/50 for the correlation-selected neighbour at every lead and for every arm at
+    leads 1 to 3, while the distance-selected arm beats at most 26/50, at lead 5
+    (`kalman_geo_top1` 8/50, 26/50 and 9/50 at leads 4, 5 and 6, `kalman_geo_top2`
+    1/50 at lead 5); surrogates are 0/99 at every lead
+    (`results/jpl/phase3b_summary.csv`,
+    `results/jpl/phase4_surrogate_summary.csv`). The per-lead table is in the
+    `results/RUN_LOG.md` entry "JPL neighbor experiments: non-replication
+    record". A controlled effect that reverses on a second mascon product of the
+    same observations is not a finding we are willing to publish. Working interpretation, stated as such:
     JPL's 3-degree mascons with the CRI filter already perform the spatial
     denoising a CSR neighbour supplied. The code is retained as extended chain
     steps, not deleted, so the experiment stays reproducible.
@@ -241,12 +246,17 @@ rewritten to match; these are the decisions the rewrite has to implement.
     deseasonalized basin TWSA, because it handles observation noise and the
     2017-18 mission gap natively and persistence does neither: +4.98/+8.79% at
     leads 1-2 against the stronger damped variant
-    (`results/paper_baseline_ladder.csv`). (2) The strongest own-basin model is
-    the Kalman filter plus a ridge correction over a flat 12-month history of
-    filtered state and ERA5, `ridge_own_era5_flat12`: +12.24% over damped
-    persistence at lead 1 and +7.65% over the filter itself (same file plus
-    `results/paper_baseline_contrasts.csv`), and every sequence model trained
-    here loses to it once history length is equalized
+    (`results/paper_baseline_ladder.csv`). (2) The strongest own-basin model at
+    leads 1 to 4 is the Kalman filter plus a ridge correction over a flat 12-month
+    history of filtered state and ERA5, `ridge_own_era5_flat12`: +12.24% over
+    damped persistence at lead 1 and +7.65% over the filter itself (same file plus
+    `results/paper_baseline_contrasts.csv`). At leads 5 and 6 the own-state ridge
+    correction `kalman_own_ridge` is marginally better, and the rewrite has to say
+    so: `ridge_own_era5_flat12` scores -0.58% against it at lead 5 and -0.73% at
+    lead 6 (`results/flat12_ridge_summary.csv`, `skill_vs_ridge_own`), which is
+    RMSE 1.3804 against 1.3764 and 1.4421 against 1.4369
+    (`results/paper_baseline_ladder.csv`). Every sequence model trained here loses
+    to it once history length is equalized
     (`results/phase7_lstm_summary.csv`,
     `results/flat12_train85_sensitivity.csv`). (3) Both are compared with Li and
     Kusche's GRACE-FCast on CSR and JPL mascons under one protocol and one

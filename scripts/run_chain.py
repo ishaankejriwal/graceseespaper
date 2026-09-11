@@ -282,7 +282,7 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
     ("conventional_metrics",
      ["scripts/compute_conventional_metrics.py"],
      [DATA / "basin_month_twsa_global.csv", RESULTS / "phase2_baseline_predictions.csv",
-      RESULTS / "kalman_predictions.csv"],
+      RESULTS / "kalman_predictions.csv", RESULTS / "flat12_ridge_predictions.csv"],
      [RESULTS / "conventional_metrics_perbasin.csv", RESULTS / "conventional_metrics_summary.csv"]),
 
     ("figures",
