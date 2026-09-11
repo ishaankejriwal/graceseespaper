@@ -1795,3 +1795,82 @@ result CSV, `src/` module or other script changed. Items by the audit's numberin
 Checks: `make_figures.py` exit 0 with all asserts; PDF compiles with zero errors, zero
 undefined references and zero missing files; `pytest tests -q` 28 passed.
 
+
+## 2026-09-11 - Manuscript readability rewrite (register of the field)
+
+User verdict on the previous draft: jargony, convoluted, "reads like AI", not a clear
+scientific paper. Rewrote `paper/main.tex` in two passes to match the register of the GRACE
+forecasting literature, after a survey of how Li & Kusche 2026 (WRR), Li B. et al. 2026 (HESS),
+Zhu et al. 2019, Nie et al. 2025, Humphrey & Gudmundsson 2019 and the HESS author guidelines
+handle abstracts, numbers in prose, terminology and figures. No result CSV, `src/` module or
+runner changed; no number in the paper changed (numeral-multiset diff against the committed
+text plus two independent number-integrity audits, all tables recomputed digit for digit).
+
+Prose and structure:
+
+1. Terminology locked to the field's: "benchmark" (not "reference ladder"), "lead time"
+   (not "lead"), model abbreviations defined once in Table 1 and used everywhere (KF,
+   KF-R1, KF-R12, KF-R12E, KF-R1E, MLP, residual MLP, LSTM), "GRACE-FCast" (not "the
+   published product"), "fully covered basin set" (not "strict subset"), "rho^h variant"
+   (not "AR(1) variant", which collided with the filter's AR(1) state), "basin-months"
+   (not "rows"). Coined terms dropped: anchor observation, reference ladder, retained
+   models, noise-free filter / mission-split filter (now KF variants).
+2. Abstract rewritten HESS-style (context, gap, method, headline numbers, implication),
+   no p values, with the standardized-versus-centimeter caveat and the persistence-class
+   caveat on the 1-month result. Introduction ends with three explicit questions.
+3. Results give the pattern plus one or two anchor numbers and point to the tables;
+   six-lead vectors and four-decimal RMSEs moved out of prose. Exact p values appear in
+   prose only for marginal results; thresholds elsewhere, each verified against the exact
+   p (seven rounded-edge cases caught by the auditor, e.g. 0.013075 is not <= 0.013).
+4. All audit-trail and workflow voice removed from rendered text ("archived files", "was
+   completed before X was built", "we count five, not six", reciprocal-transform storage
+   explained three times, the stacked-ensemble disclosure paragraph). Aphoristic "X, not
+   Y" sentences, "what it cannot do is", "settles the point", "pays for itself" rewritten.
+   Sentences over ~45 words split. Section 5.2 (restated the introduction) folded into 5.1.
+5. Standard content added: physical-units meaning of the margin (pooled RMSE 5.32 -> 5.13
+   cm, median 2.74 -> 2.66 cm at 1 month); operational-latency caveat moved to Limitations
+   (real-time lead 3-4 months); basin-versus-grid scope; nonlinear models untuned; JPL
+   mechanism hedged at the point of claim.
+6. Corrections of my own first-pass overstatements caught by the number auditor: JPL damped
+   persistence vs full at h2 is a tie (+4.1 %, p 0.49), so "loses from 3 months on JPL";
+   "mean squared error less than half the product's" applies only to the non-seasonal
+   +52.9 %. Also fixed: KF-R12E "moves the crossing one lead later" (same win/tie/loss
+   pattern as KF; only the interpolated crossing shifts), "fewer than six years" of
+   GRACE-FO months (fold 5 has 6.7 years; now "fewer than seven"), double bold in Table 2
+   h4, Fig. 5 caption axis limit (-40, not -42).
+
+   A third pass applied a second cold-referee round: abstract cut to ~290 words with the
+   noise ablation stated as "almost all of the margin"; conclusions rewritten to state
+   consequences instead of repeating the abstract; the "same order as many published
+   margins" clause (uncited) removed; ERA5-Land anomaly construction now defined in Sect.
+   3.5 (same trend-plus-harmonics fit, train std, clipped at 10 sigma); the reciprocal
+   conversion note moved from Methods to a Table 5 footnote; Nie/Zhang restatements and
+   the fourfold mission-gap disclaimer cut; "sequence models" -> "nonlinear models" where
+   the MLP is included; "up to 12 %" -> "up to 15 %" (JPL weaker variant at h4); Fig. 5
+   caption axis limit -42 (script YLO), Table B2 p 0.050.
+
+Tables and figures:
+
+7. NEW Fig. 3 (`fig03_example_series`): observed anomaly and 1-month forecasts of damped
+   persistence and KF in cm for the Saharan and Algerian Atlas, East Nile Delta, Danube
+   and Amazon, over the full test window; per-panel RMSE asserted against
+   `conventional_metrics_perbasin.csv`. Figures renumbered by first citation: 4 mechanism,
+   5 ERA5 where, 6 sequence models, 7 crossing; files, functions, chain outputs renamed.
+8. NEW Table B2: JPL benchmark table (skill vs stronger damped variant and p, nine rows).
+   Table 5 gained the JPL block (KF vs full / non-seasonal) and the damped-persistence-vs-
+   full rows on both products, so the persistence-class caveat is checkable in the table.
+9. Figure text neutralized: panel titles describe rather than argue ("where the ERA5
+   window pays" -> "1-month skill of KF-R12E over KF"), "we are ahead" -> "our forecast
+   better", legend names are the Table 1 abbreviations, crossing-value block removed from
+   Fig. 7 (triangles stay), rho^h label in Fig. 4c, mathtext p in Fig. 6b. Fig. 5 build
+   now records the training-window std range of the 45 FDR-significant basins (max 8.07
+   cm) in BUILD_NOTES, backing the "below 9 cm" statement.
+
+Docs: `docs/ARCHIVE_MANIFEST.md` regenerated for the new numbering and tables;
+`docs/STUDY_CONTEXT.md`, `docs/CODE_MAP.md`, `README.md` and `scripts/run_chain.py`
+(figures step inputs/outputs) brought to the current state; stale "manuscript not yet
+rewritten" notes removed. Memory: terminology and register rules recorded.
+
+Checks: `make_figures.py` exit 0 with every source assert; PDF 30 pages, zero errors,
+zero undefined references, zero overfull boxes; `pytest tests -q` 28 passed; two audit
+agents (cold referee, number integrity) run on each pass and their findings applied.

@@ -19,12 +19,11 @@ only what needs a network or credentials: downloading the CSR mascon + ancillary
 files, the basin mask, ERA5 (scripts/download_era5.py), the Li 2026 archive, and the
 climate indices (scripts/download_indices.py). See README "Getting set up".
 
-figures is EXTENDED, not default (audit 2026-09-10). The manuscript figures still
-read twelve files that only extended steps produce — phase8b_merge, phase8_strat,
-phase3b, surrogates, phase5_stats, phase6_era5 and the conditioned neighbor run — so
-declaring it default promised a spine that could not finish on a default-only
-machine. It moves back to DEFAULT when the manuscript figures are rebuilt on
-spine-only inputs.
+figures is EXTENDED, not default. The seven manuscript figures (rebuilt 2026-09-11) read
+spine outputs plus two torch outputs, phase7_lstm_summary.csv and
+phase7_lstm_predictions.csv (Fig. 6, the sequence models), and the versioned JPL
+comparison tables under results/jpl/, so a default-only machine cannot finish it. It
+would move to DEFAULT only if Fig. 6 were dropped or its inputs versioned.
 
 Usage:
   python scripts/run_chain.py             # default step list, in order
@@ -33,9 +32,9 @@ Usage:
   python scripts/run_chain.py --steps a b # explicit subset, in the order given
   python scripts/run_chain.py --list      # show steps and their dependencies
 
-The figures step reads several extended outputs (phase 3b, phase 5, phase 6 ERA5,
-phase 8). Running it on a machine that has only ever run the default list is blocked
-with the missing files named. That is the dependency check working, not a defect.
+The figures step reads the two phase-7 LSTM outputs named above. Running it on a
+machine that has only ever run the default list is blocked with the missing files
+named. That is the dependency check working, not a defect.
 
 kalman_fold_params.pkl is deliberately absent from every step's OUTPUT list: it is a
 content-addressed cache (src/gracefc/cache.py) that flat12_ridge (default) and phase3b
@@ -287,18 +286,23 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 
     ("figures",
      ["scripts/make_figures.py"],
-     [MASK_NC, DATA / "basin_meta.csv",
+     [MASK_NC, DATA / "basin_meta.csv", DATA / "basin_month_twsa_global.csv",
+      DATA / "li2026_basin_coverage.csv",
       RESULTS / "paper_baseline_ladder.csv", RESULTS / "paper_baseline_contrasts.csv",
-      RESULTS / "phase8b_li_comparison_headline.csv", RESULTS / "phase8b_li_comparison_perbasin.csv",
-      RESULTS / "phase8b_h16_ensemble_headline.csv", RESULTS / "phase8b_h16_headline.csv",
-      RESULTS / "phase8_stratification.csv", RESULTS / "phase3b_summary.csv",
-      RESULTS / "phase3b_placebo_monthly.csv",
-      RESULTS / "phase4_surrogate_summary.csv", RESULTS / "phase5_perbasin_fdr_h1.csv",
-      RESULTS / "phase6_era5_headline.csv",
-      RESULTS / "phase6_era5_predictions.csv", RESULTS / "phase4_conditioned_predictions.csv"],
+      RESULTS / "conventional_metrics_perbasin.csv", RESULTS / "conventional_metrics_summary.csv",
+      RESULTS / "phase2_baseline_predictions.csv", RESULTS / "kalman_predictions.csv",
+      RESULTS / "flat12_ridge_predictions.csv", RESULTS / "flat12_train85_sensitivity.csv",
+      RESULTS / "kalman_mission_summary.csv", RESULTS / "r0_ablation_summary.csv",
+      RESULTS / "phase6_li_comparison_headline.csv", RESULTS / "phase6_li_comparison_perbasin.csv",
+      RESULTS / "phase6_li_comparison_summary.csv",
+      RESULTS / "jpl" / "phase6_li_comparison_headline.csv",
+      RESULTS / "jpl" / "phase6_li_comparison_perbasin.csv",
+      RESULTS / "jpl" / "phase6_li_comparison_summary.csv",
+      RESULTS / "phase7_lstm_summary.csv", RESULTS / "phase7_lstm_predictions.csv"],
      [FIGURES / f"{stem}.pdf" for stem in
-      ("fig01_benchmark_ladder", "fig02_crossing", "fig03_neighbor_map", "fig04_controls",
-       "fig05_delivery", "fig06_complementarity", "fig08_stratification")]),
+      ("fig01_basins", "fig02_benchmark_ladder", "fig03_example_series",
+       "fig04_filter_mechanism", "fig05_era5_where", "fig06_sequence_models",
+       "fig07_crossing")]),
 
     ("manifest",
      ["scripts/make_manifest.py"],
@@ -309,8 +313,8 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 # Kalman reference forecast and its flat-12 ridge correction, the mission-split
 # sensitivity, the ladder, the cross-product comparison, the conventional metrics and
 # the manifest. It needs no torch and touches no neighbor experiment. figures is NOT
-# here: it declares twelve inputs that only extended steps produce (see the module
-# docstring), so a default-only machine would be blocked at it.
+# here: it declares the two phase-7 LSTM outputs as inputs (see the module docstring),
+# so a default-only machine would be blocked at it.
 DEFAULT = [
     "build_basin", "build_era5", "build_li", "phase2", "kalman", "flat12_ridge",
     "kalman_mission", "r0_ablation", "ladder", "li_comparison",

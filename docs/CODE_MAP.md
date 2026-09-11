@@ -4,7 +4,7 @@ A tour of the code, written for someone who has never opened this project.
 Read the [README](../README.md) first — it explains what the study is actually about. This page
 explains where things live and which file to open when.
 
-Last updated: 2026-09-10.
+Last updated: 2026-09-11.
 
 ---
 
@@ -102,11 +102,8 @@ only by extended steps, namely `phase8b_li_comparison_headline.csv`,
 `phase8b_h16_headline.csv`, `phase8_stratification.csv`, `phase3b_summary.csv`,
 `phase3b_placebo_monthly.csv`, `phase4_surrogate_summary.csv`, `phase5_perbasin_fdr_h1.csv`,
 `phase6_era5_headline.csv`, `phase6_era5_predictions.csv` and
-`phase4_conditioned_predictions.csv`. `make_figures.py` also opens four undeclared extended
-files at runtime (`phase8_lstm_combined_predictions.csv`, `phase8b_lstm_h46_predictions.csv` and
-the two matching `_placebo_monthly.csv`, at around lines 375 and 392), which the dependency
-check cannot see. The manuscript figures have not been rebuilt for the reframe; the step moves
-back to default when they are.
+`phase4_conditioned_predictions.csv`. `make_figures.py` reads spine outputs plus the two phase-7 LSTM files for Fig. 6 and the
+versioned JPL comparison tables, so the figures step stays extended.
 
 ### Getting data in
 
@@ -163,7 +160,7 @@ The extended list, which is every remaining experiment.
 | `data/processed/` | The clean tables everything else reads, mainly `basin_month_twsa_global.csv`. |
 | `results/` | Every output. `*_headline.csv` and `*_summary.csv` = the scores (**start here**, and see `results/README.md`); `*_predictions.csv` = every individual forecast (large); `RUN_LOG.md` = the diary. `results/jpl/` holds the compact JPL tables from the collaborator's run. |
 | `figures/` | The paper's charts, plus `BUILD_NOTES.md` tracing every plotted number to its source file. |
-| `paper/` | `main.tex` is the manuscript. `paper/notes/` holds the drafting record, most importantly `REWRITE_LEDGER.md`, the only authoritative list of the paper's numbers. The ledger is pre-reframe: it still lists the earlier three-finding numbers and will be regenerated after the manuscript rewrite, the same status `docs/STUDY_CONTEXT.md` and `docs/ARCHIVE_MANIFEST.md` record. |
+| `paper/` | `main.tex` is the manuscript (Kalman-benchmark structure, readability rewrite 2026-09-11). `paper/notes/` holds the drafting record; `REWRITE_LEDGER.md` there predates the reframe and is historical. `docs/ARCHIVE_MANIFEST.md` is the authoritative list of the paper's numbers. The ledger is pre-reframe: it still lists the earlier three-finding numbers and will be regenerated after the manuscript rewrite, the same status `docs/STUDY_CONTEXT.md` and `docs/ARCHIVE_MANIFEST.md` record. |
 | `archive/` | A frozen snapshot of results from before the 2026-08-13 audit, checksummed. Never overwrite it — it's how we prove what changed. |
 | `notebooks/` | Two notebooks for interactive poking. They only read results; running them can't change anything. Outputs are cleared on purpose. |
 | `docs/reference/` | The Li & Kusche paper, compressed, for the head-to-head comparison. |
@@ -183,18 +180,18 @@ raw satellite file + basin boundaries
     |  build_basin_series.py
 one table: water storage per basin per month  (+ build_era5, build_li)
     |  run_phase2_baselines.py
-the reference ladder: climatology, persistence, damped persistence, three ridges
+the benchmark set: climatology, persistence, damped persistence, three ridges
     |  run_kalman_baseline.py
-CLAIM 1: the Kalman filter is the reference forecast these should be scored against
+CLAIM 1: the Kalman filter (KF) is the benchmark these should be scored against
     |  run_flat12_ridge.py
-CLAIM 2: filter + ridge over a flat 12-month window of filtered state and ERA5 is the
-         strongest own-basin model at leads 1 to 4 in standardized units (at 5 and 6
-         the own-state ridge correction edges it; in raw cm the plain flat-12 ridge leads)
+CLAIM 2: KF + ridge over a 12-month window of filtered state and ERA5 (KF-R12E) is the
+         best own-basin model at leads 1 to 4 in standardized units (at 5 and 6 the
+         one-coefficient ridge KF-R1 edges it; in raw cm KF-R12 without ERA5 leads)
     |  run_kalman_mission_sensitivity.py, run_r0_ablation.py
 the two sensitivities: the mission split loses, the noise removal is what earns the win
     |  build_paper_ladder.py, run_phase6_li_comparison.py
-CLAIM 3: both models against the published product on CSR, the Kalman reference on JPL
-         (JPL rerun pending), one subset rule
+CLAIM 3: KF and KF-R12E against GRACE-FCast on CSR, KF alone on JPL (JPL rerun
+         pending), one fully-covered-basin rule for both products
     |  compute_conventional_metrics.py, make_manifest.py   (make_figures.py is extended)
 paper/main.tex
 ```

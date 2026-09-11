@@ -107,7 +107,7 @@ flat-12 ridge without ERA5, `ridge_own_flat12`, has the lowest pooled RMSE at le
 ridge correction is lowest among retained models at leads 4 to 6, and the ERA5 ridge sits behind
 the plain filter at every lead (`results/conventional_metrics_summary.csv`, column
 `pooled_rmse_cm`). The ERA5 gain is therefore concentrated in basins with small storage
-variance, and the paper has to state which weighting a ranking refers to. Measured against the Kalman reference itself, `ridge_own_era5_flat12` adds +7.6% at
+variance, and the paper has to state which weighting a ranking refers to. Measured against the Kalman filter (KF) itself, `ridge_own_era5_flat12` adds +7.6% at
 lead 1, decaying to +0.9% and not significant by lead 6
 (`results/paper_baseline_contrasts.csv`).
 
@@ -120,8 +120,8 @@ equalized the flat ridge is ahead of the two-seed LSTM ensemble by +1.0/+2.8/+2.
 ### Claim 3: against a published product we win at short leads and lose at long ones
 
 We compare both of our models against Li and Kusche's published GRACE-FCast product on the CSR
-mascons, and the Kalman reference alone on the JPL mascons, under one protocol and one strict
-subset rule. The JPL run predates the flat-12 step, so `ridge_own_era5_flat12` has no JPL rows
+mascons, and the Kalman filter (KF) alone on the JPL mascons, under one protocol and one fully-covered-basin
+rule. The JPL run predates the flat-12 step, so `ridge_own_era5_flat12` has no JPL rows
 yet (`results/jpl/phase6_li_comparison_headline.csv`); the JPL rerun is pending. The rule
 (`joint_full_cells`) keeps a basin only if it fully contains at least one native mascon of the
 product being scored and at least one valid 1-degree Li cell. That leaves 209 of 227 basins on
@@ -132,21 +132,21 @@ CSR and 67 on JPL (`results/phase6_li_comparison_summary.csv`,
 
 On CSR, over 209 basins and 60 months (`results/phase6_li_comparison_headline.csv`):
 
-- the Kalman reference beats Li's full product by **+16.4% at lead 1** (p = 2.2e-3), ties at
+- the Kalman filter (KF) beats Li's full product by **+16.4% at lead 1** (p = 2.2e-3), ties at
   lead 2 (-6.0%, p = 0.23), and loses from lead 3 on (-16.3% to -35.4%);
 - `ridge_own_era5_flat12` beats Li's non-seasonal product by **+32.8% at lead 1** and **+11.2%
   at lead 2** (p = 2.4e-10 and 2.1e-3), ties at lead 3 (-0.2%, p = 0.94), and loses from lead 4
   on.
 
 Basin by basin it is a close split that tips over as the lead grows: Li's full product has the
-lower error in 98 of the 209 basins against the Kalman reference at lead 1 and in 157 of 209 at
+lower error in 98 of the 209 basins against the Kalman filter (KF) at lead 1 and in 157 of 209 at
 lead 6, and in 87 of 209 against `ridge_own_era5_flat12` at lead 1 and 162 of 209 at lead 6
 (`results/phase6_li_comparison_perbasin.csv`, column `a_better`, scored on the
 `joint_full_cells` basins).
 
 On JPL, over 67 basins and 59 months, on the collaborator's run
 (`results/jpl/phase6_li_comparison_headline.csv`, reported Li-first, so a negative skill means
-we are ahead): Li's non-seasonal product scores -1.12 against the Kalman reference at lead 1
+we are ahead): Li's non-seasonal product scores -1.12 against the Kalman filter (KF) at lead 1
 (p = 1.3e-13) and -0.29 at lead 2 (p = 2.1e-5), draws at lead 3 (-0.07, p = 0.15), and is ahead
 at leads 5 and 6.
 
@@ -487,11 +487,11 @@ dependencies with `--source jpl --steps phase7_gnn`. Publication figures are not
 JPL because their assertions intentionally pin the manuscript's archived CSR numbers.
 
 The JPL-versus-Li tables report two spatial samples. `all_matched` retains every basin/date
-available to every compared model. `joint_full_cells` is the strict resolution sensitivity:
+available to every compared model. `joint_full_cells` is the fully covered basin set:
 a basin must contain every 0.25-degree mask subcell of at least one native JPL `mascon_ID`
 and all sixteen subcells of at least one finite 1-degree Li forecast cell. This is a literal
 containment test, not an area or fractional-coverage proxy. The per-basin Li diagnostics and
-JPL hybrid comparison use this strict subset, while both pooled samples remain in the summary
+JPL hybrid comparison use this fully covered basin set, while both pooled samples remain in the summary
 and headline CSVs so the effect of the spatial restriction is visible.
 
 Compact JPL headline, summary, statistical, and basin-diagnostic tables are versioned under
@@ -521,12 +521,11 @@ A few conventions. Please don't break them — each one exists because something
 
 - **`results/RUN_LOG.md` is append-only.** It's a diary of what was true when each batch ran.
   Never edit an old entry to match a newer result. Add a new entry instead.
-- **`paper/notes/REWRITE_LEDGER.md` is the only authoritative source for numbers in the paper.**
-  If you change a result, update the ledger and the matching hardcoded assert in
-  `scripts/make_figures.py`; the figure build then re-verifies the plotted values. The ledger as
-  it stands is pre-reframe: its numbers still describe the earlier three-finding manuscript, and
-  it will be regenerated after `paper/main.tex` is rewritten. `docs/STUDY_CONTEXT.md` and
-  `docs/ARCHIVE_MANIFEST.md` carry the same status note.
+- **Every number in `paper/main.tex` carries a `% source:` comment, and `docs/ARCHIVE_MANIFEST.md`
+  maps every table and figure to its source file.** If you change a result, update the source
+  comment and the matching hardcoded assert in `scripts/make_figures.py`; the figure build then
+  re-verifies the plotted values. `paper/notes/REWRITE_LEDGER.md` is the pre-reframe ledger and
+  is kept only as history.
 - **Don't touch `archive/`.** It's a frozen snapshot of pre-audit results, checksummed. It exists
   so we can always show what changed and when.
 - **Big result files aren't in git.** They regenerate from the code plus raw data.

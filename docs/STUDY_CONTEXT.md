@@ -1,6 +1,6 @@
 # Project Context — Global TWSA Forecasting Study
 
-Last updated: 2026-09-10.
+Last updated: 2026-09-11.
 
 What a new collaborator needs today: what the study is, what it claims, where each number comes
 from, how to run it, and what is still open. Per-run history lives in `results/RUN_LOG.md`; code
@@ -163,12 +163,10 @@ files. Two of the fourteen are default outputs, `paper_baseline_ladder.csv` and
 `phase5_perbasin_fdr_h1.csv`, `phase6_era5_headline.csv`, `phase6_era5_predictions.csv` and
 `phase4_conditioned_predictions.csv`.
 
-`scripts/make_figures.py` additionally opens four undeclared files at runtime, all extended
-outputs: `phase8_lstm_combined_predictions.csv`, `phase8b_lstm_h46_predictions.csv`,
-`phase8_lstm_combined_placebo_monthly.csv` and `phase8b_lstm_h46_placebo_monthly.csv`, at around
-lines 375 and 392. The dependency check cannot report those missing, so the script fails on the
-open instead. The manuscript figures have not been rebuilt for the reframe; `figures` returns to
-the default list when they are. `--extended --source jpl` skips it rather than failing on it.
+`scripts/make_figures.py` reads spine outputs plus the two phase-7 LSTM files
+(`phase7_lstm_summary.csv`, `phase7_lstm_predictions.csv`) for Fig. 6 and the versioned JPL
+comparison tables under `results/jpl/`; `figures` therefore stays extended. `--extended --source
+jpl` skips it rather than failing on it.
 
 Default-tail wall times on the 2026-09-10 CSR rerun: `build_li` 5.9 min, `flat12_ridge` 2.0 min,
 `kalman_mission` 29 min, `ladder` 1.0 min, `li_comparison` 6.0 min, `conventional_metrics`
@@ -187,16 +185,21 @@ Default-tail wall times on the 2026-09-10 CSR rerun: `build_li` 5.9 min, `flat12
 
 ## Where things stand
 
-The manuscript `paper/main.tex` has **not** been rewritten for this reframe. It still describes
-the earlier three-finding structure with the neighbour effect as a contribution, and its figures
-and its `paper/notes/REWRITE_LEDGER.md` numbers still match that structure. Do not read
-`main.tex` as a description of the current claims. `docs/ARCHIVE_MANIFEST.md` carries the same
-warning about its table and figure mapping.
+The manuscript `paper/main.tex` describes the three claims above (rewritten 2026-09-11 to the
+Kalman-benchmark structure, then rewritten again the same day for readability in the register
+of the field: HESS-style abstract, "benchmark" and "lead time" terminology, model abbreviations
+KF / KF-R1 / KF-R12 / KF-R12E / KF-R1E defined in its Table 1, numbers moved from prose into
+tables, no numbers changed). It compiles to 31 pages with seven figures at text width; Fig. 3 is
+the example time-series figure (four basins, 1-month forecasts of damped persistence and KF in
+cm, RMSE asserted against `conventional_metrics_perbasin.csv`). `docs/ARCHIVE_MANIFEST.md` maps
+every table and figure to its source file. `paper/notes/REWRITE_LEDGER.md` predates the
+reframe and is historical only.
 
 ## Open items
 
-- Rewrite `paper/main.tex` to the three claims above, then rebuild the figures and regenerate
-  the `docs/ARCHIVE_MANIFEST.md` mapping.
+- Mint the Zenodo DOI and replace the placeholder in the code and data availability statement.
+- Score the ridge models (KF-R12, KF-R12E) on JPL so the GRACE-FCast comparison there is not
+  KF-only (manuscript limitation 2).
 - `scripts/run_phase8b_merge.py` and `scripts/run_phase6_hybrid.py` are extended steps and still
   gate `joint_full_cells` on `source() == "jpl"`. The rest of the pipeline now applies the subset
   rule to both products; these two have not been updated. Anything read out of

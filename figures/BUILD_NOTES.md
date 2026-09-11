@@ -14,10 +14,10 @@ zero line wherever skill is plotted, and no default matplotlib colours.
 Sign convention: `skill = 1 - MSE(first)/MSE(second)`, so positive means the
 first-named model is better.
 
-Model names in legends are the manuscript's (Table 1): Kalman reference,
-state ridge, flat-12 ridge, ERA5 flat-12 ridge, ERA5 lag ridge, per-basin
+Model names in legends are the manuscript's (Table 1): KF, KF-R1,
+KF-R1, KF-R12, KF-R12E, KF-R1E, per-basin
 lag ridge, pooled lag ridge, damped persistence, persistence, climatology,
-flat-history MLP, LSTM ensemble, published product (full), published
+MLP, LSTM ensemble, GRACE-FCast (full), published
 product (non-seasonal). No code identifier appears in a legend.
 
 Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
@@ -26,7 +26,7 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
 ## `fig01_basins`
 
 - **Print width**: double column (17 cm), two stacked map panels
-- **Shows**: the 234-basin sample, split by how each basin enters the comparison against the published product, on CSR (a) and JPL (b)
+- **Shows**: the 234-basin sample, split by how each basin enters the comparison against GRACE-FCast, on CSR (a) and JPL (b)
 - **Sources**:
   - `HydroShed+Mascon_Basins_L3.nc (via gracefc.basins.load_basin_masks)`
   - `data/processed/basin_meta.csv`
@@ -55,9 +55,9 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
   - `results/paper_baseline_contrasts.csv`
   - `results/conventional_metrics_summary.csv`
 - **Asserted against source**:
-  - Kalman reference lead-1 skill +4.98 % (and +8.79/+5.62/+3.07/+2.55/+3.63 % at leads 2-6)
-  - ERA5 flat-12 ridge +12.24/+13.71/+9.61/+6.16/+4.58/+4.47 %
-  - pooled lead-1 RMSE 5.128 cm (Kalman reference), 5.118 cm (flat-12 ridge), 5.231 cm (ERA5 flat-12 ridge)
+  - KF lead-1 skill +4.98 % (and +8.79/+5.62/+3.07/+2.55/+3.63 % at leads 2-6)
+  - KF-R12E +12.24/+13.71/+9.61/+6.16/+4.58/+4.47 %
+  - pooled lead-1 RMSE 5.128 cm (KF), 5.118 cm (flat-12 ridge), 5.231 cm (KF-R12E)
   - every CI ribbon's point estimate equals the ladder curve it wraps
   - `damped_ref` is rho at lead 1 and the regression variant at leads 2-6
 - **Caveats the caption must carry**:
@@ -65,7 +65,7 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
   - Panel (a) has a broken vertical axis: climatology and persistence sit far below the rest of the field.
   - Panel (b) excludes the stacked ensemble, which is an extended-chain arm and not part of the ladder.
 
-## `fig03_filter_mechanism`
+## `fig04_filter_mechanism`
 
 - **Print width**: double column (17 cm), three panels
 - **Shows**: (a) the filter with and without the observation-noise term; (b) the two-variance mission-split filter against the one-variance filter; (c) per-basin lead-1 skill of the filter over damped persistence
@@ -83,10 +83,10 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
   - Panel (a) is scored against the regression damped variant at every lead, which is the reference r0_ablation_summary.csv uses, and carries no confidence interval: the shading is the gap between the two curves. Fig. 2 and Table 2 use the stronger variant per lead, so the lead-1 Kalman value differs (+6.21 % here, +4.98 % there). Panel (b) is the mission-split filter against the one-variance filter, with a 95 % block-bootstrap CI.
   - Panel (c) is a per-basin RMSE ratio in raw cm (conventional_metrics_perbasin.csv), not the pooled standardized skill; its reference is the AR(1) damped variant, the stronger one at lead 1; and the colour scale is clipped at 20 % (both ends extended).
 
-## `fig04_era5_where`
+## `fig05_era5_where`
 
 - **Print width**: double column (17 cm), two panels
-- **Shows**: (a) per-basin lead-1 skill of the ERA5 flat-12 ridge over the Kalman reference, with BH-FDR significant basins hatched; (b) the same skill against each basin's training-window storage variability
+- **Shows**: (a) per-basin lead-1 skill of KF-R12E over the Kalman reference, with BH-FDR significant basins hatched; (b) the same skill against each basin's training-window storage variability
 - **Sources**:
   - `results/flat12_ridge_predictions.csv`
   - `data/processed/basin_month_twsa_global.csv`
@@ -100,14 +100,15 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
   - Spearman rho = -0.1436 (p = 0.0281), pinned to -0.1436
   - the DM sign agrees with the plotted per-basin skill for every significant basin
 - **Caveats the caption must carry**:
+  - training-window std of the 45 BH-significant basins: min 1.13 cm, max 8.07 cm; sample max 48.50 cm
   - Significance is a per-basin Diebold-Mariano test on the monthly squared-loss differential with a Newey-West HAC lag of max(h-1, 1) (gracefc.stats.per_basin_dm_fdr, the same routine the per-basin FDR scripts use), then Benjamini-Hochberg at q = 0.10.
   - Panel (b) clips 3 basin(s) below its lower axis limit of -42 %; the panel says so in its corner annotation.
   - The x axis of panel (b) is the median, across the five expanding-window folds, of the per-basin training-window standard deviation of the deseasonalized target, recomputed with gracefc.evaluate.deseasonalize_fold. The per-fold values move by a median of 13 % across folds, so the median is used as the single basin-level scale.
 
-## `fig05_sequence_models`
+## `fig06_sequence_models`
 
 - **Print width**: double column (17 cm), two panels
-- **Shows**: (a) leads 1-3 skill over the Kalman reference for the ERA5 lag ridge, the two flat-12 ridges, the flat-history MLP seeds and the LSTM ensemble; (b) the ERA5 flat-12 ridge against the LSTM ensemble once the training window is equalized
+- **Shows**: (a) leads 1-3 skill over KF for KF-R1E, the two KF-R12s, the MLP seeds and the LSTM ensemble; (b) KF-R12E against the LSTM ensemble once the training window is equalized
 - **Sources**:
   - `results/phase7_lstm_summary.csv`
   - `results/phase7_lstm_predictions.csv`
@@ -117,35 +118,35 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
 - **Asserted against source**:
   - every point estimate reproduces the rmse_std ratio in `phase7_lstm_summary.csv` to 0.002 %
   - the flat-12 arms also reproduce their rows in `paper_baseline_contrasts.csv` against `kalman_ar1`
-  - ERA5 flat-12 ridge over the Kalman reference, lead 1 = +7.65 %
-  - LSTM ensemble over the Kalman reference = +6.534/+2.743/+2.186 %
-  - equalized-window ERA5 flat-12 ridge over the LSTM ensemble = +1.02 % / +2.76 % / +2.27 % (expected +1.02 / +2.76 / +2.27 %)
+  - KF-R12E over KF, lead 1 = +7.65 %
+  - LSTM ensemble over KF = +6.534/+2.743/+2.186 %
+  - equalized-window KF-R12E over the LSTM ensemble = +1.02 % / +2.76 % / +2.27 % (expected +1.02 / +2.76 / +2.27 %)
   - the seed-mean ensemble reproduces the published `lstm_own_era5_ens` comparison to 0.002 %
 - **Caveats the caption must carry**:
-  - Leads 1-3 only: the LSTM and flat-history MLP rows in phase7_lstm_summary.csv were never run past lead 3.
-  - The MLP plotted is the flat-history MLP (mlp_own_era5_flat12_s0/s1), not the residual MLP; the residual MLP has no prediction rows and appears in Table 4 only.
+  - Leads 1-3 only: the LSTM and MLP rows in phase7_lstm_summary.csv were never run past lead 3.
+  - The MLP plotted is the MLP (mlp_own_era5_flat12_s0/s1), not the residual MLP; the residual MLP has no prediction rows and appears in Table 4 only.
   - Error bars are 95 % moving-block bootstrap CIs recomputed from phase7_lstm_predictions.csv with gracefc.stats.block_bootstrap_skill_ci; the summary file stores no CI. The point estimates are asserted against its rmse_std column.
   - The LSTM ensemble is the mean of the two seed predictions. That reconstruction reproduces the published lstm_own_era5_ens comparison in flat12_train85_sensitivity.csv to 0.002 %.
   - Panel (b) is the equalized-training-window comparison: the ERA5 flat-12 ridge refit on 85 % of the window the LSTM sees, so neither model has a history-length advantage.
 
-## `fig06_crossing`
+## `fig07_crossing`
 
 - **Print width**: double column (17 cm), two panels, shared y axis
-- **Shows**: skill of our models over the published product by lead, with 95 % CIs, on CSR (a) and JPL (b); the crossover from ahead to behind sits between leads 2 and 3 on both products
+- **Shows**: skill of our models over GRACE-FCast by lead, with 95 % CIs, on CSR (a) and JPL (b); the crossover from ahead to behind sits between leads 2 and 3 on both products
 - **Sources**:
   - `results/phase6_li_comparison_headline.csv`
   - `results/jpl/phase6_li_comparison_headline.csv`
   - `results/jpl/phase6_li_comparison_summary.csv`
 - **Asserted against source**:
-  - CSR Kalman reference over the published product (full), lead 1 = +16.354 %
-  - CSR ERA5 flat-12 ridge over the published product (non-seasonal), leads 1-2 = +32.781 / +11.231 %
-  - JPL Kalman reference over the published product (full), lead 1 = +43.718 %, inverted from the stored -77.678 % and cross-checked against rmse_std
+  - CSR KF over the GRACE-FCast (full), lead 1 = +16.354 %
+  - CSR KF-R12E over the GRACE-FCast (non-seasonal), leads 1-2 = +32.781 / +11.231 %
+  - JPL KF over the GRACE-FCast (full), lead 1 = +43.718 %, inverted from the stored -77.678 % and cross-checked against rmse_std
   - for all four CSR pairs, the value the file stores with our model first equals the reciprocal inversion of the reverse-direction row
   - CSR strict sample 12540 rows / 60 months / 209 basins; JPL 3953 rows / 59 months
-  - interpolated zero crossings: CSR Kalman reference vs published product (full): h = 1.73, CSR Kalman reference vs published product (non-seasonal): h = 2.65, CSR ERA5 flat-12 ridge vs published product (full): h = 1.92, CSR ERA5 flat-12 ridge vs published product (non-seasonal): h = 2.98, JPL Kalman reference vs published product (full): h = 2.62, JPL Kalman reference vs published product (non-seasonal): h = 3.53
+  - interpolated zero crossings: CSR KF vs GRACE-FCast (full): h = 1.73, CSR KF vs GRACE-FCast (non-seasonal): h = 2.65, CSR KF-R12E vs GRACE-FCast (full): h = 1.92, CSR KF-R12E vs GRACE-FCast (non-seasonal): h = 2.98, JPL KF vs GRACE-FCast (full): h = 2.62, JPL KF vs GRACE-FCast (non-seasonal): h = 3.53
 - **Caveats the caption must carry**:
-  - The JPL file reports the published product first. The figure inverts it as 1 - MSE(ours)/MSE(theirs), which is the reciprocal of the stored skill, not its negation; the script asserts the inverted values against rmse_std in the JPL summary.
-  - Both panels use the joint_full_cells subset. The JPL analysis was completed before the flat-12 models were built, so panel (b) carries the Kalman reference only.
+  - The JPL file reports GRACE-FCast first. The figure inverts it as 1 - MSE(ours)/MSE(theirs), which is the reciprocal of the stored skill, not its negation; the script asserts the inverted values against rmse_std in the JPL summary.
+  - Both panels use the joint_full_cells subset. The JPL analysis was completed before the flat-12 models were built, so panel (b) carries KF only.
 
 ## Things this build could not do as specified
 
@@ -154,7 +155,7 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
   compact headline, summary and per-basin CSVs are versioned here. The
   panel therefore shades the 67 strict basins and leaves the other 167 of
   the 234 CSR-kept basins neutral, and says so on the figure.
-- Fig. 5 covers leads 1-3 only. The LSTM and flat-history MLP were never
+- Fig. 5 covers leads 1-3 only. The LSTM and MLP were never
   run past lead 3, so there is no lead 4-6 row to plot.
 - `results/phase7_lstm_summary.csv` has no `skill_vs_kalman` column and no
   CI columns, so Fig. 5 recomputes both from
