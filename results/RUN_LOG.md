@@ -1416,3 +1416,137 @@ standardized units, and the correct remedy is the sample restriction, which is e
 so the CSR tables no longer score partially covered basins either. What a reader should NOT do
 is quote the JPL `all_matched` Li rows as a statement about the Li product's accuracy: they are
 a statement about the JPL target's smoothness.
+
+## 2026-09-10 — Kalman-benchmark reframe: code changes and CSR rerun
+
+The neighbour claim is out of the paper. The spine is now the per-basin Kalman
+AR(1)+observation-noise filter as the reference forecast, plus a ridge correction over a flat
+12-month history of the filtered state and ERA5. Two things had to change before that spine
+could stand on its own: the flat-12 ridge lived inside a torch script at leads 1-3 only, and
+the ladder and the Li comparison read their Kalman arms out of a neighbour experiment.
+
+### What changed
+
+- NEW `src/gracefc/experiment_flat12.py` + `scripts/run_flat12_ridge.py` (chain step
+  `flat12_ridge`). Emits `kalman_ar1`, `kalman_own_ridge`, `ridge_own_flat12` and
+  `ridge_own_era5_flat12` at leads 1-6 into `results/flat12_ridge_{predictions,summary}.csv`.
+  No torch. The window construction, the 12-month flattening and the ERA5 state tensor moved
+  out of `experiment_lstm.py` into this module; the LSTM engine imports them, so there is one
+  implementation and the two engines cannot drift.
+- `scripts/build_paper_ladder.py` and `scripts/run_phase6_li_comparison.py` no longer read
+  `phase3b_predictions.csv`. `kalman_ar1` comes from `kalman_predictions.csv`;
+  `kalman_own_ridge`, `ridge_own_flat12`, `ridge_own_era5_flat12` from the flat-12 file.
+  `kalman_corr_top1` and every other neighbour arm is gone from both model lists. The ladder
+  gains the two flat-12 models and the contrasts `ridge_own_flat12 vs kalman_ar1`,
+  `ridge_own_era5_flat12 vs kalman_ar1` and `ridge_own_era5_flat12 vs damped` at all six leads;
+  the Li headline now carries both orientations (Li as challenger and ours as challenger).
+- `scripts/build_li_basin_series.py` writes `n_full_native_mascons` into
+  `li2026_basin_coverage.csv` for BOTH products (JPL copies basin_meta's
+  `n_full_jpl_mascons`; CSR derives it from the official RL06.3 tile mapping through
+  `run_resolution_sensitivity.load_official_geometry`). `comparison.li_joint_support_table`
+  reads that product-neutral column. `run_phase6_li_comparison.py` drops its `source()=="jpl"`
+  guards: `all_matched`, `coverage_ge_0.5` and `joint_full_cells` are scored for both products,
+  per-basin on `joint_full_cells`.
+- `scripts/run_kalman_mission_sensitivity.py` uses `gracefc.runtime` paths and is registered as
+  chain step `kalman_mission`.
+- `scripts/run_chain.py` splits into DEFAULT (build_basin, build_era5, build_li, phase2, kalman,
+  flat12_ridge, kalman_mission, r0_ablation, ladder, li_comparison, conventional_metrics,
+  figures, manifest) and EXTENDED (every neighbour-only or torch step), reachable with
+  `--extended` or `--steps`. No script was deleted. `compute_conventional_metrics.py` treats the
+  stacked-LSTM predictions as optional so the default chain needs no torch. The params cache is
+  now produced by `flat12_ridge` in the default list, as `phase3b` did before.
+
+### Acceptance
+
+| check | max abs diff |
+|---|---|
+| flat12 `kalman_ar1`, `ridge_own_flat12`, `ridge_own_era5_flat12` h1-3 vs archived `phase7_lstm_predictions.csv` | 0.0 (bit-identical, 57 564 rows/model) |
+| flat12 `kalman_own_ridge` h1-6 vs archived `phase3b_predictions.csv` | 0.0 (113 022 rows) |
+| archived `phase3b` `kalman_ar1` vs `kalman_predictions.csv` | 0.0 |
+| archived `phase6_era5` `ridge_own` vs `phase3b` `kalman_own_ridge` (h1-3 only) | 0.0 — identically defined, but the file stops at lead 3, so the ladder takes it from the flat-12 step instead |
+| `paper_baseline_ladder.csv` / `paper_baseline_contrasts.csv`, all retained rows | 0.0 |
+| `phase6_li_comparison_summary.csv` `all_matched` and `coverage_ge_0.5`, retained models | 0.0 in rmse_std, n, n_basins, skill_vs_damped |
+| `phase6_li_comparison_headline.csv`, same subsets | 0.0 in skill, dm_stat, dm_p |
+| `conventional_metrics_{summary,perbasin}.csv` | 0.0 |
+| `li2026_csr_basin_forecasts.csv` after rebuild | byte-identical (sha256 0657c1f0…29c2) |
+
+One deliberate exception: the archived Li headline's `ci_lo`/`ci_hi` at leads 4-6 move by up to
+2.5e-2. Those bounds predate the 2026-08-15 block-length repair in
+`stats.block_bootstrap_skill_ci` (`block = max(3, horizon)`); recomputing with `block=3`
+reproduces the archived bounds to 1e-6. Skill and DM are unaffected. Regression tests pin the
+reproduced values, not the stale CIs.
+
+### Timings (CSR, this machine)
+
+| step | wall |
+|---|---|
+| build_li | 5.9 min |
+| flat12_ridge | 2.0 min (104 s in the experiment) |
+| kalman_mission | 29 min (folds 306/307/323/340/363 s) |
+| ladder | 1.0 min |
+| li_comparison | 6.0 min |
+| conventional_metrics | 0.7 min |
+| manifest | 0.2 min |
+
+### Headline numbers
+
+Ladder, matched rows (19 422 at h1 down to 18 252 at h6), skill vs damped persistence
+(rho variant), pooled-monthly DM p in brackets:
+
+| model | h1 | h2 | h3 | h4 | h5 | h6 |
+|---|---|---|---|---|---|---|
+| kalman_ar1 | +4.98% (3.5e-12) | +9.31% (1.4e-23) | +11.27% (2.5e-24) | +13.33% (7.1e-26) | +12.96% (4.0e-24) | +12.43% (3.8e-25) |
+| ridge_own_flat12 | +5.75% (5.8e-13) | +10.66% (1.4e-23) | +12.83% (5.7e-25) | +14.90% (2.6e-26) | +14.26% (4.7e-25) | +12.99% (1.4e-26) |
+| ridge_own_era5_flat12 | +12.24% (3.3e-18) | +14.20% (6.1e-23) | +15.02% (3.3e-24) | +16.10% (8.2e-26) | +14.78% (4.5e-26) | +13.19% (1.9e-28) |
+
+Against the stronger regression-damped variant the same three read +6.21/+8.79/+5.63/+3.07/
++2.55/+3.63%, +6.96/+10.14/+7.28/+4.83/+4.00/+4.24% and +13.38/+13.71/+9.61/+6.17/+4.58/+4.47%.
+
+Li comparison, CSR. `all_matched` is 227 basins / 13 620 rows; the strict `joint_full_cells`
+subset is 209 basins / 12 540 rows (229 basins contain a complete native CSR mascon, 211 a
+complete valid Li cell). `coverage_ge_0.5` is also 209 basins but not the same 209 — ten basins
+swap in each direction. Skill of ours over Li (positive = we are better), DM p in brackets, on
+`joint_full_cells`:
+
+| pair | h1 | h2 | h3 | h4 | h5 | h6 |
+|---|---|---|---|---|---|---|
+| kalman_ar1 vs li_lstm_full | +16.4% (2.2e-3) | -6.0% (0.23) | -16.3% (1.4e-3) | -23.2% (<1e-4) | -28.9% (<1e-4) | -35.4% (<1e-4) |
+| kalman_ar1 vs li_lstm_nonseas | +28.4% (<1e-4) | +7.5% (0.018) | -4.0% (0.13) | -13.4% (<1e-4) | -20.3% (<1e-4) | -27.1% (<1e-4) |
+| ridge_own_era5_flat12 vs li_lstm_full | +21.5% (4e-4) | -1.8% (0.74) | -12.1% (0.032) | -19.6% (1.7e-3) | -26.4% (1e-4) | -34.6% (<1e-4) |
+| ridge_own_era5_flat12 vs li_lstm_nonseas | +32.8% (<1e-4) | +11.2% (2.1e-3) | -0.2% (0.94) | -10.1% (3.2e-3) | -18.0% (<1e-4) | -26.4% (<1e-4) |
+
+`all_matched` tells the same story within a couple of points (kalman_ar1 vs li_lstm_full:
++14.6, -6.7, -16.3, -22.7, -28.2, -33.8%), which is the point of the diagnosis logged above:
+the strict rule matters a great deal on JPL and hardly at all on CSR.
+
+### Mission-split sensitivity
+
+The question was whether fitting a separate observation-noise variance for GRACE-FO changes the
+Kalman headline, given that every scored month is GRACE-FO. It does not help it; it hurts,
+consistently and significantly:
+
+| lead | kalman_mission RMSE | kalman_ar1 RMSE | skill of mission over kalman_ar1 | DM p |
+|---|---|---|---|---|
+| 1 | 1.0586 | 1.0490 | -1.84% [-2.48, -1.20] | 1.7e-07 |
+| 2 | 1.2001 | 1.1954 | -0.80% [-1.21, -0.41] | 1.1e-04 |
+| 3 | 1.2775 | 1.2734 | -0.65% [-0.98, -0.34] | 2.7e-04 |
+| 4 | 1.3401 | 1.3363 | -0.57% [-0.92, -0.27] | 5.3e-04 |
+| 5 | 1.3988 | 1.3951 | -0.53% [-0.92, -0.25] | 2.0e-03 |
+| 6 | 1.4511 | 1.4484 | -0.38% [-0.69, -0.17] | 6.0e-03 |
+
+The published margin over damped persistence survives under the two-r variant, just smaller:
++3.23/+8.06/+5.01/+2.51/+2.03/+3.27% against +4.98/+8.79/+5.62/+3.07/+2.55/+3.63% for the
+one-r filter. Per-basin at lead 1, BH-corrected: 0 basins helped, 0 hurt, 234 tested — the loss
+is diffuse, not driven by a handful of basins.
+
+234 of 1170 basin-folds fell back to a single r. That is exactly fold f1, whose training window
+closes 2019-06 and therefore carries fewer than MIN_FO_OBS = 12 GRACE-FO months; folds f2-f5 all
+fit two variances for every basin. Among the 936 fitted cells the median r_FO/r_GRACE is 2.40
+(IQR 1.09-9.53), so GRACE-FO noise is estimated HIGHER, and 21.6% of cells put it lower. The
+likelihood-ratio test rejects one r in 41.7% of cells at the 5% level, so the extra parameter is
+often justified in-sample and still loses out of sample — the usual overfitting signature, made
+worse by 216 of 936 cells pinning r_GRACE at its boundary. Verdict: keep the one-r filter; the
+mission split is a sensitivity, not an improvement.
+
+The regenerated one-r forecasts reproduce results/kalman_predictions.csv to max |dpred| =
+8.9e-16, so the comparison is a clean paired contrast.
