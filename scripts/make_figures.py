@@ -1,14 +1,13 @@
 """Publication figures for the GRACE TWSA forecasting paper (HESS, copernicus.cls).
 
-Builds the four figures marked "Buildable NOW" in paper/notes/FIGURE_PLAN.md
-(ADDENDUM 2026-08-15): F1, F2, F5, F8. F3/F4/F6/F7 are blocked on reruns.
+Every headline number plotted is asserted against paper/notes/REWRITE_LEDGER.md
+values to the printed precision; if an assert fires, the source data no longer
+matches the ledger and the figure must NOT be used.
 
-Reads ONLY results/*.csv. Every headline number plotted is asserted against
-paper/notes/REWRITE_LEDGER.md values to the printed precision; if an assert fires,
-the source data no longer matches the ledger and the figure must NOT be used.
-
-Outputs (vector PDF + 150 dpi PNG preview each) into figures/:
-    fig01_benchmark_ladder, fig02_crossing, fig05_delivery, fig08_stratification
+Outputs (vector PDF + 150 dpi PNG preview each) into figures/, in manuscript order:
+    fig01_basins, fig02_pipeline, fig03_benchmark_ladder, fig04_crossing,
+    fig05_controls, fig06_neighbor_map, fig07_delivery, fig08_stratification,
+    fig09_complementarity
 
 Usage:  .venv\\Scripts\\python.exe scripts\\make_figures.py
 """
@@ -144,8 +143,8 @@ def series(df, keys, value="skill_pct", horizon_col="horizon"):
 # F1 -- benchmark ladder
 # ---------------------------------------------------------------------------
 
-def fig01_benchmark_ladder():
-    print("F1 fig01_benchmark_ladder")
+def fig03_benchmark_ladder():
+    print("F1 fig03_benchmark_ladder")
     lad = pd.read_csv(RESULTS / "paper_baseline_ladder.csv")
     con = pd.read_csv(RESULTS / "paper_baseline_contrasts.csv")
 
@@ -242,15 +241,15 @@ def fig01_benchmark_ladder():
     axb.set_yticks([-22, -18, -14])
     axb.set_xticks(H)
     axb.set_xlim(0.75, 6.25)
-    save(fig, "fig01_benchmark_ladder")
+    save(fig, "fig03_benchmark_ladder")
 
 
 # ---------------------------------------------------------------------------
 # F2 -- the crossing vs GRACE-FCast (Li et al.)
 # ---------------------------------------------------------------------------
 
-def fig02_crossing():
-    print("F2 fig02_crossing")
+def fig04_crossing():
+    print("F2 fig04_crossing")
     li = pd.read_csv(RESULTS / "phase8b_li_comparison_headline.csv")
     li = li[li.subset == "all_matched"]
 
@@ -316,7 +315,7 @@ def fig02_crossing():
     ax.set_xlim(0.75, 6.25)
     ax.set_ylim(-42, 34)
     ax.legend(loc="upper right", handlelength=2.6)
-    save(fig, "fig02_crossing")
+    save(fig, "fig04_crossing")
     return win_str
 
 
@@ -330,8 +329,8 @@ def _pooled_mse(df, sum_col, count_col, by):
     return g
 
 
-def fig05_delivery():
-    print("F5 fig05_delivery")
+def fig07_delivery():
+    print("F5 fig07_delivery")
     ens = pd.read_csv(RESULTS / "phase8b_h16_ensemble_headline.csv")
     per = pd.read_csv(RESULTS / "phase8b_h16_headline.csv")
 
@@ -426,11 +425,18 @@ def fig05_delivery():
     fig, ax = plt.subplots(figsize=(12 * CM, 8.2 * CM))
 
     ax.axhline(0.0, color=REFGRAY, lw=0.8, zorder=1)
-    ax.fill_between(H, band_lo, band_hi, color=NULLGRAY, alpha=0.35, lw=0, zorder=2,
-                    label="random-graph placebo range")
+    # two shaded bands mean different things and must not read as one family:
+    # the hatched null band is the full min-max spread of the 40 placebo runs,
+    # the solid ribbon is the bootstrap 95 % CI of the real correction.
+    ax.fill_between(H, band_lo, band_hi, facecolor="none", edgecolor=NULLGRAY,
+                    hatch="////", lw=0.0, zorder=2,
+                    label="random-graph placebo range (min–max of 40 runs)")
+    ax.plot(H, band_lo, color=NULLGRAY, lw=0.5, zorder=2)
+    ax.plot(H, band_hi, color=NULLGRAY, lw=0.5, zorder=2)
 
     # correction stage: ensemble curve + CI ribbon
-    ax.fill_between(H, corr_lo, corr_hi, color=NEARBLACK, alpha=0.12, lw=0, zorder=3)
+    ax.fill_between(H, corr_lo, corr_hi, color=NEARBLACK, alpha=0.16, lw=0, zorder=3,
+                    label="95 % block-bootstrap CI of the correction")
     ax.plot(H, corr, ls="-", color=NEARBLACK, lw=1.6, zorder=6,
             label="as correction stage (2-seed ensemble)")
     sig_markers(ax, H, corr, corr_p, "o", NEARBLACK, z=7)
@@ -454,12 +460,13 @@ def fig05_delivery():
     handles, labels = ax.get_legend_handles_labels()
     order = [labels.index(k) for k in [
         "as correction stage (2-seed ensemble)",
+        "95 % block-bootstrap CI of the correction",
         "as input channel (2-seed ensemble)",
-        "random-graph placebo range"]]
+        "random-graph placebo range (min–max of 40 runs)"]]
     ax.legend([handles[i] for i in order], [labels[i] for i in order],
               loc="lower left", bbox_to_anchor=(0.0, 1.02), ncol=2,
               handlelength=2.0, columnspacing=1.2, borderaxespad=0.0)
-    save(fig, "fig05_delivery")
+    save(fig, "fig07_delivery")
     return band_lo, band_hi
 
 
@@ -580,8 +587,8 @@ def fig08_stratification():
 # F3 -- per-basin neighbor-effect map (choropleth on the mask grid)
 # ---------------------------------------------------------------------------
 
-def fig03_neighbor_map():
-    print("F3 fig03_neighbor_map")
+def fig06_neighbor_map():
+    print("F3 fig06_neighbor_map")
     import sys
     import cartopy.crs as ccrs
     import xarray as xr
@@ -604,8 +611,11 @@ def fig03_neighbor_map():
     sig_mask = np.zeros(lat.size * lon.size, dtype=bool)
     for b, name in enumerate(meta["name"]):
         if name in fdr.index and np.isfinite(fdr.loc[name, "dm_stat"]):
-            # sign flipped: positive = neighbor helps
-            grid[masks["indices"][b]] = -float(fdr.loc[name, "dm_stat"])
+            # raw DM statistic, no sign flip: the loss differential is
+            # neighbor-corrected minus own-only, so NEGATIVE = neighbor helps.
+            # Plotting the raw value keeps the map numerically identical to the
+            # per-basin DM values quoted in the text.
+            grid[masks["indices"][b]] = float(fdr.loc[name, "dm_stat"])
             if name in sig_names:
                 sig_mask[masks["indices"][b]] = True
     grid = grid.reshape(lat.size, lon.size)
@@ -629,13 +639,15 @@ def fig03_neighbor_map():
 
     # single mesh with precomputed RGBA: non-FDR-significant basins are
     # white-blended (muted) so no alpha compositing stipple appears
+    # vik runs blue at the low end to red at the high end, so with the raw DM
+    # statistic on the axis blue = negative = neighbor helps, matching the text.
     norm = mcolors.Normalize(vmin=-3, vmax=3)
-    rgba = cm.vik_r(norm(np.clip(grid, -3, 3)))  # NaN cells -> transparent
+    rgba = cm.vik(norm(np.clip(grid, -3, 3)))  # NaN cells -> transparent
     ns = np.isfinite(grid) & ~sig_mask
     rgba[ns, :3] = 1.0 - 0.45 * (1.0 - rgba[ns, :3])
     ax.pcolormesh(lon_plot, lat, rgba, rasterized=True, shading="nearest",
                   transform=pc)
-    sm = plt.cm.ScalarMappable(norm=norm, cmap=cm.vik_r)
+    sm = plt.cm.ScalarMappable(norm=norm, cmap=cm.vik)
     ax.coastlines(lw=0.3, color="0.4")
 
     # FDR-significant basins: filled dot = helped, open = hurt (21 = 13 + 8)
@@ -643,6 +655,10 @@ def fig03_neighbor_map():
     n_h = int(sig["a_better"].sum())
     n_u = int((~sig["a_better"]).sum())
     assert (n_h, n_u) == (13, 8), f"FDR roster changed: {n_h} helped / {n_u} hurt"
+    # lock the sign convention the colorbar and legend are written against
+    assert (fdr["a_better"] == (fdr["dm_stat"] < 0)).all(), (
+        "DM sign convention changed: a_better is no longer dm_stat < 0"
+    )
     for name, row in sig.iterrows():
         la = cent.loc[name, "centroid_lat"]
         lo = cent.loc[name, "centroid_lon"]
@@ -666,20 +682,23 @@ def fig03_neighbor_map():
                     arrowprops=dict(arrowstyle="-", lw=0.5, color="0.25"))
     cb = fig.colorbar(sm, ax=ax, orientation="horizontal", shrink=0.7,
                       pad=0.04, aspect=42, extend="both")
-    cb.set_label("per-basin DM statistic, lead 1 (positive = neighbor helps)", fontsize=7)
+    cb.set_label("per-basin DM statistic, lead 1 "
+                 "(negative = neighbor lowers loss, helps; positive = hurts)",
+                 fontsize=7)
     cb.ax.tick_params(labelsize=6.5)
-    ax.annotate(f"filled: FDR-significant helped (n={n_h})   open: hurt (n={n_u})   "
-                f"q=0.10   muted fill: not significant",
+    ax.annotate(f"centroid markers: FDR-significant basins only (q=0.10).  "
+                f"filled dot: helped, DM<0 (n={n_h}).  open circle: hurt, DM>0 "
+                f"(n={n_u}).  muted fill: not FDR-significant",
                 xy=(0.01, 1.02), xycoords="axes fraction", fontsize=6.6, color="0.25")
-    save(fig, "fig03_neighbor_map")
+    save(fig, "fig06_neighbor_map")
 
 
 # ---------------------------------------------------------------------------
 # F4 -- the control battery (placebos + surrogates, distance profile, conditioning)
 # ---------------------------------------------------------------------------
 
-def fig04_controls():
-    print("F4 fig04_controls")
+def fig05_controls():
+    print("F4 fig05_controls")
     summ = pd.read_csv(RESULTS / "phase3b_summary.csv")
     s1 = summ[summ["horizon"] == 1].set_index("model")
 
@@ -786,15 +805,15 @@ def fig04_controls():
     axc.set_ylim(-0.6, 2.6)
     axc.set_xlabel("lead-1 skill vs own reference (%)")
     axc.set_title("(c) conditioning invariance", loc="left")
-    save(fig, "fig04_controls")
+    save(fig, "fig05_controls")
 
 
 # ---------------------------------------------------------------------------
 # F6 -- ERA5 gain vs neighbor gain complementarity
 # ---------------------------------------------------------------------------
 
-def fig06_complementarity():
-    print("F6 fig06_complementarity")
+def fig09_complementarity():
+    print("F6 fig09_complementarity")
     from scipy.stats import spearmanr, theilslopes
 
     pred = pd.read_csv(RESULTS / "phase6_era5_predictions.csv")
@@ -869,11 +888,8 @@ def fig06_complementarity():
                 ha="right", va="top", fontsize=7, color="k",
                 path_effects=halo, zorder=6)
 
-    # the two off-diagonal quadrants are each other's dead zones
-    ax.text(XL[0] + 1.2, YL[1] - 0.6, "ERA5 dead zone:\nneighbors cover it",
-            fontsize=6.5, color="0.45", ha="left", va="top", zorder=2)
-    ax.text(XL[1] - 1.2, YL[0] + 0.6, "neighbor dead zone:\nERA5 covers it",
-            fontsize=6.5, color="0.45", ha="right", va="bottom", zorder=2)
+    # quadrant labels removed 2026-09-02: a rho = -0.22 rank correlation does
+    # not license a "dead zone" reading of either off-diagonal quadrant.
 
     ax.annotate(f"234 basins; {n_off} clipped to range (open triangles)",
                 xy=(0.02, 0.045), xycoords="axes fraction", fontsize=6.5,
@@ -882,18 +898,18 @@ def fig06_complementarity():
     ax.set_ylim(*YL)
     ax.set_xlabel("per-basin ERA5 gain, lead 1 (%)")
     ax.set_ylabel("per-basin ERA5-conditioned neighbor gain, lead 1 (%)")
-    save(fig, "fig06_complementarity")
+    save(fig, "fig09_complementarity")
 
 
 # ---------------------------------------------------------------------------
 
 def main():
-    fig01_benchmark_ladder()
-    win_str = fig02_crossing()
-    fig03_neighbor_map()
-    fig04_controls()
-    fig05_delivery()
-    fig06_complementarity()
+    fig03_benchmark_ladder()
+    win_str = fig04_crossing()
+    fig06_neighbor_map()
+    fig05_controls()
+    fig07_delivery()
+    fig09_complementarity()
     fig08_stratification()
     print("all figures built; all ledger asserts passed")
     print(f"F2 caption win counts (of 227): {win_str}")
