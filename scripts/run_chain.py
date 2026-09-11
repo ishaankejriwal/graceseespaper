@@ -20,7 +20,7 @@ files, the basin mask, ERA5 (scripts/download_era5.py), the Li 2026 archive, and
 climate indices (scripts/download_indices.py). See README "Getting set up".
 
 figures is EXTENDED, not default (audit 2026-09-10). The manuscript figures still
-read eleven files that only extended steps produce — phase8b_merge, phase8_strat,
+read twelve files that only extended steps produce — phase8b_merge, phase8_strat,
 phase3b, surrogates, phase5_stats, phase6_era5 and the conditioned neighbor run — so
 declaring it default promised a spine that could not finish on a default-only
 machine. It moves back to DEFAULT when the manuscript figures are rebuilt on
@@ -309,7 +309,7 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
 # Kalman reference forecast and its flat-12 ridge correction, the mission-split
 # sensitivity, the ladder, the cross-product comparison, the conventional metrics and
 # the manifest. It needs no torch and touches no neighbor experiment. figures is NOT
-# here: it declares eleven inputs that only extended steps produce (see the module
+# here: it declares twelve inputs that only extended steps produce (see the module
 # docstring), so a default-only machine would be blocked at it.
 DEFAULT = [
     "build_basin", "build_era5", "build_li", "phase2", "kalman", "flat12_ridge",
