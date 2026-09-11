@@ -32,21 +32,25 @@ from gracefc.runtime import processed_dir, results_dir, source  # noqa: E402
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
 HORIZONS = range(1, 7)
+# file -> models to pull. kalman/flat12 files are already in std units; phase2 has
+# *_std_units cols. The Kalman arms used to be read out of phase3b_predictions.csv,
+# a neighbor experiment whose claim the paper has dropped; they are bit-identical
+# there and here (verified 2026-09-10), so the matched sample is unchanged.
 OUR_MODELS = {
-    # file -> models to pull (phase3b is already in std units; phase2 has *_std_units cols)
-    "phase3b": ["kalman_corr_top1", "kalman_ar1", "kalman_own_ridge"],
+    "kalman": ["kalman_ar1"],
+    "flat12": ["kalman_own_ridge", "ridge_own_flat12", "ridge_own_era5_flat12"],
+    # persistence and climatology_zero carry no contrast of their own any more, but
+    # they stay in the pool because the matched row set is defined over it.
     "phase2": ["ridge_own_perbasin", "damped_persistence_rho", "persistence", "climatology_zero"],
 }
-PAIRS = [
-    ("li_lstm_full", "kalman_corr_top1"),
-    ("li_lstm_full", "kalman_ar1"),
-    ("li_lstm_full", "ridge_own_perbasin"),
-    ("li_lstm_full", "damped_persistence_rho"),
-    ("li_lstm_nonseas", "kalman_corr_top1"),
-    ("li_lstm_nonseas", "kalman_ar1"),
-    ("li_lstm_nonseas", "ridge_own_perbasin"),
-    ("li_lstm_nonseas", "damped_persistence_rho"),
-]
+# Models scored head to head with the published product, in ladder order
+COMPARED = ["damped_persistence_rho", "ridge_own_perbasin", "kalman_ar1",
+            "kalman_own_ridge", "ridge_own_flat12", "ridge_own_era5_flat12"]
+LI_MODELS = ["li_lstm_full", "li_lstm_nonseas"]
+# Both orientations: Li as challenger (the archived convention) and ours as
+# challenger (the reframed paper's question)
+PAIRS = ([(li, m) for li in LI_MODELS for m in COMPARED]
+         + [(m, li) for li in LI_MODELS for m in COMPARED])
 MIN_TRAIN_OFFSET_MONTHS = 24
 
 
@@ -115,20 +119,24 @@ def main() -> None:
     print(f"li rows: {len(li_rows)} | basins: {li_rows['name'].nunique()}")
 
     # Our models, all converted to standardized units
-    p3b = pd.read_csv(OUT_DIR / "phase3b_predictions.csv", parse_dates=["issue_date", "target_date"])
-    p3b = p3b[p3b["model"].isin(OUR_MODELS["phase3b"])]
+    kal = pd.read_csv(OUT_DIR / "kalman_predictions.csv", parse_dates=["issue_date", "target_date"])
+    kal = kal[kal["model"].isin(OUR_MODELS["kalman"])]
+    flat = pd.read_csv(OUT_DIR / "flat12_ridge_predictions.csv",
+                       parse_dates=["issue_date", "target_date"])
+    flat = flat[flat["model"].isin(OUR_MODELS["flat12"])]
     p2 = pd.read_csv(OUT_DIR / "phase2_baseline_predictions.csv", parse_dates=["issue_date", "target_date"])
     p2 = p2[p2["model"].isin(OUR_MODELS["phase2"])]
     p2 = p2.drop(columns=["target", "pred"]).rename(
         columns={"target_std_units": "target", "pred_std_units": "pred"})
-    ours = pd.concat([p3b[li_rows.columns], p2[li_rows.columns]], ignore_index=True)
+    ours = pd.concat([kal[li_rows.columns], flat[li_rows.columns], p2[li_rows.columns]],
+                     ignore_index=True)
 
     # Consistency guard: our recomputed standardized target must match the stored ones
     chk = li_rows.merge(ours[ours["model"] == "kalman_ar1"],
                         on=["name", "target_date", "horizon"], suffixes=("_li", "_k"))
     gap = (chk["target_li"] - chk["target_k"]).abs().max()
     if not (gap < 1e-6):
-        raise AssertionError(f"target mismatch vs phase3b: max |diff| = {gap}")
+        raise AssertionError(f"target mismatch vs kalman_predictions: max |diff| = {gap}")
 
     # Matched sample per horizon: rows present for every model
     all_rows = pd.concat([li_rows, ours], ignore_index=True)
@@ -177,7 +185,8 @@ def main() -> None:
     # support so those downstream summaries cannot reintroduce partial cells.
     perbasin_sample = subsets.get("joint_full_cells", matched)
     pb_rows = []
-    for model_a, model_b in [("li_lstm_full", "kalman_corr_top1"), ("li_lstm_nonseas", "kalman_corr_top1")]:
+    for model_a, model_b in [(li, ref) for li in LI_MODELS
+                             for ref in ("kalman_ar1", "ridge_own_era5_flat12")]:
         for h in HORIZONS:
             s = perbasin_sample[perbasin_sample["horizon"] == h]
             if not len(s):
