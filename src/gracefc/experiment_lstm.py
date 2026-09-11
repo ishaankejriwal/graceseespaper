@@ -24,12 +24,17 @@ from torch import nn
 
 from .era5 import era5_fold_features
 from .evaluate import DEFAULT_FOLDS, Fold
+# The window construction, the 12-month flattening and the ridge head live in the
+# torch-free module so the ridge arms can be produced without torch and cannot drift.
+from .experiment_flat12 import (LOOKBACK, _era5_state_tensor, _state_channel,
+                                _window_channels, window_design)
 from .experiment_nonlinear import _fit_head
 from .graphs import corr_topk, random_degree_matched
 from .phase7 import (fold_setup, horizon_frame, neighbor_rank_matrix,
                      propagated_neighbor_features, train_val_mask)
 
-LOOKBACK = 12
+__all__ = ["LOOKBACK", "_era5_state_tensor", "_state_channel", "_window_channels",
+           "run_lstm_experiment", "train_lstm", "lstm_predict", "fit_lstm"]
 
 
 class _SeqNet(nn.Module):
@@ -99,28 +104,6 @@ def fit_lstm(
     return lstm_predict(net, Xte)
 
 
-def _window_channels(t_idx: np.ndarray) -> tuple:
-    """Window index grid and validity mask shared by every channel of a row set."""
-    offs = np.arange(LOOKBACK - 1, -1, -1)
-    widx = t_idx[:, None] - offs[None, :]
-    return np.clip(widx, 0, None), widx >= 0
-
-
-def _state_channel(mat: np.ndarray, widx: np.ndarray, valid: np.ndarray, node: np.ndarray) -> np.ndarray:
-    """(rows, L) history of mat for each row's node; zeros where node or month is absent."""
-    ok = valid & (node >= 0)[:, None]
-    return np.where(ok, mat[widx, np.clip(node, 0, None)[:, None]], 0.0)
-
-
-def _era5_state_tensor(era5_feats: pd.DataFrame, era5_wide: dict, filt_index, names) -> np.ndarray:
-    """(T, N, V) standardized ERA5 anomalies aligned to the filter grid; NaN -> 0."""
-    mats = []
-    for var in era5_wide:
-        m = era5_feats.pivot(index="issue_date", columns="name", values=f"{var}_l0")
-        mats.append(m.reindex(index=filt_index, columns=names).values)
-    return np.nan_to_num(np.stack(mats, axis=-1))
-
-
 def run_lstm_experiment(
     wide: pd.DataFrame,
     era5_wide: dict[str, pd.DataFrame],
@@ -149,13 +132,11 @@ def run_lstm_experiment(
             kal_te = te["kalman"].values
             val_mask = train_val_mask(tr)
 
-            widx_tr, valid_tr = _window_channels(frame["t_idx"])
-            widx_te, valid_te = _window_channels(frame["e_idx"])
-            own_tr = _state_channel(F, widx_tr, valid_tr, frame["tr_pos"])
-            own_te = _state_channel(F, widx_te, valid_te, frame["te_pos"])
-            # ERA5 sequence channels come from the same window grid as the state channel
-            era_tr = np.where(valid_tr[:, :, None], E[widx_tr, frame["tr_pos"][:, None], :], 0.0)
-            era_te = np.where(valid_te[:, :, None], E[widx_te, frame["te_pos"][:, None], :], 0.0)
+            design = window_design(F, E, frame)
+            widx_tr, valid_tr = design["widx_tr"], design["valid_tr"]
+            widx_te, valid_te = design["widx_te"], design["valid_te"]
+            own_tr, own_te = design["own_tr"], design["own_te"]
+            era_tr, era_te = design["era_tr"], design["era_te"]
 
             def nbr_channel(idx_matrix: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
                 node_tr = idx_matrix[frame["tr_pos"], 0]
@@ -204,8 +185,7 @@ def run_lstm_experiment(
             # linearly (ridge) and nonlinearly-but-unordered (MLP). Deconfounds the
             # "sequence modeling" gain from "longer input history" — the flat twins
             # above see only own_state now + ERA5 lags 0-2 (audit 2026-08-15).
-            X12_tr = np.column_stack([own_tr, era_tr.reshape(len(own_tr), -1)])
-            X12_te = np.column_stack([own_te, era_te.reshape(len(own_te), -1)])
+            X12_tr, X12_te = design["X12_tr"], design["X12_te"]
             emit("ridge_own_flat12", kal_te + _fit_head("ridge", own_tr, ytr, own_te, 0))
             emit("ridge_own_era5_flat12", kal_te + _fit_head("ridge", X12_tr, ytr, X12_te, 0))
             for s in lstm_seeds:
