@@ -4,6 +4,7 @@ Each test pins a defect that actually occurred: if it fails, one of the repaired
 bugs has been reintroduced. Fast, no heavy compute; data-dependent checks live in
 test_data_invariants.py.
 """
+import os
 import sys
 import importlib.util
 from pathlib import Path
@@ -27,6 +28,21 @@ from gracefc.comparison import (  # noqa: E402
 from gracefc.evaluate import Fold, split_fold  # noqa: E402
 from gracefc.kalman import fit_kalman_ar1, kalman_forecast_series  # noqa: E402
 from gracefc.surrogates import iaaft  # noqa: E402
+
+# Archive comparisons need result files a bare checkout does not carry, so they skip
+# by default. Set GRACEFC_REQUIRE_ARCHIVES=1 (release checks, any run that claims the
+# archived numbers still reproduce) and a missing file fails instead of skipping —
+# otherwise deleting a results file would silently turn the pin green.
+REQUIRE_ARCHIVES = os.environ.get("GRACEFC_REQUIRE_ARCHIVES") == "1"
+
+
+def _need_result(path: Path) -> None:
+    if path.exists():
+        return
+    message = f"{path.name} not present"
+    if REQUIRE_ARCHIVES:
+        pytest.fail(f"{message} and GRACEFC_REQUIRE_ARCHIVES=1")
+    pytest.skip(message)
 
 
 def test_fully_contained_group_counts_are_literal():
@@ -68,6 +84,12 @@ def test_li_comparison_requires_complete_cells_from_both_products():
     both = coverage.assign(n_full_native_mascons=[1, 0, 4, 2])
     meta_no_jpl = meta.drop(columns=["n_full_jpl_mascons"])
     assert list(li_joint_support_names(meta_no_jpl, both)) == ["good", "low_coverage"]
+    # Precedence, with BOTH columns present and DISAGREEING: the product-neutral
+    # native count decides and the stale JPL column is ignored. Under the JPL column
+    # this frame would qualify good + low_coverage; under the native column it is
+    # no_jpl + low_coverage, so the assertion cannot pass by accident.
+    disagreeing = coverage.assign(n_full_native_mascons=[0, 1, 4, 2])
+    assert list(li_joint_support_names(meta, disagreeing)) == ["no_jpl", "low_coverage"]
     none_contained = coverage.assign(n_full_native_mascons=[0, 0, 0, 0])
     assert list(li_joint_support_names(meta, none_contained)) == []
     with pytest.raises(ValueError, match="native-mascon containment count"):
@@ -363,8 +385,7 @@ def test_flat12_extraction_matches_archived_lstm_predictions():
     """WP1 acceptance: the torch-free runner must reproduce the ridge arms that
     used to be emitted inside the LSTM script, row for row, at leads 1-3."""
     for p in (FLAT12_PRED, LSTM_PRED):
-        if not p.exists():
-            pytest.skip(f"{p.name} not present")
+        _need_result(p)
     cols = ["name", "issue_date", "horizon", "model", "pred", "target"]
     new = pd.read_csv(FLAT12_PRED, usecols=cols)
     old = pd.read_csv(LSTM_PRED, usecols=cols)
@@ -445,8 +466,7 @@ ARCHIVED_LI_HEAD = {  # (model, vs) -> [(horizon, skill, dm_p)] on all_matched
 
 def _load_result(name: str) -> pd.DataFrame:
     p = ROOT / "results" / name
-    if not p.exists():
-        pytest.skip(f"{name} not present")
+    _need_result(p)
     return pd.read_csv(p)
 
 

@@ -44,7 +44,12 @@ OWN_RIDGE_REF = "kalman_own_ridge"
 def summarize(pred_rows: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for (model, h), grp in pred_rows.groupby(["model", "horizon"]):
-        stat, p = pooled_monthly_dm(pred_rows, model, KALMAN_REF, h)
+        # The reference is not a challenger against itself: a self-DM is a
+        # 0/0 by construction and only wrote NaNs into the summary. Left empty.
+        if model == KALMAN_REF:
+            stat, p = float("nan"), float("nan")
+        else:
+            stat, p = pooled_monthly_dm(pred_rows, model, KALMAN_REF, h)
         rows.append({
             "model": model, "horizon": h,
             "rmse_std": rmse(grp["target"].values, grp["pred"].values),
@@ -65,9 +70,21 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--horizons", default="1-6")
     ap.add_argument("--tag", default="flat12_ridge")
+    ap.add_argument("--summary-only", action="store_true",
+                    help="rebuild <tag>_summary.csv from the existing "
+                         "<tag>_predictions.csv and leave the predictions untouched")
     args = ap.parse_args()
     lo, hi = (int(v) for v in args.horizons.split("-")) if "-" in args.horizons else (
         int(args.horizons), int(args.horizons))
+
+    if args.summary_only:
+        pred_path = OUT_DIR / f"{args.tag}_predictions.csv"
+        if not pred_path.exists():
+            raise SystemExit(f"--summary-only needs {pred_path}, which does not exist")
+        summary = summarize(pd.read_csv(pred_path))
+        summary.to_csv(OUT_DIR / f"{args.tag}_summary.csv", index=False)
+        print(summary.to_string(index=False))
+        return
 
     long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
     meta = pd.read_csv(DATA / "basin_meta.csv")

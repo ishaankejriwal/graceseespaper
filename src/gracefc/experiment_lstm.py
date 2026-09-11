@@ -26,15 +26,16 @@ from .era5 import era5_fold_features
 from .evaluate import DEFAULT_FOLDS, Fold
 # The window construction, the 12-month flattening and the ridge head live in the
 # torch-free module so the ridge arms can be produced without torch and cannot drift.
-from .experiment_flat12 import (LOOKBACK, _era5_state_tensor, _state_channel,
-                                _window_channels, window_design)
+from .experiment_flat12 import _era5_state_tensor, _state_channel, window_design
 from .experiment_nonlinear import _fit_head
 from .graphs import corr_topk, random_degree_matched
 from .phase7 import (fold_setup, horizon_frame, neighbor_rank_matrix,
                      propagated_neighbor_features, train_val_mask)
 
-__all__ = ["LOOKBACK", "_era5_state_tensor", "_state_channel", "_window_channels",
-           "run_lstm_experiment", "train_lstm", "lstm_predict", "fit_lstm"]
+# Torch-free helpers are NOT re-exported from here (audit 2026-09-10): importing them
+# via this module dragged torch in for callers that never needed it. Take them from
+# gracefc.experiment_flat12, which owns them.
+__all__ = ["run_lstm_experiment", "train_lstm", "lstm_predict", "fit_lstm"]
 
 
 class _SeqNet(nn.Module):

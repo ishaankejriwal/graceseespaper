@@ -1600,3 +1600,80 @@ Open items recorded in the docs: `paper/main.tex` and the figures still describe
 three-finding structure; the `figures` chain step still depends on extended outputs; and
 `run_phase8b_merge.py` and `run_phase6_hybrid.py` still gate `joint_full_cells` on
 `source() == "jpl"`.
+
+## 2026-09-10 — Audit fixes after the reframe
+
+Seven code-level defects the reframe left behind, found by a repo audit of the new default
+chain. Code and tests only; no manuscript, no docs, and no chain step rerun except the two
+named below.
+
+1. `scripts/run_chain.py`: `figures` moved out of `DEFAULT` and into `EXTENDED`. It declares
+   eleven inputs that only extended steps produce (phase8b_merge, phase8_strat, phase3b,
+   surrogates, phase5_stats, phase6_era5, conditioned), so a default-only machine was
+   guaranteed to be blocked at it. The module docstring no longer claims the default chain
+   needs no neighbour outputs; it says `figures` stays extended until the manuscript figures
+   are rebuilt on spine-only inputs. DEFAULT is now **12 steps**, ending in `manifest`:
+   build_basin, build_era5, build_li, phase2, kalman, flat12_ridge, kalman_mission,
+   r0_ablation, ladder, li_comparison, conventional_metrics, manifest. `--extended` on
+   `--source jpl` now skips `figures` rather than erroring on it; naming it in `--steps` still
+   errors, because that asks for it explicitly. Verified with `--list` on both sources.
+
+2. `scripts/run_chain.py`: `build_li` declares the three CSR geometry files it actually reads.
+   `build_li_basin_series.csr_native_tile_grid` exec-loads `run_resolution_sensitivity.py` and
+   calls `load_official_geometry`, which opens the solutions file
+   (`CSR_GRACE_GRACE-FO_RL0603_Mascons_all-corrections.nc`) for its lat/lon axes plus
+   `data/raw/csr_ancillary/CSR_GRACE_GRACE-FO_RL0603_mascons_mapping_file.nc` and
+   `..._RL06_Mascons_v02_LandMask.nc`. All three are now inputs on the CSR source. The
+   declaration is source-aware: the JPL path reads `mascon_ID` out of the product itself, so
+   `steps_for_source` drops the trio there (and stops `remap` from rewriting the solutions path
+   into the JPL product). The three paths are named once, as `CSR_GEOMETRY_FILES`, and the
+   `resolution` step now reuses that constant instead of repeating the literals.
+
+3. `scripts/build_paper_ladder.py`: contrasts are now written against BOTH damped variants at
+   every lead, for kalman_ar1, ridge_own_flat12, ridge_own_era5_flat12, kalman_own_ridge and
+   ridge_own_perbasin. The file previously stored only the stronger variant per lead (rho at
+   h1, reg at h2-6), which left half the headline numbers above with no traceable source row.
+   The original pair list is kept in its original order and the new pairs are appended, with
+   duplicates skipped, so every pre-existing row is byte-for-byte where it was.
+   `results/paper_baseline_contrasts.csv`: **48 rows before, 90 after** (8 pairs x 6 leads to
+   15 pairs x 6 leads). `results/paper_baseline_ladder.csv` is unchanged, verified by diff.
+   Reran `scripts/build_paper_ladder.py` on CSR; the archived-row regression tests pass.
+
+4. `scripts/run_flat12_ridge.py`: `summarize()` no longer computes a Diebold-Mariano test of
+   kalman_ar1 against itself. The self-comparison is 0/0 by construction and only ever wrote
+   NaN into `dm_stat_vs_kalman`/`dm_p_vs_kalman`; those cells stay empty, as before. Added
+   `--summary-only`, which rebuilds `<tag>_summary.csv` from the existing predictions file so
+   the summary can be regenerated without refitting. Ran it: `flat12_ridge_predictions.csv`
+   sha256 `bdd276fb50fc4d8f262b16141a50ef3a33f152b3fd242db84615f2e4a8dd85c3` before and after,
+   untouched. `flat12_ridge_summary.csv` was rewritten; the only differences are last-digit
+   float drift from reading the predictions back out of CSV, no column or row changes.
+   `scripts/make_manifest.py --check` still reports OK, 25 files, 0 new.
+
+5. `tests/test_regressions.py`: the archive-comparison tests skipped silently when a results
+   file was absent, so deleting one would have turned the pin green. `_need_result` skips by
+   default and calls `pytest.fail` when `GRACEFC_REQUIRE_ARCHIVES=1`. Both branches exercised.
+
+6. `tests/test_regressions.py`: `test_li_comparison_requires_complete_cells_from_both_products`
+   claimed the native containment column takes precedence over the JPL column but asserted it
+   on a frame that had no JPL column. Added a case with both columns present and disagreeing:
+   under `n_full_jpl_mascons` the frame qualifies good + low_coverage, under
+   `n_full_native_mascons` it qualifies no_jpl + low_coverage, and the test pins the latter.
+
+7. `src/gracefc/experiment_lstm.py` re-exported the torch-free window helpers, which meant two
+   callers imported torch to reach code that does not need it. `__all__` is now only the four
+   LSTM entry points; `scripts/run_flat12_train85_sensitivity.py` and
+   `src/gracefc/experiment_lstm_combined.py` import `_era5_state_tensor`, `_state_channel` and
+   `_window_channels` from `gracefc.experiment_flat12`, which owns them. The unused `LOOKBACK`
+   and `_window_channels` aliases are dropped from experiment_lstm's import; the aliases the
+   LSTM code itself uses stay. Checked: importing the sensitivity script in a fresh interpreter
+   now leaves both `torch` and `gracefc.experiment_lstm` out of `sys.modules`.
+
+Tests: `GRACEFC_REQUIRE_ARCHIVES=1 .venv/Scripts/python.exe -m pytest tests -q` gives
+**28 passed, 0 skipped** in about 29 s. The same suite without the variable also gives 28
+passed.
+
+Not done: the solutions-file read inside `load_official_geometry` is left in place. Dropping it
+would make the mapping file's own axes the alignment reference for the tile grid, and `_align_to`
+exists precisely because those axes are not assumed to match the solutions grid the basin
+diagnostics are built on. Removing it is not verifiable without rerunning `resolution`, which
+this pass was not allowed to do.
