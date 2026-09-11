@@ -108,12 +108,13 @@ def main() -> None:
                      parse_dates=["issue_date", "target_date"])
     li = li[li["name"].isin(keep_names)]
 
-    support = coverage
-    if source() == "jpl":
-        support = li_joint_support_table(meta, coverage)
-        n_joint = int(support["joint_full_cells"].sum())
-        print(f"strict joint spatial support: {n_joint} basins contain >=1 complete "
-              "native JPL mascon and >=1 complete valid Li cell")
+    # One strict spatial-support rule for both products (2026-09-10): the subset used
+    # to exist only for JPL, which left the CSR comparison scored on basins the two
+    # products only partially cover.
+    support = li_joint_support_table(meta, coverage)
+    n_joint = int(support["joint_full_cells"].sum())
+    print(f"strict joint spatial support: {n_joint} basins contain >=1 complete "
+          f"native {source().upper()} mascon and >=1 complete valid Li cell")
 
     li_rows = build_li_pred_rows(li, wide)
     print(f"li rows: {len(li_rows)} | basins: {li_rows['name'].nunique()}")
@@ -147,9 +148,12 @@ def main() -> None:
     matched = matched.merge(support, on="name")
     matched.to_csv(OUT_DIR / "phase6_li_comparison_predictions.csv", index=False)
 
-    subsets = {"all_matched": matched}
-    if source() == "jpl":
-        subsets["joint_full_cells"] = matched[matched["joint_full_cells"]].copy()
+    subsets = {
+        "all_matched": matched,
+        # kept for continuity with the archived CSR tables
+        "coverage_ge_0.5": matched[matched["li_coverage"] >= 0.5].copy(),
+        "joint_full_cells": matched[matched["joint_full_cells"]].copy(),
+    }
     summary_rows, headline_rows = [], []
     for label, sub in subsets.items():
         for (model, h), grp in sub.groupby(["model", "horizon"]):
@@ -181,9 +185,9 @@ def main() -> None:
     summary.to_csv(OUT_DIR / "phase6_li_comparison_summary.csv", index=False)
     pd.DataFrame(headline_rows).to_csv(OUT_DIR / "phase6_li_comparison_headline.csv", index=False)
 
-    # Per-basin outputs feed later analyses. For JPL, keep the strict spatial
-    # support so those downstream summaries cannot reintroduce partial cells.
-    perbasin_sample = subsets.get("joint_full_cells", matched)
+    # Per-basin outputs feed later analyses on the strict spatial support, so those
+    # downstream summaries cannot reintroduce partially covered basins.
+    perbasin_sample = subsets["joint_full_cells"]
     pb_rows = []
     for model_a, model_b in [(li, ref) for li in LI_MODELS
                              for ref in ("kalman_ar1", "ridge_own_era5_flat12")]:
@@ -200,7 +204,7 @@ def main() -> None:
         print(f"\n===== {label} =====")
         print(summary[summary["subset"] == label].to_string(index=False))
     hl = pd.DataFrame(headline_rows)
-    headline_subset = "joint_full_cells" if "joint_full_cells" in subsets else "all_matched"
+    headline_subset = "joint_full_cells"
     print(f"\n===== headline ({headline_subset}) =====")
     print(hl[hl["subset"] == headline_subset].to_string(index=False))
 

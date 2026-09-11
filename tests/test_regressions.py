@@ -63,6 +63,16 @@ def test_li_comparison_requires_complete_cells_from_both_products():
     # spatial support, so low_coverage still qualifies in this synthetic case.
     assert list(li_joint_support_names(meta, coverage)) == ["good", "low_coverage"]
 
+    # 2026-09-10: the same rule now runs on CSR too, reading the product-neutral
+    # native count out of the coverage table. It must win over the JPL column.
+    both = coverage.assign(n_full_native_mascons=[1, 0, 4, 2])
+    meta_no_jpl = meta.drop(columns=["n_full_jpl_mascons"])
+    assert list(li_joint_support_names(meta_no_jpl, both)) == ["good", "low_coverage"]
+    none_contained = coverage.assign(n_full_native_mascons=[0, 0, 0, 0])
+    assert list(li_joint_support_names(meta, none_contained)) == []
+    with pytest.raises(ValueError, match="native-mascon containment count"):
+        li_joint_support_names(meta_no_jpl, coverage)
+
 
 # ---------------------------------------------------------------- fold membership
 def test_split_fold_membership_invariants():
