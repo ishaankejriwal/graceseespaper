@@ -9,10 +9,18 @@ stronger damped-persistence variant, and pooled-monthly DM tests on exactly
 matched rows.
 
 Inputs : results/phase2_baseline_predictions.csv (std-unit columns)
-         results/phase3b_predictions.csv (kalman_ar1, kalman_own_ridge,
-         kalman_corr_top1; std units)
+         results/kalman_predictions.csv (kalman_ar1; std units)
+         results/flat12_ridge_predictions.csv (kalman_own_ridge,
+         ridge_own_flat12, ridge_own_era5_flat12; std units)
+
 Outputs: results/paper_baseline_ladder.csv  (one row per model x horizon)
          results/paper_baseline_contrasts.csv (key pairwise DM/CI contrasts)
+
+The Kalman rows used to come from phase3b_predictions.csv, a neighbor experiment;
+that made the reference forecast a by-product of a claim the paper no longer makes.
+They now come from the Kalman baseline itself and from the flat-12 ridge step.
+phase3b's kalman_ar1 and kalman_own_ridge columns are bit-identical to these
+(verified 2026-09-10, max abs diff 0.0), so the retained ladder numbers are unchanged.
 
 Run: .venv/Scripts/python.exe scripts/build_paper_ladder.py
 """
@@ -41,7 +49,9 @@ P2_MODELS = [
     "ridge_own_plus_indices",
     "ridge_own_perbasin",
 ]
-P3_MODELS = ["kalman_ar1", "kalman_own_ridge", "kalman_corr_top1"]
+KALMAN_MODELS = ["kalman_ar1"]
+FLAT12_MODELS = ["kalman_own_ridge", "ridge_own_flat12", "ridge_own_era5_flat12"]
+OUR_MODELS = KALMAN_MODELS + FLAT12_MODELS
 
 KEY = ["name", "issue_date", "target_date", "horizon"]
 
@@ -54,18 +64,21 @@ def load() -> pd.DataFrame:
     p2 = p2[p2["model"].isin(P2_MODELS)].rename(
         columns={"target_std_units": "target", "pred_std_units": "pred"}
     )
-    p3 = pd.read_csv(
-        RESULTS / "phase3b_predictions.csv",
-        usecols=KEY + ["model", "target", "pred"],
+    kal = pd.read_csv(
+        RESULTS / "kalman_predictions.csv", usecols=KEY + ["model", "target", "pred"]
     )
-    p3 = p3[p3["model"].isin(P3_MODELS)]
-    df = pd.concat([p2, p3], ignore_index=True)
+    kal = kal[kal["model"].isin(KALMAN_MODELS)]
+    flat = pd.read_csv(
+        RESULTS / "flat12_ridge_predictions.csv", usecols=KEY + ["model", "target", "pred"]
+    )
+    flat = flat[flat["model"].isin(FLAT12_MODELS)]
+    df = pd.concat([p2, kal, flat], ignore_index=True)
 
     # Per horizon, keep only (name, issue, target) keys present for every model.
     kept = []
     for h, sub in df.groupby("horizon"):
         counts = sub.groupby(["name", "issue_date", "target_date"])["model"].nunique()
-        full = counts[counts == len(P2_MODELS) + len(P3_MODELS)].index
+        full = counts[counts == len(P2_MODELS) + len(OUR_MODELS)].index
         sub = sub.set_index(["name", "issue_date", "target_date"])
         kept.append(sub.loc[sub.index.isin(full)].reset_index())
     out = pd.concat(kept, ignore_index=True)
@@ -103,7 +116,7 @@ def main() -> None:
             ["damped_persistence_rho", "damped_persistence_reg"], key=lambda m: rmse[m]
         )
         ml_damped = monthly_losses(df, damped, h)
-        for m in P2_MODELS + P3_MODELS:
+        for m in P2_MODELS + OUR_MODELS:
             ml = monthly_losses(df, m, h)
             common = ml.index.intersection(ml_damped.index)
             skill = 1 - ml[common].mean() / ml_damped[common].mean()
@@ -127,6 +140,9 @@ def main() -> None:
             ("kalman_ar1", "ridge_own_lags"),
             ("kalman_own_ridge", "ridge_own_perbasin"),
             ("ridge_own_perbasin", damped),
+            ("ridge_own_flat12", "kalman_ar1"),
+            ("ridge_own_era5_flat12", "kalman_ar1"),
+            ("ridge_own_era5_flat12", damped),
         ]:
             la, lb = monthly_losses(df, a, h), monthly_losses(df, b, h)
             common = la.index.intersection(lb.index)
