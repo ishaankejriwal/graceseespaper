@@ -1,4 +1,4 @@
-\begin{thebibliography}{45}
+\begin{thebibliography}{42}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \providecommand{\urlprefix}{}
@@ -207,13 +207,6 @@ Pechlivanidis, I.~G., Crochemore, L., Rosberg, J., and Bosshard, T.: What Are
   the Key Drivers Controlling the Quality of Seasonal Streamflow Forecasts?,
   Water Resources Research, 56, \doi{10.1029/2019WR026987}, 2020.
 
-\bibitem[{Pezeshki et~al.(2021)Pezeshki, Kaba, Bengio, Courville, Precup, and
-  Lajoie}]{pezeshki2021gradient}
-Pezeshki, M., Kaba, S.-O., Bengio, Y., Courville, A., Precup, D., and Lajoie,
-  G.: Gradient Starvation: A Learning Proclivity in Neural Networks,
-  \urlprefix\url{https://arxiv.org/abs/2011.09468}, advances in Neural
-  Information Processing Systems 34, 2021.
-
 \bibitem[{Reager et~al.(2014)Reager, Thomas, and Famiglietti}]{reager2014flood}
 Reager, J.~T., Thomas, B.~F., and Famiglietti, J.~S.: River basin flood
   potential inferred using {GRACE} gravity observations at several months lead
@@ -228,10 +221,6 @@ Save, H., Bettadpur, S., and Tapley, B.~D.: High-resolution {CSR GRACE RL05}
 Schreiber, T. and Schmitz, A.: Improved Surrogate Data for Nonlinearity Tests,
   Physical Review Letters, 77, 635--638, \doi{10.1103/PhysRevLett.77.635},
   1996.
-
-\bibitem[{Schreiber and Schmitz(2000)}]{schreiber2000surrogate}
-Schreiber, T. and Schmitz, A.: Surrogate time series, Physica D: Nonlinear
-  Phenomena, 142, 346--382, \doi{10.1016/S0167-2789(00)00043-9}, 2000.
 
 \bibitem[{Shukla and Lettenmaier(2011)}]{shukla2011seasonal}
 Shukla, S. and Lettenmaier, D.~P.: Seasonal hydrologic prediction in the
@@ -260,13 +249,6 @@ Steidl, V. and Zhu, X.~X.: Hierarchical Graph Networks for Forecasting
 Tapley, B.~D., Bettadpur, S., Watkins, M., and Reigber, C.: The gravity
   recovery and climate experiment: Mission overview and early results,
   Geophysical Research Letters, 31, \doi{10.1029/2004GL019920}, 2004.
-
-\bibitem[{Veli{\v c}kovi{\'c} et~al.(2018)Veli{\v c}kovi{\'c}, Cucurull,
-  Casanova, Romero, Li{\`o}, and Bengio}]{velickovic2018gat}
-Veli{\v c}kovi{\'c}, P., Cucurull, G., Casanova, A., Romero, A., Li{\`o}, P.,
-  and Bengio, Y.: Graph Attention Networks,
-  \urlprefix\url{https://arxiv.org/abs/1710.10903}, international Conference on
-  Learning Representations, 2018.
 
 \bibitem[{Wilks(2016)}]{wilks2016stippling}
 Wilks, D.~S.: ``The Stippling Shows Statistically Significant Grid Points'':
