@@ -320,3 +320,51 @@ def test_year_done_requires_flat_file(tmp_path, monkeypatch):
     flat = tmp_path / "era5_land_monthly_2004.nc"
     flat.write_bytes(b"\x00" * 1_100_000)
     assert download_era5.year_done(2004)
+
+
+# ---------------------------------------------------------------- flat-12 ridge extraction
+FLAT12_PRED = ROOT / "results" / "flat12_ridge_predictions.csv"
+LSTM_PRED = ROOT / "results" / "phase7_lstm_predictions.csv"
+FLAT12_MODELS = ["kalman_ar1", "ridge_own_flat12", "ridge_own_era5_flat12"]
+
+
+def test_flat12_module_is_torch_free():
+    """The reference forecast and its ridge correction must not need torch: the
+    default chain runs without it, so a stray import here would break the chain."""
+    import ast
+    for rel in ("src/gracefc/experiment_flat12.py", "scripts/run_flat12_ridge.py"):
+        tree = ast.parse((ROOT / rel).read_text(encoding="utf-8"))
+        imported = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported.update(a.name.split(".")[0] for a in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imported.add(node.module.split(".")[0])
+        assert "torch" not in imported, f"{rel} imports torch"
+    # Importing the module must not pull torch in transitively either.
+    import subprocess
+    code = ("import sys; import gracefc.experiment_flat12; "
+            "sys.exit(1 if 'torch' in sys.modules else 0)")
+    rc = subprocess.run([sys.executable, "-c", code], cwd=ROOT / "src").returncode
+    assert rc == 0, "importing experiment_flat12 pulled torch into sys.modules"
+
+
+def test_flat12_extraction_matches_archived_lstm_predictions():
+    """WP1 acceptance: the torch-free runner must reproduce the ridge arms that
+    used to be emitted inside the LSTM script, row for row, at leads 1-3."""
+    for p in (FLAT12_PRED, LSTM_PRED):
+        if not p.exists():
+            pytest.skip(f"{p.name} not present")
+    cols = ["name", "issue_date", "horizon", "model", "pred", "target"]
+    new = pd.read_csv(FLAT12_PRED, usecols=cols)
+    old = pd.read_csv(LSTM_PRED, usecols=cols)
+    key = ["name", "issue_date", "horizon"]
+    for model in FLAT12_MODELS:
+        for h in (1, 2, 3):
+            a = new[(new["model"] == model) & (new["horizon"] == h)][key + ["pred", "target"]]
+            b = old[(old["model"] == model) & (old["horizon"] == h)][key + ["pred", "target"]]
+            assert len(a) and len(a) == len(b), f"{model} h{h}: {len(a)} vs {len(b)} rows"
+            j = a.merge(b, on=key, suffixes=("_new", "_old"), validate="one_to_one")
+            assert len(j) == len(a), f"{model} h{h}: row keys differ"
+            np.testing.assert_allclose(j["pred_new"], j["pred_old"], atol=1e-8, rtol=0)
+            np.testing.assert_allclose(j["target_new"], j["target_old"], atol=1e-8, rtol=0)
