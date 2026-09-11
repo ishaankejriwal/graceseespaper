@@ -1,8 +1,9 @@
 # GRACE TWSA Forecasting Study
 
 **In one sentence:** we try to predict how much water is stored in the world's river basins a
-few months from now, and we found that the method everyone in the field uses as their
-comparison point is leaving easy accuracy on the table.
+few months from now, and we argue that the honest starting point for that job is a filter which
+separates the satellite's signal from its noise, not the persistence baseline the field usually
+scores against.
 
 ---
 
@@ -44,81 +45,104 @@ the only honest thing to be judged on.
 
 ## 2. What did we find?
 
-Three things. Each one is explained in plain terms below.
+Two claims about our own forecasts, and one head-to-head against somebody else's.
 
-### Finding 1: The standard benchmark is beatable, and we know exactly why
+### Claim 1: the reference forecast should be a filter, not persistence
 
-To claim your forecast is *good*, you have to beat something. Almost every paper in this field
+To say your forecast is *good*, you have to beat something. Almost every paper in this field
 compares against **damped persistence**, which is a fancy name for a simple idea:
 
 > "Next month will look like this month, but a bit closer to normal."
 
-You take the most recent measurement and shrink it toward zero. That's it. It works
+You take the most recent measurement and shrink it toward zero. That is it. It works
 surprisingly well, because water storage changes slowly.
 
-**Here's the flaw.** The satellite measurement is noisy — it's not the true water level, it's
-the true water level plus measurement error. Damped persistence shrinks the *measurement*. So it
-faithfully carries the noise forward along with the signal.
+Here is the flaw. The satellite measurement is noisy. It is not the true water level, it is the
+true water level plus measurement error. Damped persistence shrinks the *measurement*, so it
+carries the noise forward along with the signal. It also has nothing to say about a month with
+no measurement, and the gap between the GRACE and GRACE-FO missions in 2017 and 2018 is exactly
+that.
 
-Our fix is a **Kalman filter** (explained properly in section 5). In one line: it separates the
-real underlying water level from the measurement noise *first*, then does the shrinking on the
-clean estimate.
+We propose a per-basin **Kalman filter** (explained properly in section 5) as the reference
+instead. It separates the real underlying water level from the measurement noise first, then
+shrinks the clean estimate. A missing month costs it nothing: the filter propagates its state
+forward until the next observation arrives.
 
-That change alone buys **+5.0% accuracy at lead 1 and +8.8% at lead 2**. It's better than
-per-basin ridge regression at five of the six leads (ahead at the sixth too, but not by a
-statistically significant margin). And it's not a small technical footnote —
-it's a free improvement available to anyone in this field who is currently benchmarking the
-usual way.
+That change alone buys **+5.0% at lead 1 and +8.8% at lead 2**, and +2.5% to +5.6% at leads 3
+to 6, against the stronger damped variant at each lead
+(`results/paper_baseline_ladder.csv`; Diebold-Mariano p from 3.5e-12 at lead 1 to 7.9e-7 at
+lead 5). It also beats a per-basin ridge regression at five of the six leads
+(`results/paper_baseline_contrasts.csv`; lead 4 is +1.0% with p = 0.078).
 
-We also proved *which part* of the filter does the work. The filter does two things: it removes
-noise, and it estimates how fast each basin drifts back to normal. We built a version with the
-noise removal switched off, keeping everything else. It performs *worse than plain damped
-persistence* at leads 2–6. So the noise removal is where the win comes from — not better
+We also know *which half* of the filter does the work. Switch the noise removal off and keep
+everything else, and the filter gives up 5.4% at lead 1 rising to 12.3% at lead 6
+(`results/r0_ablation_summary.csv`). That stripped version is *worse than plain damped
+persistence* at leads 2 to 6 (-0.9% to -11.6%, same file). The filtering is the win, not better
 drift estimation.
 
-### Finding 2: Cleaning up the measurement wins at short leads; weather data wins at long leads
+### Claim 2: the strongest own-basin model is the filter plus a small ridge correction
 
-We compared our system head-to-head against a published forecast product by Li & Kusche (2026),
-over 227 basins they and we both cover, across 60 months. Their system uses climate and weather
-inputs; ours mostly cleans up the satellite signal.
+Take the filtered state and the eleven ERA5 weather variables for the last 12 months, flatten
+that window into one long row of numbers, and fit a ridge regression to predict how wrong the
+Kalman forecast is about to be. That is `ridge_own_era5_flat12`, and it is the best own-basin
+model in the study: **+12.2% over damped persistence at lead 1**, then +13.7/+9.6/+6.2/+4.6/+4.5%
+at leads 2 to 6 (`results/paper_baseline_ladder.csv`). Measured against the Kalman reference
+itself it adds +7.6% at lead 1, decaying to +0.9% and not significant by lead 6
+(`results/paper_baseline_contrasts.csv`).
 
-- **Lead 1: we are 20.0% better.**
-- **Lead 2: a tie.**
-- **Leads 3–6: they are 12.9% to 30.3% better.**
+The interesting part is what it beats. Every sequence model we trained loses to it once the two
+are given the same amount of history: the LSTM arms, the residual MLP and the ridge twins all
+sit behind it at lead 1 (`results/phase7_lstm_summary.csv`), and with the training window
+equalized the flat ridge is ahead of the two-seed LSTM ensemble by +1.0/+2.8/+2.3% at leads 1 to
+3 (`results/flat12_train85_sensitivity.csv`). A flat window and a linear fit are enough.
 
-There's a crossover between leads 2 and 3. This makes intuitive sense: next month is mostly
-determined by where the water already is, so getting a clean read on the current state matters
-most. Six months out, the current state has washed out and what matters is what the weather is
-going to do.
+### Claim 3: against a published product we win at short leads and lose at long ones
 
-The striking detail: at lead 1 their forecast scores 11% *worse* than damped persistence — a
-whole weather-driven modeling system, edged out at short range by "next month looks like this
-month." Treat that one as suggestive rather than settled: p = 0.057, and at the individual-basin
-level it's a coin flip (they beat damped persistence in 115 of 227 basins). The pooled deficit
-comes from losing badly in the basins where they lose, not from losing everywhere. The
-crossing itself is solid; that particular number is the softest part of it.
+We compare both of our models against Li and Kusche's published GRACE-FCast product, on the CSR
+mascons and on the JPL mascons, under one protocol and one strict subset rule. The rule
+(`joint_full_cells`) keeps a basin only if it fully contains at least one native mascon of the
+product being scored and at least one valid 1-degree Li cell. That leaves 209 of 227 basins on
+CSR and 67 on JPL (`results/phase6_li_comparison_summary.csv`,
+`results/jpl/phase6_li_comparison_summary.csv`).
 
-### Finding 3: Neighbouring basins help — but only if you use the information the right way
+On CSR, over 209 basins and 60 months (`results/phase6_li_comparison_headline.csv`):
 
-The original question was: if I know what's happening in the basins around me, does that help me
-forecast my own?
+- the Kalman reference beats Li's full product by **+16.4% at lead 1** (p = 2.2e-3), ties at
+  lead 2 (-6.0%, p = 0.23), and loses from lead 3 on (-16.3% to -35.4%);
+- `ridge_own_era5_flat12` beats Li's non-seasonal product by **+32.8% at lead 1** and **+11.2%
+  at lead 2** (p = 2.4e-10 and 2.1e-3), ties at lead 3 (-0.2%, p = 0.94), and loses from lead 4
+  on.
 
-The answer turns out to depend entirely on *what form* that information arrives in:
+On JPL, over 67 basins and 59 months, on the collaborator's run
+(`results/jpl/phase6_li_comparison_headline.csv`, reported Li-first, so a negative skill means
+we are ahead): Li's non-seasonal product scores -1.12 against the Kalman reference at lead 1
+(p = 1.3e-13) and -0.29 at lead 2 (p = 2.1e-5), draws at lead 3 (-0.07, p = 0.15), and is ahead
+at leads 5 and 6.
 
-- **Wired in as a plain linear term:** nothing. +0.31% at lead 1, not statistically significant.
-- **Fed to a neural network as raw 12-month history** — whether as an extra input channel or
-  through a dedicated correction step: nothing, or slightly harmful.
-- **Compressed first into a single number** (the neighbour's current state, propagated forward
-  to the forecast month by its own filter) **and then used in a correction step:**
-  **+0.91% to +1.96%** across leads 1–6, and overwhelmingly statistically significant
-  (p ≤ 3.2e-8 at every lead).
+The shape is the same on both products. Next month is mostly determined by where the water
+already is, so a clean read on the current state matters most; six months out the current state
+has washed out and what matters is what the weather is going to do.
 
-Same information. Same data. The thing that separates success from failure is the
-*representation* — the propagated state — not which pipe the data flows through. That's the
-result — *representation decides*.
+### What we tested and dropped
 
-We were careful here, because "my model improved" is easy to fool yourself about. See section 6
-on how we checked.
+Three things were run properly and are not claims.
+
+- **Neighbouring-basin information.** On CSR a neighbour's propagated state, used as a
+  correction, is worth +0.31% at lead 1 over the own-basin ridge, beats 50 of 50 seed-matched
+  random graphs and 99 of 99 IAAFT surrogates (`results/phase3b_summary.csv`,
+  `results/phase4_surrogate_summary.csv`). On JPL none of it replicates: every neighbour variant
+  is worse than own-basin at every lead, 0 of 50 placebos and 0 of 99 surrogates
+  (`results/jpl/phase3b_summary.csv`, `results/jpl/phase4_surrogate_summary.csv`). Working
+  interpretation: JPL's 3-degree mascons with the CRI filter already do the spatial denoising
+  that a CSR neighbour was supplying. The experiments are kept as extended chain steps.
+- **A separate observation-noise variance for GRACE-FO.** It hurts at every lead, from -1.84% at
+  lead 1 (p = 1.7e-7) to -0.38% at lead 6 (`results/kalman_mission_summary.csv`), and fold 1
+  cannot fit it at all (234 of 1170 basin-folds fall back to one variance). The single-variance
+  filter is what we keep.
+- **Sequence models.** LSTM, residual MLP, graph network and the stacked combination all lose to
+  the flat 12-month ridge once history is equalized, as described in claim 2.
+
+Details and dates for all three are in `results/RUN_LOG.md` under the 2026-09-10 entries.
 
 ---
 
@@ -137,8 +161,10 @@ on how we checked.
 | `data/`, `archive/` | Raw inputs and frozen old results. Not stored in git — see section 4. | Download once |
 
 **If you're new, read in this order:** this README → [`docs/STUDY_CONTEXT.md`](docs/STUDY_CONTEXT.md)
-(what's done, what's in progress) → [`docs/CODE_MAP.md`](docs/CODE_MAP.md) (what each file does)
-→ [`results/RUN_LOG.md`](results/RUN_LOG.md) (the diary).
+(the claims, the numbers behind them, and what's still open) →
+[`docs/CODE_MAP.md`](docs/CODE_MAP.md) (what each file does) →
+[`results/README.md`](results/README.md) (which result file to open) →
+[`results/RUN_LOG.md`](results/RUN_LOG.md) (the diary).
 
 ---
 
@@ -152,14 +178,14 @@ You need Python 3.11 or newer. Everything runs on a normal laptop CPU — no GPU
 python -m venv .venv && .venv/Scripts/pip install -r requirements-lock.txt
 ```
 
-**Check it worked** by running the test suite. This takes about 15 seconds and needs no data:
+**Check it worked** by running the test suite. This takes about 30 seconds and needs no data:
 
 ```bash
 .venv/Scripts/python -m pytest tests/ -q
 ```
 
-You should see `17 passed` (on a fresh clone without the data downloaded yet, some
-data-dependent tests skip instead — passed-plus-skipped is also fine).
+You should see `28 passed` (on a fresh clone without the data downloaded yet, some
+data-dependent tests skip instead, and passed-plus-skipped is also fine).
 
 ### Downloading the data
 
@@ -227,26 +253,24 @@ ablation we ran, and it loses. The filtering is the win.
 it is — it's whatever part of the signal the model can't carry forward. 259 of 1170 basin-fits
 land at r ≈ 0. The paper is careful about this wording, and you should be too.
 
-### How the neural network models use the filter
+### How the correction stage uses the filter
 
-The stacked system — the carrier of the neighbour-correction result, and our best system at
-leads 4–6 (at leads 1–3 a plain ridge over the same 12-month history matches or beats it;
-that inversion is itself one of the paper's findings) — isn't a replacement for the Kalman
-filter. It's built on top of it. Its final prediction is literally three things added together:
+Our strongest own-basin model is not a replacement for the Kalman filter, it is built on top of
+it. Its prediction is two things added together:
 
 ```
-prediction  =  kalman forecast  +  LSTM correction  +  neighbour correction
+prediction  =  kalman forecast  +  ridge correction
 ```
 
 - The **Kalman forecast** is the baseline guess described above.
-- The **LSTM** (a neural network for sequences) looks at 12 months of the basin's *filtered*
-  history plus 11 weather variables, and predicts *how wrong the Kalman guess will be*.
-- The **neighbour correction** takes the filtered state of the most-connected neighbouring
-  basin and predicts how wrong the answer *still* is.
+- The **ridge correction** reads a flat 12-month window of the basin's own *filtered* state plus
+  its 11 ERA5 weather variables, and predicts *how wrong the Kalman guess will be*.
 
-Every model in this study that works is shaped like "good baseline + small learned correction."
-Models that tried to predict water storage from scratch, ignoring the filter, did worse. And the
-correction step only works when it's handed the right representation — see Finding 3.
+Every model in this study that works is shaped like "good baseline plus small learned
+correction". Models that tried to predict water storage from scratch, ignoring the filter, did
+worse. The sequence models (LSTM, residual MLP, graph network, and the stacked combination) are
+all still in the repository as extended chain steps, and none of them beats this flat ridge over
+the same history.
 
 ---
 
@@ -293,22 +317,18 @@ Every headline number comes with a statistical test:
 - **False discovery rate (FDR) correction** — when you test 234 basins separately, some will
   look significant by pure chance. This corrects for that.
 
-### Placebo tests
+### Controls that the default chain does not run
 
-This is the one we're proudest of. To claim "neighbouring basins carry useful information," it
-isn't enough to show the model improved when we added neighbours — maybe *any* extra input would
-have helped.
+The default chain compares model against model on identical rows, with the three tests above.
+It runs no placebo graphs and no surrogates, because none of the claims it supports involves a
+graph, and there is nothing to randomize.
 
-So we rerun the whole thing with **fake neighbours**: random basins, wired up in a graph with the
-exact same shape (same number of connections per basin), using the exact same random seed for
-the model itself. The *only* difference is which basins are connected to which.
-
-If the real graph doesn't beat the fake ones, the effect isn't about geography. Our headline
-neighbour result beats **20 out of 20** fake graphs in all 12 test cells.
-
-We also run **IAAFT surrogates**, a second independent check: scramble the data so each basin
-keeps its own statistical character but loses its timing relationship with other basins. If the
-result survives that too, the signal really is about basins moving together.
+The machinery is still in the repository and still runs, as extended steps. `graphs.py` builds
+seed-matched random-neighbour graphs (same number of connections per basin, same model seed,
+only the wiring differs) and `run_phase4_surrogates.py` builds IAAFT surrogates, which keep each
+basin's own statistical character but destroy its timing relationship with every other basin.
+Those two controls are what the dropped neighbour claim was tested against, in both directions:
+it passed them on CSR and failed them on JPL. See "What we tested and dropped" in section 2.
 
 ---
 
@@ -325,11 +345,48 @@ See what it will do, without running anything:
 .venv/Scripts/python scripts/run_chain.py --list
 ```
 
-Run the whole thing:
+Run the default list:
 
 ```bash
 .venv/Scripts/python scripts/run_chain.py
 ```
+
+### The default list and the extended list
+
+There are two lists. The **default** is the 13 steps that produce the paper's claims, in this
+order:
+
+```
+build_basin  build_era5  build_li  phase2  kalman  flat12_ridge  kalman_mission
+r0_ablation  ladder  li_comparison  conventional_metrics  figures  manifest
+```
+
+Everything else is **extended**: every neighbour-only experiment, every torch model, the
+resolution and stratification work, the hybrid splice. Nothing was deleted and every extended
+step is still registered, still runnable, and still declares its inputs and outputs to `--list`.
+Reach them with `--extended` (default plus extended) or by naming them with
+`--steps name1 name2`.
+
+The default list needs no torch.
+
+Wall times for the default tail, measured on the 2026-09-10 CSR rerun on this machine
+(`results/RUN_LOG.md`, "Kalman-benchmark reframe"): `build_li` 5.9 min, `flat12_ridge` 2.0 min,
+`kalman_mission` 29 min, `ladder` 1.0 min, `li_comparison` 6.0 min, `conventional_metrics`
+0.7 min, `manifest` 0.2 min. The steps ahead of those (`build_basin`, `build_era5`, `phase2`,
+`kalman`, `r0_ablation`) were not re-timed in that run. The extended list is where the long
+runtimes live: the recorded 14-step partial extended rerun took about 34 hours, and the neural
+stages dominate it.
+
+**One caveat, and it will bite a fresh machine.** `figures` is in the default list but still
+reads extended outputs: `phase3b_summary.csv`, `phase3b_placebo_monthly.csv`,
+`phase4_surrogate_summary.csv`, `phase5_perbasin_fdr_h1.csv`, `phase6_era5_headline.csv`,
+`phase6_era5_predictions.csv`, `phase4_conditioned_predictions.csv`, and the four `phase8b_*`
+merge tables. A machine that has only ever run the default list does not have those files, and
+the chain stops at `figures` naming the ones it is missing. That is expected rather than broken:
+the manuscript figures have not been redone for the reframe yet. Until they are, either run the
+extended steps first or leave `figures` out with `--steps`.
+
+Each stage writes its own log to `results/chain_<name>.log`.
 
 Run the same experiment suite with the JPL RL06.3Mv04 mascons:
 
@@ -383,18 +440,11 @@ state, and chain logs remain local; their checksums are recorded in
 comparison populations, seeds, and input checksums are documented in
 `results/jpl/RUN_PROVENANCE.md`.
 
-Heads up: a full run is **roughly a day and a half to two days** on a laptop — the recorded
-14-step partial rerun took ~34 hours, and the full default list adds the baselines, phase 3b,
-the Li comparison, and more on top of that. The neural network stages dominate. Run just part
-of it with `--steps name1 name2`. Each stage writes its own log to `results/chain_<name>.log`.
-
-The default step list is the whole study: building the basin/ERA5/Li tables from raw files,
-the baselines, every experiment phase, the paper's number ladder, the figures, and the
-checksum manifest. The only things it does *not* do are the downloads themselves, because
-those need a network or credentials: the CSR satellite and ancillary files, the basin mask,
+The only things the chain does *not* do are the downloads themselves, because those need a
+network or credentials: the CSR satellite and ancillary files, the basin mask,
 `scripts/download_era5.py`, the Li 2026 archive, and `scripts/download_indices.py` (section 4
-covers where each comes from). Once those are on disk, `run_chain.py` with no arguments is
-the reproduction recipe.
+covers where each comes from). Once those are on disk, `run_chain.py` with no arguments is the
+reproduction recipe for everything except the figures.
 
 **Figures:** `scripts/make_figures.py` builds the paper's charts. It deliberately *crashes* if
 any plotted value disagrees with expected numbers transcribed into the script from
@@ -440,9 +490,11 @@ A few conventions. Please don't break them — each one exists because something
 | **Kalman gain** | How much the filter trusts a new measurement versus its own prediction. |
 | **Mascon** | A tile (~120 km across) that the satellite data is delivered on. Basins are built from these. |
 | **Contamination / leakage** | When a basin's number partly reflects water in *neighbouring* land, because the tiles are coarser than the basin. |
-| **LSTM** | A type of neural network built for sequences — it reads a run of months in order. |
-| **Placebo test** | Rerunning with deliberately fake (random) neighbours, to check a result isn't just "more inputs help." |
-| **Surrogate (IAAFT)** | Scrambled data that keeps each basin's own statistics but destroys cross-basin timing. A second null check. |
+| **LSTM** | A type of neural network built for sequences, reading a run of months in order. Every LSTM arm here is an extended step, and none of them beats the flat ridge. |
+| **Flat 12-month window** | The last 12 months of filtered state and weather, flattened into one row of numbers and handed to a ridge regression. The correction stage of our best model. |
+| **GRACE-FCast** | Li and Kusche's published TWSA forecast product, the external system we compare against. |
+| **Placebo test** | Rerunning with deliberately fake (random) neighbours, to check a result isn't just "more inputs help." Used by the extended neighbour steps only. |
+| **Surrogate (IAAFT)** | Scrambled data that keeps each basin's own statistics but destroys cross-basin timing. A second null check, also extended-only. |
 | **Fold** | One train/test round. We use 5, each testing on a later time period. |
 | **Skill** | Percent improvement in error over a baseline. Higher is better. |
 | **p-value** | Roughly, the chance of seeing a result this good if there were really no effect. Smaller is stronger. |

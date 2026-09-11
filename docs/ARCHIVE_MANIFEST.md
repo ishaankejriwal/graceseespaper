@@ -4,6 +4,14 @@ This mapping was formerly printed in the manuscript as Appendix Table A2
 (`tab:sources`); it now lives with the archive, where its user needs it.
 Include this file (or fold it into the README) in the Zenodo deposit.
 
+**Status, 2026-09-10: the mapping below is pre-reframe.** It describes the manuscript as it
+stands today, which still has the three-finding structure with the neighbour effect as a
+contribution. `paper/main.tex` has not yet been rewritten for the Kalman-benchmark reframe
+(see `docs/STUDY_CONTEXT.md` and the 2026-09-10 RUN_LOG entry), and the figures have not been
+rebuilt. Every row here will be regenerated once that rewrite lands; nothing below has been
+edited to guess at the new table and figure numbering. For the current claims and their source
+files, use `docs/STUDY_CONTEXT.md` and `results/README.md` instead.
+
 | Manuscript item | Archived source file(s) |
 |---|---|
 | Table 1 (baseline ladder), Fig. 1 | `results/paper_baseline_ladder.csv`; pairwise tests in `results/paper_baseline_contrasts.csv` |
