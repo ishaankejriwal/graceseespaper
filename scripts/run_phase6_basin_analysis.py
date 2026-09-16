@@ -9,7 +9,6 @@ Kalman signal-to-noise, coupling), then answers:
   3. geographic patterns
   4. whether ERA5 conditioning changes who benefits
 """
-import pickle
 import sys
 from pathlib import Path
 
@@ -20,11 +19,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.evaluate import DEFAULT_FOLDS, deseasonalize_fold  # noqa: E402
-from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.graphs import corr_topk, distance_matrix_km  # noqa: E402
 from gracefc.stats import diebold_mariano  # noqa: E402
 from gracefc.cache import load_params_cache  # noqa: E402
-from gracefc.runtime import processed_dir, results_dir, shared_processed_dir  # noqa: E402
+from gracefc.runtime import load_sample, processed_dir, results_dir, shared_processed_dir  # noqa: E402
 
 OUT = results_dir(ROOT)
 DATA = processed_dir(ROOT)
@@ -36,10 +34,7 @@ RNG = 0
 
 def build_neighbor_table() -> pd.DataFrame:
     """Reconstruct the fold-specific corr_top1 graphs exactly as the experiments built them."""
-    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(DATA / "basin_meta.csv")
-    keep = meta[meta["exclude_reason"] == "keep"]["name"]
-    wide = pivot_wide(long_df[long_df["name"].isin(keep)])
+    wide, meta, keep = load_sample(DATA)
     meta_kept = meta[meta["name"].isin(wide.columns)].reset_index(drop=True)
     dist = distance_matrix_km(meta_kept)
     cache = load_params_cache(OUT / "kalman_fold_params.pkl", DATA / "basin_month_twsa_global.csv")

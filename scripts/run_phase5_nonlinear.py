@@ -1,6 +1,5 @@
 """Phase 5: do nonlinear heads (GBM, MLP) or a 2-hop chain beat ridge on the Kalman backbone?"""
 import argparse
-import pickle
 import sys
 from pathlib import Path
 
@@ -11,11 +10,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.experiment_nonlinear import run_nonlinear_experiment  # noqa: E402
-from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
-from gracefc.stats import block_bootstrap_skill_ci, pooled_monthly_dm  # noqa: E402
-from gracefc.cache import load_params_cache, save_params_cache  # noqa: E402
-from gracefc.runtime import processed_dir, results_dir  # noqa: E402
+from gracefc.stats import pooled_monthly_dm  # noqa: E402
+from gracefc.cache import load_params_cache  # noqa: E402
+from gracefc.runtime import load_sample, processed_dir, results_dir  # noqa: E402
 
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
@@ -28,10 +26,7 @@ def main() -> None:
     ap.add_argument("--tag", default="phase5_nonlinear")
     args = ap.parse_args()
 
-    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(DATA / "basin_meta.csv")
-    keep = meta[meta["exclude_reason"] == "keep"]["name"]
-    wide = pivot_wide(long_df[long_df["name"].isin(keep)])
+    wide, meta, keep = load_sample(DATA)
     cache = load_params_cache(PARAMS_CACHE, DATA / "basin_month_twsa_global.csv")
     print(f"sample: {wide.shape[1]} basins | placebo seeds={args.placebo}")
 

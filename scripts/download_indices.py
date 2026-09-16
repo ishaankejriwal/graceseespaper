@@ -1,9 +1,7 @@
 """Download monthly climate indices from NOAA PSL/CPC and build one tidy CSV."""
-import io
 import urllib.request
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 RAW_DIR = Path(__file__).resolve().parents[1] / "data" / "raw" / "indices"

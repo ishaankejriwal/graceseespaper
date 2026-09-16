@@ -45,7 +45,6 @@ declare it as an INPUT; the two steps that can build it do not.
 import argparse
 import os
 import subprocess
-import sys
 import time
 from pathlib import Path
 
@@ -148,13 +147,13 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      [RESULTS / "kalman_r0_predictions.csv", RESULTS / "r0_ablation_summary.csv"]),
 
     ("phase5_fusion",
-     ["scripts/run_phase5_fusion.py"],
+     ["scripts/run_phase5_infilter.py", "--model", "fusion"],
      [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
       RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase5_fusion_predictions.csv", RESULTS / "phase5_fusion_summary.csv"]),
 
     ("phase5_coupled",
-     ["scripts/run_phase5_coupled.py"],
+     ["scripts/run_phase5_infilter.py", "--model", "coupled"],
      [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
       RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase5_coupled_predictions.csv", RESULTS / "phase5_coupled_coupling.csv",
@@ -216,13 +215,13 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
       RESULTS / "resolution_cross_2x2_200k.csv"]),
 
     ("phase7_resmlp",
-     ["scripts/run_phase7_resmlp.py"],
+     ["scripts/run_phase7.py", "--arch", "resmlp"],
      [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
       DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase7_resmlp_summary.csv", RESULTS / "phase7_resmlp_predictions.csv"]),
 
     ("phase7_lstm",
-     ["scripts/run_phase7_lstm.py"],
+     ["scripts/run_phase7.py", "--arch", "lstm"],
      [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
       DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase7_lstm_summary.csv", RESULTS / "phase7_lstm_predictions.csv"]),
@@ -260,7 +259,7 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      [RESULTS / "phase8_stratification.csv"]),
 
     ("phase7_gnn",
-     ["scripts/run_phase7_gnn.py"],
+     ["scripts/run_phase7.py", "--arch", "gnn"],
      [DATA / "basin_month_twsa_global.csv", DATA / "basin_meta.csv",
       DATA / "era5_basin_month.csv", RESULTS / "kalman_fold_params.pkl"],
      [RESULTS / "phase7_gnn_summary.csv"]),

@@ -1,25 +1,19 @@
 """Phase 8: stacked LSTM(own state + ERA5 sequences) + neighbor-only residual MLP."""
 import argparse
-import pickle
 import sys
 from pathlib import Path
-
-import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from gracefc.era5 import era5_wide_by_var  # noqa: E402
 from gracefc.evaluate import DEFAULT_FOLDS  # noqa: E402
 from gracefc.experiment_lstm_combined import run_lstm_combined_experiment  # noqa: E402
-from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.phase7 import summarize_and_write  # noqa: E402
-from gracefc.cache import load_params_cache, save_params_cache  # noqa: E402
-from gracefc.runtime import processed_dir, results_dir, shared_processed_dir  # noqa: E402
+from gracefc.cache import load_params_cache  # noqa: E402
+from gracefc.runtime import load_era5, load_sample, processed_dir, results_dir  # noqa: E402
 
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
-SHARED_DATA = shared_processed_dir(ROOT)
 PARAMS_CACHE = OUT_DIR / "kalman_fold_params.pkl"
 
 # Does the neighbor-only MLP correction still add skill once stage 1 is the LSTM that
@@ -68,12 +62,8 @@ def main() -> None:
                     help="fold f1, first horizon only, 2 placebo seeds, 1 LSTM seed")
     args = ap.parse_args()
 
-    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(DATA / "basin_meta.csv")
-    keep = meta[meta["exclude_reason"] == "keep"]["name"]
-    wide = pivot_wide(long_df[long_df["name"].isin(keep)])
-    era5_long = pd.read_csv(SHARED_DATA / "era5_basin_month.csv", parse_dates=["date"])
-    era5_wide = era5_wide_by_var(era5_long[era5_long["name"].isin(keep)])
+    wide, meta, keep = load_sample(DATA)
+    era5_wide = load_era5(keep)
     cache = load_params_cache(PARAMS_CACHE, DATA / "basin_month_twsa_global.csv")
 
     h_lo, h_hi = (int(x) for x in args.horizons.split("-"))

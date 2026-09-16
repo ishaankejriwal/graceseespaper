@@ -26,7 +26,7 @@ from gracefc.decompose import fit_climatology  # noqa: E402
 from gracefc.evaluate import DEFAULT_FOLDS  # noqa: E402
 from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
-from gracefc.stats import block_bootstrap_skill_ci, diebold_mariano, per_basin_dm_fdr, pooled_monthly_dm  # noqa: E402
+from gracefc.stats import block_bootstrap_skill_ci, per_basin_dm_fdr, pooled_monthly_dm  # noqa: E402
 from gracefc.runtime import processed_dir, results_dir, source  # noqa: E402
 
 OUT_DIR = results_dir(ROOT)

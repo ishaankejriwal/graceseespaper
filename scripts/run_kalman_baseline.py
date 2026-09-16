@@ -6,28 +6,23 @@ filtering. If ridge stays ahead, multi-lag structure carries real dynamics beyon
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.evaluate import DEFAULT_FOLDS, deseasonalize_fold  # noqa: E402
-from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.kalman import kalman_predictions  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
 from gracefc.stats import pooled_monthly_dm  # noqa: E402
-from gracefc.runtime import processed_dir, results_dir  # noqa: E402
+from gracefc.runtime import load_sample, processed_dir, results_dir  # noqa: E402
 
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
 
 
 def main() -> None:
-    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(DATA / "basin_meta.csv")
-    keep = meta[meta["exclude_reason"] == "keep"]["name"]
-    wide = pivot_wide(long_df[long_df["name"].isin(keep)])
+    wide, meta, keep = load_sample(DATA)
 
     # No resume shortcut: a cached predictions file once silently mixed fold
     # protocols (audit 2026-08-14). The ~20 min MLE refit is the price of

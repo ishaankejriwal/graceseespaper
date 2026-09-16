@@ -10,37 +10,29 @@ be attributed to the extra training rows. Output: results/flat12_train85_sensiti
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from gracefc.era5 import era5_fold_features, era5_wide_by_var  # noqa: E402
+from gracefc.era5 import era5_fold_features  # noqa: E402
 from gracefc.evaluate import DEFAULT_FOLDS  # noqa: E402
-from gracefc.experiment_flat12 import (_era5_state_tensor, _state_channel,  # noqa: E402
-                                       _window_channels)
+from gracefc.experiment_flat12 import _era5_state_tensor, window_design  # noqa: E402
 from gracefc.experiment_nonlinear import _fit_head  # noqa: E402
-from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
 from gracefc.phase7 import fold_setup, horizon_frame, train_val_mask  # noqa: E402
 from gracefc.stats import pooled_monthly_dm  # noqa: E402
 from gracefc.cache import load_params_cache  # noqa: E402
-from gracefc.runtime import processed_dir, results_dir, shared_processed_dir  # noqa: E402
+from gracefc.runtime import load_era5, load_sample, processed_dir, results_dir  # noqa: E402
 
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
-SHARED_DATA = shared_processed_dir(ROOT)
 HORIZONS = range(1, 4)  # flat12 exists at h1-3 only
 
 
 def main() -> None:
-    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(DATA / "basin_meta.csv")
-    keep = meta[meta["exclude_reason"] == "keep"]["name"]
-    wide = pivot_wide(long_df[long_df["name"].isin(keep)])
-    era5_long = pd.read_csv(SHARED_DATA / "era5_basin_month.csv", parse_dates=["date"])
-    era5_wide = era5_wide_by_var(era5_long[era5_long["name"].isin(keep)])
+    wide, meta, keep = load_sample(DATA)
+    era5_wide = load_era5(keep)
     cache = load_params_cache(OUT_DIR / "kalman_fold_params.pkl",
                               DATA / "basin_month_twsa_global.csv")
     assert cache, "params cache missing or stale - run phase3b first"
@@ -57,14 +49,8 @@ def main() -> None:
                 continue
             tr, te, ytr = frame["tr"], frame["te"], frame["ytr"]
             val_mask = train_val_mask(tr)
-            widx_tr, valid_tr = _window_channels(frame["t_idx"])
-            widx_te, valid_te = _window_channels(frame["e_idx"])
-            own_tr = _state_channel(F, widx_tr, valid_tr, frame["tr_pos"])
-            own_te = _state_channel(F, widx_te, valid_te, frame["te_pos"])
-            era_tr = np.where(valid_tr[:, :, None], E[widx_tr, frame["tr_pos"][:, None], :], 0.0)
-            era_te = np.where(valid_te[:, :, None], E[widx_te, frame["te_pos"][:, None], :], 0.0)
-            X12_tr = np.column_stack([own_tr, era_tr.reshape(len(own_tr), -1)])
-            X12_te = np.column_stack([own_te, era_te.reshape(len(own_te), -1)])
+            design = window_design(F, E, frame)
+            X12_tr, X12_te = design["X12_tr"], design["X12_te"]
 
             df = te[["name", "issue_date", "target_date", "target"]].copy()
             df["pred"] = te["kalman"].values + _fit_head(

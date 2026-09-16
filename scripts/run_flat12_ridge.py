@@ -3,7 +3,7 @@
 Emits the reference forecast (kalman_ar1), the lag-0 own-state ridge comparator
 (kalman_own_ridge, phase 3b's definition) and the two flat-12 ridge corrections
 (ridge_own_flat12, ridge_own_era5_flat12). These arms used to exist only inside
-run_phase7_lstm.py, at leads 1-3, behind a torch import; this runner is their home.
+run_phase7.py --arch lstm, at leads 1-3, behind a torch import; this runner is their home.
 
 Inputs : data/processed/basin_month_twsa_global.csv, data/processed/basin_meta.csv
          data/processed/era5_basin_month.csv, results/kalman_fold_params.pkl
@@ -24,17 +24,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.cache import load_params_cache, save_params_cache  # noqa: E402
-from gracefc.era5 import era5_wide_by_var  # noqa: E402
 from gracefc.evaluate import DEFAULT_FOLDS  # noqa: E402
 from gracefc.experiment_flat12 import run_flat12_experiment  # noqa: E402
-from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
-from gracefc.runtime import processed_dir, results_dir, shared_processed_dir  # noqa: E402
+from gracefc.runtime import load_era5, load_sample, processed_dir, results_dir  # noqa: E402
 from gracefc.stats import pooled_monthly_dm  # noqa: E402
 
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
-SHARED_DATA = shared_processed_dir(ROOT)
 PARAMS_CACHE = OUT_DIR / "kalman_fold_params.pkl"
 
 KALMAN_REF = "kalman_ar1"
@@ -86,12 +83,8 @@ def main() -> None:
         print(summary.to_string(index=False))
         return
 
-    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(DATA / "basin_meta.csv")
-    keep = meta[meta["exclude_reason"] == "keep"]["name"]
-    wide = pivot_wide(long_df[long_df["name"].isin(keep)])
-    era5_long = pd.read_csv(SHARED_DATA / "era5_basin_month.csv", parse_dates=["date"])
-    era5_wide = era5_wide_by_var(era5_long[era5_long["name"].isin(keep)])
+    wide, meta, keep = load_sample(DATA)
+    era5_wide = load_era5(keep)
     cache = load_params_cache(PARAMS_CACHE, DATA / "basin_month_twsa_global.csv")
     cached_folds = set(cache)
     print(f"sample: {wide.shape[1]} basins | horizons {lo}-{hi} | "

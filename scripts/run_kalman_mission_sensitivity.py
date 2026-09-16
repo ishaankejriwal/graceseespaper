@@ -37,10 +37,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.evaluate import DEFAULT_FOLDS, deseasonalize_fold  # noqa: E402
-from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.kalman_mission import MIN_FO_OBS, MISSION_SPLIT, mission_predictions  # noqa: E402
 from gracefc.models import rmse  # noqa: E402
-from gracefc.runtime import processed_dir, results_dir  # noqa: E402
+from gracefc.runtime import load_sample, processed_dir, results_dir  # noqa: E402
 from gracefc.stats import (  # noqa: E402
     _paired_losses,
     block_bootstrap_skill_ci,
@@ -65,10 +64,7 @@ def attach_and_clip(df: pd.DataFrame, resid_wide: pd.DataFrame, fold, model: str
 
 
 def fit_all() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(DATA / "basin_meta.csv")
-    keep = meta[meta["exclude_reason"] == "keep"]["name"]
-    wide = pivot_wide(long_df[long_df["name"].isin(keep)])
+    wide, meta, keep = load_sample(DATA)
 
     two_rows, one_rows, param_rows = [], [], []
     for fold in DEFAULT_FOLDS:

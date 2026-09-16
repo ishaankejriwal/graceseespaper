@@ -13,7 +13,6 @@ selected graph is reused for every draw. The tested null is therefore "the selec
 neighbor's time-alignment carries no information", not "selection plus alignment"; the
 degree-matched random-graph placebos in phases 3b-8 cover selection.
 """
-import pickle
 import sys
 from pathlib import Path
 
@@ -25,12 +24,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.evaluate import DEFAULT_FOLDS, deseasonalize_fold, split_fold  # noqa: E402
-from gracefc.features import pivot_wide  # noqa: E402
 from gracefc.graphs import corr_topk  # noqa: E402
 from gracefc.kalman import filtered_state_wide  # noqa: E402
 from gracefc.surrogates import surrogate_wide  # noqa: E402
 from gracefc.cache import load_params_cache  # noqa: E402
-from gracefc.runtime import processed_dir, results_dir  # noqa: E402
+from gracefc.runtime import load_sample, processed_dir, results_dir  # noqa: E402
 
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
@@ -39,10 +37,7 @@ HORIZONS = range(1, 7)
 
 
 def main() -> None:
-    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(DATA / "basin_meta.csv")
-    keep = meta[meta["exclude_reason"] == "keep"]["name"]
-    wide = pivot_wide(long_df[long_df["name"].isin(keep)])
+    wide, meta, keep = load_sample(DATA)
     cache = load_params_cache(OUT_DIR / "kalman_fold_params.pkl", DATA / "basin_month_twsa_global.csv")
     assert cache, "params cache missing or stale for current data/protocol - run phase3b first"
 

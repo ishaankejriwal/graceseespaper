@@ -9,8 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from gracefc.decompose import fit_climatology, deseasonalize  # noqa: E402
 from gracefc.evaluate import DEFAULT_FOLDS, per_basin_wins, run_baseline_ladder, summarize  # noqa: E402
-from gracefc.features import pivot_wide  # noqa: E402
-from gracefc.runtime import processed_dir, results_dir, shared_processed_dir  # noqa: E402
+from gracefc.runtime import load_sample, processed_dir, results_dir, shared_processed_dir  # noqa: E402
 
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
@@ -37,10 +36,7 @@ def assign_snr_strata(wide: pd.DataFrame, meta: pd.DataFrame) -> pd.Series:
 
 
 def main() -> None:
-    long_df = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
-    meta = pd.read_csv(DATA / "basin_meta.csv")
-    keep = meta[meta["exclude_reason"] == "keep"]["name"]
-    wide = pivot_wide(long_df[long_df["name"].isin(keep)])
+    wide, meta, keep = load_sample(DATA)
     print(f"hydrology sample: {wide.shape[1]} basins, {wide.shape[0]} months on gapless index")
 
     strata = assign_snr_strata(wide, meta)

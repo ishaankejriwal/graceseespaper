@@ -66,7 +66,6 @@ by the default chain; everything marked *extended* is reached with `--extended` 
 |---|---|
 | `experiment_flat12.py` | Kalman forecast plus a ridge correction over a flat 12-month window of filtered state and ERA5. The strongest own-basin model at leads 1 to 4; at leads 5 and 6 the own-state ridge correction `kalman_own_ridge` is marginally better (-0.58% and -0.73%, `results/flat12_ridge_summary.csv`). |
 | `experiment_kalman.py` | *Extended.* Neighbours added to the Kalman baseline (phase 3b), with the seed-matched placebo graphs. |
-| `experiment.py` | *Extended.* The same question on ridge regression instead (phase 3, older). |
 | `experiment_nonlinear.py` | *Extended.* Gradient boosting and small neural nets on the same inputs (phase 5). |
 | `coupled.py`, `fusion.py` | *Extended.* Two ways of letting a neighbour's data enter the filter directly (phase 5). Both informative failures. |
 | `experiment_era5.py` | *Extended.* Weather data added to the Kalman baseline (phase 6). |
@@ -144,7 +143,7 @@ The extended list, which is every remaining experiment.
 | `run_phase6_era5.py`, `run_phase6_era5_attribution.py` | Does weather data help, and which variables carry it? |
 | `run_phase6_basin_analysis.py` | *Which* basins benefit, and why? |
 | `run_phase6_hybrid.py` | Splices our forecasts with the published product. |
-| `run_phase7_*.py` | Three neural architectures on identical inputs, head to head. |
+| `run_phase7.py --arch {resmlp,lstm,gnn}` | Three neural architectures on identical inputs, head to head. |
 | `run_phase8_lstm_combined.py`, `run_phase8b_merge.py` | The stacked system and its neighbour correction, across all six leads. |
 | `run_resolution_sensitivity.py` | Are results contaminated by the satellite's coarse resolution? Builds the leakage metric and the official tile geometry that the strict Li subset rule reuses. |
 | `run_phase8_stratification.py` | Were the neighbor experiments (extended) leakage in disguise? |

@@ -6,13 +6,12 @@ target date, fold) so arms from different runs are never scored on different row
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from gracefc.stats import block_bootstrap_skill_ci, diebold_mariano, per_basin_dm_fdr  # noqa: E402
+from gracefc.stats import block_bootstrap_skill_ci, per_basin_dm_fdr, pooled_monthly_dm  # noqa: E402
 from gracefc.runtime import results_dir  # noqa: E402
 
 OUT_DIR = results_dir(ROOT)
@@ -36,24 +35,15 @@ def matched_compare(df_a, model_a, df_b, model_b, horizon) -> dict | None:
     # Monthly-mean loss equals pooled skill only when every month has the same basin count
     counts = m.groupby("target_date").size()
     assert counts.nunique() == 1, f"unbalanced months in {model_a} vs {model_b}: {counts.unique()}"
-    la = m.assign(loss=(m["target_a"] - m["pred_a"]) ** 2).groupby("target_date")["loss"].mean()
-    lb = m.assign(loss=(m["target_b"] - m["pred_b"]) ** 2).groupby("target_date")["loss"].mean()
-    stat, p = diebold_mariano(la.values, lb.values, horizon=horizon)
-    skill = 1 - la.mean() / lb.mean()
-    rng = np.random.default_rng(0)
-    # Block scales with lead: overlapping h-step forecasts are dependent to lag h-1
-    # (audit 2026-08-15, same repair as stats.block_bootstrap_skill_ci)
-    n, block = len(la), max(3, horizon)
-    n_blocks = int(np.ceil(n / block))
-    draws = np.empty(2000)
-    va, vb = la.values, lb.values
-    for i in range(2000):
-        starts = rng.integers(0, n - block + 1, size=n_blocks)
-        idx = np.concatenate([np.arange(s, s + block) for s in starts])[:n]
-        draws[i] = 1 - va[idx].mean() / vb[idx].mean()
-    lo, hi = np.percentile(draws, [2.5, 97.5])
+    # Relabel so the paired-row stats see two distinct models on identical keys
+    both = pd.concat([
+        m[KEYS].assign(model="a", target=m["target_a"], pred=m["pred_a"]),
+        m[KEYS].assign(model="b", target=m["target_b"], pred=m["pred_b"]),
+    ], ignore_index=True)
+    skill, lo, hi = block_bootstrap_skill_ci(both, "a", "b", horizon)
+    stat, p = pooled_monthly_dm(both, "a", "b", horizon)
     return {"model": model_a, "vs": model_b, "horizon": horizon, "n_rows": len(m),
-            "n_months": n, "skill": skill, "ci_lo": lo, "ci_hi": hi,
+            "n_months": len(counts), "skill": skill, "ci_lo": lo, "ci_hi": hi,
             "dm_stat": stat, "dm_p": p}
 
 
