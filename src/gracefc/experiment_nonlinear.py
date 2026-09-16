@@ -7,6 +7,7 @@ corr_top1 (neighbor's neighbor); mutual top-1 pairs have no distinct 2-hop node 
 zero-padded, and placebos zero-pad the exact same basins so capacity stays matched.
 """
 import zlib
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -15,9 +16,10 @@ from sklearn.linear_model import Ridge
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
-from .evaluate import DEFAULT_FOLDS, Fold, deseasonalize_fold, split_fold
+from .evaluate import DEFAULT_FOLDS, Fold
 from .graphs import corr_topk, random_degree_matched
-from .kalman import filtered_state_wide, fit_fold_params
+from .phase7 import (emit_placebo_rows, emit_rows, fold_setup, horizon_frame,
+                     neighbor_rank_matrix, propagated_neighbor_features)
 
 
 def two_hop_map(graph: dict) -> dict:
@@ -41,6 +43,11 @@ def randomized_two_hop(hop2: dict, names: list, seed: int) -> dict:
             choices = [n for n in names if n != name]
             out[name] = choices[rng.integers(len(choices))]
     return out
+
+
+def _hop_matrix(node_of: dict, names: list, name_pos: dict) -> np.ndarray:
+    """(N, 1) position matrix from a name -> name-or-None map; -1 where the map is empty."""
+    return neighbor_rank_matrix({n: [h] if h else [] for n, h in node_of.items()}, names, name_pos, 1)
 
 
 def _fit_head(head: str, Xtr, ytr, Xte, seed: int) -> np.ndarray:
@@ -72,71 +79,25 @@ def run_nonlinear_experiment(
     """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
     out, placebo_monthly = [], []
     for fold in folds:
-        resid_raw, train_std = deseasonalize_fold(wide, fold)
-        resid_wide = resid_raw / train_std
-        if params_cache is not None and fold.name in params_cache:
-            params = params_cache[fold.name]
-        else:
-            params = fit_fold_params(resid_wide, fold.test_start)
-            if params_cache is not None:
-                params_cache[fold.name] = params
-        filt = filtered_state_wide(resid_wide[params["name"]], params)
-        rho = params.set_index("name")["rho"]
-        names = list(filt.columns)
-        name_pos = {n: i for i, n in enumerate(names)}
-
-        train_src = resid_wide[resid_wide.index < fold.test_start]
-        graph = corr_topk(train_src[names], 1)
+        setup = fold_setup(wide, fold, params_cache)
+        names, name_pos = setup["names"], setup["name_pos"]
+        graph = corr_topk(setup["train_src"], 1)
+        nbr_idx = neighbor_rank_matrix(graph, names, name_pos, 1)
         hop2 = two_hop_map(graph)
+        hop_idx = _hop_matrix(hop2, names, name_pos)
 
-        F = filt.values
-        R = rho[names].values
         for h in horizons:
-            prop = F * (R[None, :] ** h)
-            base_df = pd.DataFrame({
-                "issue_date": np.repeat(filt.index.values, len(names)),
-                "name": np.tile(names, filt.shape[0]),
-                "kalman": prop.ravel(),
-                "own_state": F.ravel(),
-            })
-            tgt = resid_wide[names].shift(-h).stack(future_stack=True).rename("target").reset_index()
-            tgt.columns = ["issue_date", "name", "target"]
-            base_df = base_df.merge(tgt, on=["issue_date", "name"]).dropna(subset=["target", "kalman"])
-            base_df["target_date"] = base_df["issue_date"] + pd.DateOffset(months=h)
-            tr, te = split_fold(base_df, fold)
-            if len(tr) < 100 or len(te) == 0:
+            frame = horizon_frame(setup, fold, h)
+            if frame is None:
                 continue
-
-            t_idx = filt.index.get_indexer(tr["issue_date"].values)
-            e_idx = filt.index.get_indexer(te["issue_date"].values)
-            tr_pos = np.array([name_pos[n] for n in tr["name"].values])
-            te_pos = np.array([name_pos[n] for n in te["name"].values])
-
-            def node_feat(node_of: dict, row_t, row_p) -> np.ndarray:
-                # Propagated state of the mapped node per row; zero where the map is empty
-                idx = np.array([name_pos.get(node_of.get(names[p]), -1)
-                                if node_of.get(names[p]) is not None else -1 for p in row_p])
-                return np.where(idx >= 0, prop[row_t, np.clip(idx, 0, None)], 0.0)
-
-            ytr = (tr["target"] - tr["kalman"]).values
+            tr, te, ytr = frame["tr"], frame["te"], frame["ytr"]
             own_tr, own_te = tr[["own_state"]].values, te[["own_state"]].values
+            feat = partial(propagated_neighbor_features, frame)
+            emit = partial(emit_rows, out, te, fold, h)
+            emit_placebo = partial(emit_placebo_rows, placebo_monthly, te, fold, h)
 
-            def emit(label: str, pred: np.ndarray) -> None:
-                df = te[["name", "issue_date", "target_date", "target"]].copy()
-                df["pred"] = pred
-                df["model"], df["fold"], df["horizon"] = label, fold.name, h
-                out.append(df)
-
-            def emit_placebo(label: str, pred: np.ndarray) -> None:
-                loss = (te["target"].values - pred) ** 2
-                ldf = pd.DataFrame({"target_date": te["target_date"].values, "loss": loss})
-                monthly = ldf.groupby("target_date")["loss"].agg(["sum", "count"]).reset_index()
-                monthly["model"], monthly["fold"], monthly["horizon"] = label, fold.name, h
-                placebo_monthly.append(monthly)
-
-            nbr1 = {n: (graph.get(n, [None]) + [None])[0] for n in names}
-            f1_tr, f1_te = node_feat(nbr1, t_idx, tr_pos), node_feat(nbr1, e_idx, te_pos)
-            f2_tr, f2_te = node_feat(hop2, t_idx, tr_pos), node_feat(hop2, e_idx, te_pos)
+            f1_tr, f1_te = feat(nbr_idx, "tr"), feat(nbr_idx, "te")
+            f2_tr, f2_te = feat(hop_idx, "tr"), feat(hop_idx, "te")
 
             arms = {
                 "own": (own_tr, own_te),
@@ -155,9 +116,8 @@ def run_nonlinear_experiment(
             # too) so each null varies only the graph. Draws seeded per (fold, horizon).
             cell_base = zlib.crc32(f"nonlinear_corr_top1:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
-                g_rand = random_degree_matched(graph, cell_base + seed)
-                r1 = {n: (g_rand.get(n, [None]) + [None])[0] for n in names}
-                p1_tr, p1_te = node_feat(r1, t_idx, tr_pos), node_feat(r1, e_idx, te_pos)
+                p_idx = neighbor_rank_matrix(random_degree_matched(graph, cell_base + seed), names, name_pos, 1)
+                p1_tr, p1_te = feat(p_idx, "tr"), feat(p_idx, "te")
                 Xtr1 = np.column_stack([own_tr, p1_tr])
                 Xte1 = np.column_stack([own_te, p1_te])
                 emit_placebo(f"gbm_corr_top1_rand{seed}",
@@ -165,8 +125,8 @@ def run_nonlinear_experiment(
                 for s in mlp_seeds:
                     emit_placebo(f"mlp_corr_top1_s{s}_rand{seed}",
                                  te["kalman"].values + _fit_head("mlp", Xtr1, ytr, Xte1, s))
-                r2 = randomized_two_hop(hop2, names, cell_base + 500 + seed)
-                p2_tr, p2_te = node_feat(r2, t_idx, tr_pos), node_feat(r2, e_idx, te_pos)
+                r2_idx = _hop_matrix(randomized_two_hop(hop2, names, cell_base + 500 + seed), names, name_pos)
+                p2_tr, p2_te = feat(r2_idx, "tr"), feat(r2_idx, "te")
                 emit_placebo(f"gbm_corr_top1_2hop_rand{seed}",
                              te["kalman"].values + _fit_head(
                                  "gbm", np.column_stack([own_tr, p1_tr, p2_tr]), ytr,

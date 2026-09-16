@@ -155,7 +155,6 @@ def run_baseline_ladder(
                     {f"{c}_lag{k}": indices[c].shift(k) for c in indices.columns for k in index_lags},
                     axis=1,
                 )
-                idx_feats.columns = [f"{a}" for a, _ in idx_feats.columns] if isinstance(idx_feats.columns, pd.MultiIndex) else idx_feats.columns
                 tr = train.merge(idx_feats, left_on="issue_date", right_index=True, how="left")
                 te = test.merge(idx_feats, left_on="issue_date", right_index=True, how="left")
                 idx_cols = [c for c in idx_feats.columns]

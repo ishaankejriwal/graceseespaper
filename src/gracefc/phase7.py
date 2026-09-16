@@ -40,9 +40,14 @@ def fold_setup(wide: pd.DataFrame, fold: Fold, params_cache: dict | None = None)
 
 def horizon_frame(
     setup: dict, fold: Fold, h: int,
-    era5_feats: pd.DataFrame | None = None, era5_cols: list[str] | None = None,
+    extra: pd.DataFrame | None = None, extra_cols: list[str] | None = None,
 ) -> dict | None:
-    """tr/te row frames plus row->(time, basin) index arrays; Phase 5/6 construction verbatim."""
+    """tr/te row frames plus row->(time, basin) index arrays; Phase 5/6 construction verbatim.
+
+    extra: optional feature table (ERA5 lags keyed by issue_date+name, or climate-index
+    lags keyed by issue_date alone). It is left-joined and its NaN rows dropped BEFORE the
+    split, so every arm in the cell sits on the identical row set.
+    """
     filt, names = setup["filt"], setup["names"]
     prop = setup["F"] * (setup["rho"][None, :] ** h)
     base_df = pd.DataFrame({
@@ -55,9 +60,9 @@ def horizon_frame(
     tgt.columns = ["issue_date", "name", "target"]
     base_df = base_df.merge(tgt, on=["issue_date", "name"]).dropna(subset=["target", "kalman"])
     base_df["target_date"] = base_df["issue_date"] + pd.DateOffset(months=h)
-    if era5_feats is not None:
-        base_df = base_df.merge(era5_feats, on=["issue_date", "name"], how="left")
-        base_df = base_df.dropna(subset=era5_cols)
+    if extra is not None:
+        on = [c for c in ("issue_date", "name") if c in extra.columns]
+        base_df = base_df.merge(extra, on=on, how="left").dropna(subset=extra_cols)
     tr, te = split_fold(base_df, fold)
     if len(tr) < 100 or len(te) == 0:
         return None
@@ -87,6 +92,47 @@ def propagated_neighbor_features(frame: dict, nbr_idx: np.ndarray, which: str) -
     node = nbr_idx[p]
     vals = frame["prop"][t[:, None], np.clip(node, 0, None)]
     return np.where(node >= 0, vals, 0.0)
+
+
+def emit_rows(out: list, te: pd.DataFrame, fold: Fold, h: int, label: str, pred: np.ndarray) -> None:
+    """Append one arm's test predictions in the shared row schema."""
+    df = te[["name", "issue_date", "target_date", "target"]].copy()
+    df["pred"] = pred
+    df["model"], df["fold"], df["horizon"] = label, fold.name, h
+    out.append(df)
+
+
+def emit_placebo_rows(acc: list, te: pd.DataFrame, fold: Fold, h: int, label: str, pred: np.ndarray) -> None:
+    """Placebo arms keep pooled-by-month squared losses only, never raw prediction rows."""
+    loss = (te["target"].values - pred) ** 2
+    ldf = pd.DataFrame({"target_date": te["target_date"].values, "loss": loss})
+    monthly = ldf.groupby("target_date")["loss"].agg(["sum", "count"]).reset_index()
+    monthly["model"], monthly["fold"], monthly["horizon"] = label, fold.name, h
+    acc.append(monthly)
+
+
+def flat_ridge_arms(tr: pd.DataFrame, te: pd.DataFrame, era5_cols: list[str],
+                    nb_tr: np.ndarray, nb_te: np.ndarray) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    """The one-stage ridge twins every neural arch is anchored against, on the flat
+    Phase 5/6 features: own state, +ERA5 lags, +top-k propagated neighbor states, both."""
+    own_tr, own_te = tr[["own_state"]].values, te[["own_state"]].values
+    era_tr, era_te = tr[era5_cols].values, te[era5_cols].values
+    arms = {"own": (own_tr, own_te),
+            "own_era5": (np.column_stack([own_tr, era_tr]), np.column_stack([own_te, era_te]))}
+    for k in range(1, nb_tr.shape[1] + 1):
+        arms[f"corr_top{k}"] = (np.column_stack([own_tr, nb_tr[:, :k]]),
+                                np.column_stack([own_te, nb_te[:, :k]]))
+    for k in range(1, nb_tr.shape[1] + 1):
+        arms[f"corr_top{k}_era5"] = (np.column_stack([own_tr, nb_tr[:, :k], era_tr]),
+                                     np.column_stack([own_te, nb_te[:, :k], era_te]))
+    return arms
+
+
+def stack_channels(chans_tr: list, chans_te: list) -> tuple[np.ndarray, np.ndarray]:
+    """(rows, L) and (rows, L, V) channels -> (rows, L, C) sequence tensors."""
+    Xtr = np.concatenate([c[:, :, None] if c.ndim == 2 else c for c in chans_tr], axis=2)
+    Xte = np.concatenate([c[:, :, None] if c.ndim == 2 else c for c in chans_te], axis=2)
+    return Xtr, Xte
 
 
 def train_val_mask(tr: pd.DataFrame, val_frac: float = 0.15) -> np.ndarray:

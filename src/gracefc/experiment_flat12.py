@@ -18,13 +18,15 @@ Arms emitted:
 Months before a basin's record start pad with zeros, the state prior mean, so padding is
 principled rather than arbitrary.
 """
+from functools import partial
+
 import numpy as np
 import pandas as pd
 
 from .era5 import era5_fold_features
 from .evaluate import DEFAULT_FOLDS, Fold
 from .experiment_nonlinear import _fit_head
-from .phase7 import fold_setup, horizon_frame
+from .phase7 import emit_rows, fold_setup, horizon_frame
 
 LOOKBACK = 12
 
@@ -101,12 +103,7 @@ def run_flat12_experiment(
             kal_te = te["kalman"].values
             design = window_design(setup["F"], E, frame)
 
-            def emit(label: str, pred: np.ndarray) -> None:
-                df = te[["name", "issue_date", "target_date", "target"]].copy()
-                df["pred"] = pred
-                df["model"], df["fold"], df["horizon"] = label, fold.name, h
-                out.append(df)
-
+            emit = partial(emit_rows, out, te, fold, h)
             emit("kalman_ar1", kal_te)
             emit("kalman_own_ridge",
                  kal_te + _fit_head("ridge", tr[["own_state"]].values, ytr,

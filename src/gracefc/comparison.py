@@ -42,37 +42,23 @@ def li_joint_support_table(meta: pd.DataFrame, coverage: pd.DataFrame) -> pd.Dat
 
     One rule for both mascon products: a basin qualifies when it fully contains at
     least one native mascon of whichever product is being scored AND at least one
-    complete, finite Li cell. The native count comes from the coverage table's
-    product-neutral ``n_full_native_mascons`` column (build_li_basin_series.py writes
-    it for CSR and JPL alike); ``n_full_jpl_mascons`` in basin_meta is accepted as a
-    fallback so coverage tables built before that column existed still load.
+    complete, finite Li cell. The native count is the coverage table's product-neutral
+    ``n_full_native_mascons`` column (build_li_basin_series.py writes it for CSR and
+    JPL alike).
     """
-    required_meta = {"name", "exclude_reason"}
-    required_coverage = {"name", "li_coverage", "n_full_li_cells"}
-    if missing := required_meta.difference(meta.columns):
+    meta_cols = ["name", "exclude_reason"]
+    coverage_cols = ["name", "li_coverage", "n_full_li_cells", "n_full_native_mascons"]
+    if missing := set(meta_cols).difference(meta.columns):
         raise ValueError(f"basin metadata missing columns: {sorted(missing)}")
-    if missing := required_coverage.difference(coverage.columns):
+    if missing := set(coverage_cols).difference(coverage.columns):
         raise ValueError(f"Li coverage table missing columns: {sorted(missing)}")
-
-    meta_cols, coverage_cols = list(required_meta), list(required_coverage)
-    if "n_full_native_mascons" in coverage.columns:
-        coverage_cols.append("n_full_native_mascons")
-        native_col = "n_full_native_mascons"
-    elif "n_full_jpl_mascons" in meta.columns:
-        meta_cols.append("n_full_jpl_mascons")
-        native_col = "n_full_jpl_mascons"
-    else:
-        raise ValueError(
-            "no native-mascon containment count: expected n_full_native_mascons in the "
-            "Li coverage table or n_full_jpl_mascons in basin metadata"
-        )
 
     support = meta[meta_cols].merge(
         coverage[coverage_cols], on="name", how="inner", validate="one_to_one"
     )
     support["joint_full_cells"] = (
         support["exclude_reason"].eq("keep")
-        & support[native_col].ge(1)
+        & support["n_full_native_mascons"].ge(1)
         & support["n_full_li_cells"].ge(1)
     )
     return support

@@ -1,8 +1,7 @@
-"""Baselines and the ridge + neighbor-residual-MLP family from the prior Africa benchmark."""
+"""Baselines: pooled and per-basin ridge on own lags, and the RMSE used everywhere."""
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge
-from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 
@@ -30,23 +29,6 @@ def per_basin_ridge_predict(
 
 def predict_ridge(model, scaler, df: pd.DataFrame, feat_cols: list[str]) -> np.ndarray:
     return model.predict(scaler.transform(df[feat_cols].values))
-
-
-def fit_residual_mlp(
-    train: pd.DataFrame,
-    residual: np.ndarray,
-    feat_cols: list[str],
-    seed: int = 0,
-) -> tuple:
-    """MLP learns the ridge residual from extra features; ridge stays the backbone."""
-    scaler = StandardScaler().fit(train[feat_cols].values)
-    mlp = MLPRegressor(
-        hidden_layer_sizes=(64, 32),
-        max_iter=2000,
-        early_stopping=True,
-        random_state=seed,
-    ).fit(scaler.transform(train[feat_cols].values), residual)
-    return mlp, scaler
 
 
 def rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:

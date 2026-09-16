@@ -66,34 +66,25 @@ def test_fully_contained_group_counts_are_literal():
 
 def test_li_comparison_requires_complete_cells_from_both_products():
     meta = pd.DataFrame({
-        "name": ["good", "no_jpl", "excluded", "low_coverage"],
+        "name": ["good", "no_native", "excluded", "low_coverage"],
         "exclude_reason": ["keep", "keep", "jpl_unavailable", "keep"],
-        "n_full_jpl_mascons": [1, 0, 4, 2],
+        # A stale per-product column must be ignored, not read as the native count
+        "n_full_jpl_mascons": [0, 1, 4, 2],
     })
     coverage = pd.DataFrame({
         "name": meta["name"],
         "li_coverage": [0.9, 0.9, 0.9, 0.1],
         "n_full_li_cells": [1, 3, 5, 2],
+        # The product-neutral count build_li_basin_series.py writes for CSR and JPL alike
+        "n_full_native_mascons": [1, 0, 4, 2],
     })
     # Coverage is diagnostic only: literal complete-cell containment determines
     # spatial support, so low_coverage still qualifies in this synthetic case.
     assert list(li_joint_support_names(meta, coverage)) == ["good", "low_coverage"]
-
-    # 2026-09-10: the same rule now runs on CSR too, reading the product-neutral
-    # native count out of the coverage table. It must win over the JPL column.
-    both = coverage.assign(n_full_native_mascons=[1, 0, 4, 2])
-    meta_no_jpl = meta.drop(columns=["n_full_jpl_mascons"])
-    assert list(li_joint_support_names(meta_no_jpl, both)) == ["good", "low_coverage"]
-    # Precedence, with BOTH columns present and DISAGREEING: the product-neutral
-    # native count decides and the stale JPL column is ignored. Under the JPL column
-    # this frame would qualify good + low_coverage; under the native column it is
-    # no_jpl + low_coverage, so the assertion cannot pass by accident.
-    disagreeing = coverage.assign(n_full_native_mascons=[0, 1, 4, 2])
-    assert list(li_joint_support_names(meta, disagreeing)) == ["no_jpl", "low_coverage"]
     none_contained = coverage.assign(n_full_native_mascons=[0, 0, 0, 0])
     assert list(li_joint_support_names(meta, none_contained)) == []
-    with pytest.raises(ValueError, match="native-mascon containment count"):
-        li_joint_support_names(meta_no_jpl, coverage)
+    with pytest.raises(ValueError, match="n_full_native_mascons"):
+        li_joint_support_names(meta, coverage.drop(columns=["n_full_native_mascons"]))
 
 
 # ---------------------------------------------------------------- fold membership

@@ -52,7 +52,6 @@ packaging==26.3
 pandas==3.0.5
 pandocfilters==1.5.1
 parso==0.8.7
-patsy==1.0.2
 pillow==12.3.0
 platformdirs==4.11.2
 pluggy==1.6.0
@@ -78,7 +77,6 @@ shapely==2.1.2
 six==1.17.0
 soupsieve==2.9.2
 stack-data==0.6.3
-statsmodels==0.14.6
 sympy==1.14.0
 threadpoolctl==3.6.0
 tinycss2==1.5.1

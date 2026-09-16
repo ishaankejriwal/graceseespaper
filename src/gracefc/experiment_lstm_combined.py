@@ -16,8 +16,6 @@ decides. The _nbrin arms below exist to make exactly that comparison.
 Technical detail follows.
 
 Stage 1 is the Phase 7 shared-encoder LSTM over 12-month windows of the Kalman-filtered
-
-Stage 1 is the Phase 7 shared-encoder LSTM over 12-month windows of the Kalman-filtered
 own state plus the 11 ERA5 anomaly channels (and, in the _nbrin arms, the corr_top1
 neighbor's filtered-state history as a further channel — the literal Phase 7
 lstm_corr_top1_era5). Stage 2 is the Phase 7 resMLP correction: an sklearn MLP fits the
@@ -40,6 +38,7 @@ residuals are also less noisy than honest ones, so "attenuated" is the likely, n
 guaranteed, direction (phase 8 audit, finding 2).
 """
 import zlib
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -50,8 +49,9 @@ from .experiment_flat12 import _era5_state_tensor, _state_channel, _window_chann
 from .experiment_lstm import lstm_predict, train_lstm
 from .experiment_nonlinear import _fit_head
 from .graphs import corr_topk, random_degree_matched
-from .phase7 import (fold_setup, horizon_frame, neighbor_rank_matrix,
-                     propagated_neighbor_features, train_val_mask)
+from .phase7 import (emit_placebo_rows, emit_rows, flat_ridge_arms, fold_setup, horizon_frame,
+                     neighbor_rank_matrix, propagated_neighbor_features, stack_channels as stack,
+                     train_val_mask)
 
 
 def run_lstm_combined_experiment(
@@ -102,41 +102,15 @@ def run_lstm_combined_experiment(
             nb_tr = _state_channel(F, widx_tr, valid_tr, nbr_idx[frame["tr_pos"], 0])
             nb_te = _state_channel(F, widx_te, valid_te, nbr_idx[frame["te_pos"], 0])
 
-            def stack(chans_tr: list, chans_te: list) -> tuple[np.ndarray, np.ndarray]:
-                Xtr = np.concatenate([c[:, :, None] if c.ndim == 2 else c for c in chans_tr], axis=2)
-                Xte = np.concatenate([c[:, :, None] if c.ndim == 2 else c for c in chans_te], axis=2)
-                return Xtr, Xte
-
-            def emit(label: str, pred: np.ndarray) -> None:
-                df = te[["name", "issue_date", "target_date", "target"]].copy()
-                df["pred"] = pred
-                df["model"], df["fold"], df["horizon"] = label, fold.name, h
-                out.append(df)
-
-            def emit_placebo(label: str, pred: np.ndarray) -> None:
-                loss = (te["target"].values - pred) ** 2
-                ldf = pd.DataFrame({"target_date": te["target_date"].values, "loss": loss})
-                monthly = ldf.groupby("target_date")["loss"].agg(["sum", "count"]).reset_index()
-                monthly["model"], monthly["fold"], monthly["horizon"] = label, fold.name, h
-                placebo_monthly.append(monthly)
+            emit = partial(emit_rows, out, te, fold, h)
+            emit_placebo = partial(emit_placebo_rows, placebo_monthly, te, fold, h)
 
             emit("kalman_ar1", kal_te)
 
             # Ridge twins on the flat Phase 5/6 features — must stay bit-identical to Phase 7
-            flat_own_tr, flat_own_te = tr[["own_state"]].values, te[["own_state"]].values
-            flat_era_tr, flat_era_te = tr[era5_cols].values, te[era5_cols].values
             fn_tr = propagated_neighbor_features(frame, nbr_idx, "tr")
             fn_te = propagated_neighbor_features(frame, nbr_idx, "te")
-            ridge_arms = {
-                "own": (flat_own_tr, flat_own_te),
-                "own_era5": (np.column_stack([flat_own_tr, flat_era_tr]),
-                             np.column_stack([flat_own_te, flat_era_te])),
-                "corr_top1": (np.column_stack([flat_own_tr, fn_tr]),
-                              np.column_stack([flat_own_te, fn_te])),
-                "corr_top1_era5": (np.column_stack([flat_own_tr, fn_tr, flat_era_tr]),
-                                   np.column_stack([flat_own_te, fn_te, flat_era_te])),
-            }
-            for arm, (Xtr, Xte) in ridge_arms.items():
+            for arm, (Xtr, Xte) in flat_ridge_arms(tr, te, era5_cols, fn_tr, fn_te).items():
                 emit(f"ridge_{arm}", kal_te + _fit_head("ridge", Xtr, ytr, Xte, 0))
 
             # Neighbor-free stage-2 control (audit 2026-08-14, phase7_corrected_analysis):

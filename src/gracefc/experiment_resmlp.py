@@ -12,6 +12,7 @@ mirroring experiment_era5's "neighbor beyond shared meteorology" test. Placebo d
 seeded per (fold, horizon) cell, so cells are independent draws rather than one reused set.
 """
 import zlib
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -21,8 +22,8 @@ from .era5 import era5_fold_features
 from .evaluate import DEFAULT_FOLDS, Fold
 from .experiment_nonlinear import _fit_head
 from .graphs import corr_topk, random_degree_matched
-from .phase7 import (fold_setup, horizon_frame, neighbor_rank_matrix,
-                     propagated_neighbor_features)
+from .phase7 import (emit_placebo_rows, emit_rows, flat_ridge_arms, fold_setup, horizon_frame,
+                     neighbor_rank_matrix, propagated_neighbor_features)
 
 
 def run_resmlp_experiment(
@@ -55,35 +56,13 @@ def run_resmlp_experiment(
             kal_te = te["kalman"].values
             nb_tr = propagated_neighbor_features(frame, nbr_idx, "tr")
             nb_te = propagated_neighbor_features(frame, nbr_idx, "te")
-
-            def emit(label: str, pred: np.ndarray) -> None:
-                df = te[["name", "issue_date", "target_date", "target"]].copy()
-                df["pred"] = pred
-                df["model"], df["fold"], df["horizon"] = label, fold.name, h
-                out.append(df)
-
-            def emit_placebo(label: str, pred: np.ndarray) -> None:
-                loss = (te["target"].values - pred) ** 2
-                ldf = pd.DataFrame({"target_date": te["target_date"].values, "loss": loss})
-                monthly = ldf.groupby("target_date")["loss"].agg(["sum", "count"]).reset_index()
-                monthly["model"], monthly["fold"], monthly["horizon"] = label, fold.name, h
-                placebo_monthly.append(monthly)
+            emit = partial(emit_rows, out, te, fold, h)
+            emit_placebo = partial(emit_placebo_rows, placebo_monthly, te, fold, h)
 
             emit("kalman_ar1", kal_te)
 
             # One-stage ridge twins: DM references that pin down what the architecture adds
-            ridge_arms = {
-                "own": (own_tr, own_te),
-                "own_era5": (np.column_stack([own_tr, era_tr]), np.column_stack([own_te, era_te])),
-                "corr_top1": (np.column_stack([own_tr, nb_tr[:, :1]]),
-                              np.column_stack([own_te, nb_te[:, :1]])),
-                "corr_top2": (np.column_stack([own_tr, nb_tr]), np.column_stack([own_te, nb_te])),
-                "corr_top1_era5": (np.column_stack([own_tr, nb_tr[:, :1], era_tr]),
-                                   np.column_stack([own_te, nb_te[:, :1], era_te])),
-                "corr_top2_era5": (np.column_stack([own_tr, nb_tr, era_tr]),
-                                   np.column_stack([own_te, nb_te, era_te])),
-            }
-            for arm, (Xtr, Xte) in ridge_arms.items():
+            for arm, (Xtr, Xte) in flat_ridge_arms(tr, te, era5_cols, nb_tr, nb_te).items():
                 emit(f"ridge_{arm}", kal_te + _fit_head("ridge", Xtr, ytr, Xte, 0))
 
             # Stage 1 once per fold-horizon: ridge on own state only

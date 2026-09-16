@@ -15,44 +15,31 @@ from .kalman import kalman_forecast_series
 
 
 def fused_filter(y_i: np.ndarray, y_j: np.ndarray, rho: float, q: float,
-                 r_i: float, c: float, r_j: float) -> np.ndarray:
-    """Filtered state using both sensors; either observation being NaN skips only its update."""
+                 r_i: float, c: float, r_j: float, return_ll: bool = False):
+    """Filtered state using both sensors; either observation being NaN skips only its update.
+
+    With return_ll=True also returns the joint log-likelihood of both observation streams
+    (the MLE objective for (c, r_j) with (rho, q, r_i) held at their cached values).
+    """
     x, p = 0.0, q / max(1 - rho**2, 1e-6)
     out = np.empty(len(y_i))
-    for t in range(len(y_i)):
-        x, p = rho * x, rho * rho * p + q
-        if not np.isnan(y_i[t]):
-            s = p + r_i
-            k = p / s
-            x, p = x + k * (y_i[t] - x), (1 - k) * p
-        if not np.isnan(y_j[t]):
-            s = c * c * p + r_j
-            k = c * p / s
-            x, p = x + k * (y_j[t] - c * x), (1 - k * c) * p
-        out[t] = x
-    return out
-
-
-def _fusion_negloglik(params: np.ndarray, y_i: np.ndarray, y_j: np.ndarray,
-                      rho: float, q: float, r_i: float) -> float:
-    """Joint likelihood of both observation streams with (rho, q, r_i) held at cached values."""
-    c = params[0]
-    r_j = np.exp(params[1])
-    x, p = 0.0, q / max(1 - rho**2, 1e-6)
     ll = 0.0
     for t in range(len(y_i)):
         x, p = rho * x, rho * rho * p + q
         if not np.isnan(y_i[t]):
             s = p + r_i
-            ll -= 0.5 * (np.log(2 * np.pi * s) + (y_i[t] - x) ** 2 / s)
+            if return_ll:
+                ll -= 0.5 * (np.log(2 * np.pi * s) + (y_i[t] - x) ** 2 / s)
             k = p / s
             x, p = x + k * (y_i[t] - x), (1 - k) * p
         if not np.isnan(y_j[t]):
             s = c * c * p + r_j
-            ll -= 0.5 * (np.log(2 * np.pi * s) + (y_j[t] - c * x) ** 2 / s)
+            if return_ll:
+                ll -= 0.5 * (np.log(2 * np.pi * s) + (y_j[t] - c * x) ** 2 / s)
             k = c * p / s
             x, p = x + k * (y_j[t] - c * x), (1 - k * c) * p
-    return -ll
+        out[t] = x
+    return (out, ll) if return_ll else out
 
 
 def fit_fusion_obs(y_i_train: np.ndarray, y_j_train: np.ndarray, rho: float, q: float,
@@ -73,8 +60,10 @@ def fit_fusion_obs(y_i_train: np.ndarray, y_j_train: np.ndarray, rho: float, q: 
     resid = y_j_train[m] - c * x[m]
     r_j = max(float(np.var(resid)), 1e-8)
     if mle_polish:
-        res = minimize(_fusion_negloglik, np.array([c, np.log(r_j)]),
-                       args=(y_i_train, y_j_train, rho, q, r_i),
+        def neg_ll(prm):
+            return -fused_filter(y_i_train, y_j_train, rho, q, r_i, prm[0], np.exp(prm[1]),
+                                 return_ll=True)[1]
+        res = minimize(neg_ll, np.array([c, np.log(r_j)]),
                        method="L-BFGS-B", options={"maxiter": 100})
         if np.isfinite(res.fun):
             c, r_j = float(res.x[0]), float(np.exp(res.x[1]))

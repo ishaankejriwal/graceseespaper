@@ -1874,3 +1874,54 @@ rewritten" notes removed. Memory: terminology and register rules recorded.
 Checks: `make_figures.py` exit 0 with every source assert; PDF 30 pages, zero errors,
 zero undefined references, zero overfull boxes; `pytest tests -q` 28 passed; two audit
 agents (cold referee, number integrity) run on each pass and their findings applied.
+
+## 2026-09-16 - Over-engineering audit applied (no result changes)
+
+Code-only cleanup from a repo-wide ponytail audit. Python in `src`, `scripts`, `tests`
+goes from 10,958 to 10,133 lines; no experiment output, data file or figure was
+regenerated. Everything below was verified numerically: every engine was run on a
+one-fold smoke config with the pre-refactor package (from `git show HEAD`) and with the
+refactored package, same data and same cached Kalman parameters, and every prediction
+row and placebo loss matched exactly (the three torch engines included, run sequentially;
+run concurrently the GNN shows ~4e-7 float32 cross-process noise on one arm, which is
+torch, not the code). Two independent review agents then scanned the full diff.
+
+1. Deleted dead code: `src/gracefc/experiment.py` (the phase-3 ridge-backbone engine, no
+   caller since 3b; its `GRAPH_BUILDERS`/`resolve_builder` moved verbatim to `graphs.py`),
+   `features.chronological_split`, `features.neighbor_features`, `models.fit_residual_mlp`,
+   `graphs.random_distance_matched`/`random_correlation_matched` (never wired to a script),
+   `runtime.figures_dir`, a dead MultiIndex branch in `evaluate.run_baseline_ladder`, the
+   `n_full_jpl_mascons` fallback in `comparison.li_joint_support_table` (build_li writes
+   `n_full_native_mascons` for both products), and unused imports in 17 scripts.
+2. Shared plumbing: `experiment_kalman`, `experiment_era5`, `experiment_nonlinear` now use
+   `phase7.fold_setup`/`horizon_frame` instead of inline copies; the nine `emit`/`emit_placebo`
+   closures, four ridge-twin dicts and two `stack` helpers became `phase7.emit_rows`,
+   `emit_placebo_rows`, `flat_ridge_arms`, `stack_channels`. `runtime.load_sample`/`load_era5`
+   replace the 4+2 line loader block in 19 scripts. `fusion.fused_filter(return_ll=True)`
+   replaces `_fusion_negloglik`. `run_phase5_stats.matched_compare` calls
+   `stats.block_bootstrap_skill_ci`/`pooled_monthly_dm` instead of re-implementing them
+   (87/87 rows identical on the archived phase-5 files; it now also asserts the two files
+   agree on targets, where it used to proceed silently).
+3. Scripts merged, chain rewired, step names and outputs unchanged:
+   `run_phase7_{resmlp,lstm,gnn}.py` -> `run_phase7.py --arch {resmlp,lstm,gnn}`;
+   `run_phase5_{fusion,coupled}.py` -> `run_phase5_infilter.py --model {fusion,coupled}`.
+   Earlier entries in this log cite the old names; the flags above are the equivalents.
+   One cosmetic difference: the GNN predictions CSV now lists its ridge twins in the
+   shared arm order (own, own_era5, corr_top1, ...); values identical.
+4. Housekeeping: 21 `results/rerun_*.log` files (1,641 lines) removed from git and
+   ignored like `chain_*.log`; `statsmodels`/`patsy` dropped from the lock (imported
+   nowhere); the stale `.claude/worktrees/vigilant-franklin-8d73cb` worktree removed
+   (its branch is untouched).
+
+Not done: folding `kalman_mission.py` into `kalman.py` (audit item) because `kalman.py`
+bytes are part of the Kalman cache fingerprint and any edit forces a ~20 min refit of
+every fold; left for a moment when a refit is wanted anyway.
+
+Side effect to know about: while smoke-testing script CLIs, `scripts/download_indices.py`
+was invoked (it has no `--help` and runs unconditionally), so `data/raw/indices/*.txt`
+and `data/processed/indices.csv` were re-downloaded from NOAA PSL at 09:11 local time.
+The previous copies are recoverable from OneDrive version history if a byte-identical
+input to the archived phase-2/conditioned runs is needed; those runs were not rerun.
+
+Checks: `pytest tests -q` 28 passed; `run_chain.py --list` and `--source jpl --list` OK;
+every script compiles and its `--help` runs.

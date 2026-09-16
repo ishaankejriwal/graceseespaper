@@ -44,3 +44,6 @@ paper/*.synctex.gz
 paper/*.blg
 paper/*.fls
 paper/*.fdb_latexmk
+
+# Ad-hoc rerun logs: transient, superseded by results/RUN_LOG.md
+results/rerun_*.log

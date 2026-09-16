@@ -16,6 +16,7 @@ experiment_era5. Placebo draws are seeded per (fold, horizon) cell.
 """
 import copy
 import zlib
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -29,8 +30,9 @@ from .evaluate import DEFAULT_FOLDS, Fold
 from .experiment_flat12 import _era5_state_tensor, _state_channel, window_design
 from .experiment_nonlinear import _fit_head
 from .graphs import corr_topk, random_degree_matched
-from .phase7 import (fold_setup, horizon_frame, neighbor_rank_matrix,
-                     propagated_neighbor_features, train_val_mask)
+from .phase7 import (emit_placebo_rows, emit_rows, flat_ridge_arms, fold_setup, horizon_frame,
+                     neighbor_rank_matrix, propagated_neighbor_features, stack_channels as stack,
+                     train_val_mask)
 
 # Torch-free helpers are NOT re-exported from here (audit 2026-09-10): importing them
 # via this module dragged torch in for callers that never needed it. Take them from
@@ -145,41 +147,15 @@ def run_lstm_experiment(
                 return (_state_channel(F, widx_tr, valid_tr, node_tr),
                         _state_channel(F, widx_te, valid_te, node_te))
 
-            def stack(chans_tr: list, chans_te: list) -> tuple[np.ndarray, np.ndarray]:
-                Xtr = np.concatenate([c[:, :, None] if c.ndim == 2 else c for c in chans_tr], axis=2)
-                Xte = np.concatenate([c[:, :, None] if c.ndim == 2 else c for c in chans_te], axis=2)
-                return Xtr, Xte
-
-            def emit(label: str, pred: np.ndarray) -> None:
-                df = te[["name", "issue_date", "target_date", "target"]].copy()
-                df["pred"] = pred
-                df["model"], df["fold"], df["horizon"] = label, fold.name, h
-                out.append(df)
-
-            def emit_placebo(label: str, pred: np.ndarray) -> None:
-                loss = (te["target"].values - pred) ** 2
-                ldf = pd.DataFrame({"target_date": te["target_date"].values, "loss": loss})
-                monthly = ldf.groupby("target_date")["loss"].agg(["sum", "count"]).reset_index()
-                monthly["model"], monthly["fold"], monthly["horizon"] = label, fold.name, h
-                placebo_monthly.append(monthly)
+            emit = partial(emit_rows, out, te, fold, h)
+            emit_placebo = partial(emit_placebo_rows, placebo_monthly, te, fold, h)
 
             emit("kalman_ar1", kal_te)
 
             # Ridge twins on the flat Phase 5/6 features: the linear same-question anchors
-            flat_own_tr, flat_own_te = tr[["own_state"]].values, te[["own_state"]].values
-            flat_era_tr, flat_era_te = tr[era5_cols].values, te[era5_cols].values
             fn_tr = propagated_neighbor_features(frame, nbr_idx, "tr")
             fn_te = propagated_neighbor_features(frame, nbr_idx, "te")
-            ridge_arms = {
-                "own": (flat_own_tr, flat_own_te),
-                "own_era5": (np.column_stack([flat_own_tr, flat_era_tr]),
-                             np.column_stack([flat_own_te, flat_era_te])),
-                "corr_top1": (np.column_stack([flat_own_tr, fn_tr]),
-                              np.column_stack([flat_own_te, fn_te])),
-                "corr_top1_era5": (np.column_stack([flat_own_tr, fn_tr, flat_era_tr]),
-                                   np.column_stack([flat_own_te, fn_te, flat_era_te])),
-            }
-            for arm, (Xtr, Xte) in ridge_arms.items():
+            for arm, (Xtr, Xte) in flat_ridge_arms(tr, te, era5_cols, fn_tr, fn_te).items():
                 emit(f"ridge_{arm}", kal_te + _fit_head("ridge", Xtr, ytr, Xte, 0))
 
             # Flattened 12-month twins: the LSTM's exact information window, accessed

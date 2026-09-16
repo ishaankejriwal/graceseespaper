@@ -15,6 +15,7 @@ early stopping on the last 15% of train issue months.
 """
 import copy
 import zlib
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -25,8 +26,8 @@ from .era5 import era5_fold_features
 from .evaluate import DEFAULT_FOLDS, Fold
 from .experiment_nonlinear import _fit_head
 from .graphs import corr_topk, random_degree_matched
-from .phase7 import (fold_setup, horizon_frame, neighbor_rank_matrix,
-                     propagated_neighbor_features, train_val_mask)
+from .phase7 import (emit_placebo_rows, emit_rows, flat_ridge_arms, fold_setup, horizon_frame,
+                     neighbor_rank_matrix, propagated_neighbor_features, train_val_mask)
 
 
 class _GATLite(nn.Module):
@@ -136,40 +137,15 @@ def run_gnn_experiment(
             tr_entries = (frame["t_idx"], frame["tr_pos"])
             te_entries = (frame["e_idx"], frame["te_pos"])
 
-            def emit(label: str, pred: np.ndarray) -> None:
-                df = te[["name", "issue_date", "target_date", "target"]].copy()
-                df["pred"] = pred
-                df["model"], df["fold"], df["horizon"] = label, fold.name, h
-                out.append(df)
-
-            def emit_placebo(label: str, pred: np.ndarray) -> None:
-                loss = (te["target"].values - pred) ** 2
-                ldf = pd.DataFrame({"target_date": te["target_date"].values, "loss": loss})
-                monthly = ldf.groupby("target_date")["loss"].agg(["sum", "count"]).reset_index()
-                monthly["model"], monthly["fold"], monthly["horizon"] = label, fold.name, h
-                placebo_monthly.append(monthly)
+            emit = partial(emit_rows, out, te, fold, h)
+            emit_placebo = partial(emit_placebo_rows, placebo_monthly, te, fold, h)
 
             emit("kalman_ar1", kal_te)
 
             # Flat ridge twins as linear anchors (own ERA5 only; the GNN also sees neighbor ERA5)
-            flat_own_tr, flat_own_te = tr[["own_state"]].values, te[["own_state"]].values
-            flat_era_tr, flat_era_te = tr[era5_cols].values, te[era5_cols].values
             nb_tr = propagated_neighbor_features(frame, idx2, "tr")
             nb_te = propagated_neighbor_features(frame, idx2, "te")
-            ridge_arms = {
-                "own": (flat_own_tr, flat_own_te),
-                "corr_top1": (np.column_stack([flat_own_tr, nb_tr[:, :1]]),
-                              np.column_stack([flat_own_te, nb_te[:, :1]])),
-                "corr_top2": (np.column_stack([flat_own_tr, nb_tr]),
-                              np.column_stack([flat_own_te, nb_te])),
-                "own_era5": (np.column_stack([flat_own_tr, flat_era_tr]),
-                             np.column_stack([flat_own_te, flat_era_te])),
-                "corr_top1_era5": (np.column_stack([flat_own_tr, nb_tr[:, :1], flat_era_tr]),
-                                   np.column_stack([flat_own_te, nb_te[:, :1], flat_era_te])),
-                "corr_top2_era5": (np.column_stack([flat_own_tr, nb_tr, flat_era_tr]),
-                                   np.column_stack([flat_own_te, nb_te, flat_era_te])),
-            }
-            for arm, (Xtr, Xte) in ridge_arms.items():
+            for arm, (Xtr, Xte) in flat_ridge_arms(tr, te, era5_cols, nb_tr, nb_te).items():
                 emit(f"ridge_{arm}", kal_te + _fit_head("ridge", Xtr, ytr, Xte, 0))
 
             arms = {
