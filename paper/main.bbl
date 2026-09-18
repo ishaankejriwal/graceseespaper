@@ -1,4 +1,4 @@
-\begin{thebibliography}{42}
+\begin{thebibliography}{45}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \providecommand{\urlprefix}{}
@@ -45,6 +45,12 @@ Benjamini, Y. and Hochberg, Y.: Controlling the False Discovery Rate: A
   Statistical Society Series B: Statistical Methodology, 57, 289--300,
   \doi{10.1111/j.2517-6161.1995.tb02031.x}, 1995.
 
+\bibitem[{{Center for Space Research}(2026)}]{csr2026documentation}
+{Center for Space Research}: {CSR GRACE/GRACE-FO RL06.3} Mascon Solutions,
+  University of Texas at Austin,
+  \urlprefix\url{https://www2.csr.utexas.edu/grace/RL06_mascons.html}, accessed
+  18 September 2026, 2026.
+
 \bibitem[{Diebold and Mariano(1995)}]{diebold1995comparing}
 Diebold, F.~X. and Mariano, R.~S.: Comparing Predictive Accuracy, Journal of
   Business \& Economic Statistics, 13, 253--263,
@@ -81,7 +87,7 @@ Kalman, R.~E.: A New Approach to Linear Filtering and Prediction Problems,
 Kankanige, D., Vishwakarma, B.~D., Liu, Y.~Y., and Sharma, A.: Can a
   Persistence-Based Prediction of {GRACE} Gravity Field Coefficients Reduce
   Uncertainties at Finer Temporal Scales?, Earth and Space Science, 13,
-  \doi{10.1029/2025EA004554}, 2026.
+  e2025EA004\,554, \doi{10.1029/2025EA004554}, 2026.
 
 \bibitem[{Koster et~al.(2010)Koster, Mahanama, Yamada, Balsamo, Berg,
   Boisserie, Dirmeyer, Doblas-Reyes, Drewitt, Gordon, Guo, Jeong, Lawrence,
@@ -134,7 +140,7 @@ Li, F.: A Global Dataset for Seasonal to Annual Forecasts of GRACE-like Gridded
 \bibitem[{Li and Kusche(2026)}]{li2026fcast}
 Li, F. and Kusche, J.: Observation-Driven Forecast of Global Terrestrial Water
   Storage and Evaluation for 2010--2024, Water Resources Research, 62,
-  \doi{10.1029/2025WR041710}, 2026.
+  e2025WR041\,710, \doi{10.1029/2025WR041710}, 2026.
 
 \bibitem[{Li et~al.(2020)Li, Kusche, Rietbroek, Wang, Forootan, Schulze, and
   L{\"u}ck}]{li2020wrr}
@@ -148,7 +154,7 @@ Li, F., Kusche, J., Rietbroek, R., Wang, Z., Forootan, E., Schulze, K., and
   Chen, and Tian}]{li2024grl}
 Li, F., Kusche, J., Sneeuw, N., Siebert, S., Gerdener, H., Wang, Z., Chao, N.,
   Chen, G., and Tian, K.: Forecasting Next Year's Global Land Water Storage
-  Using {GRACE} Data, Geophysical Research Letters, 51,
+  Using {GRACE} Data, Geophysical Research Letters, 51, e2024GL109\,101,
   \doi{10.1029/2024GL109101}, 2024.
 
 \bibitem[{Li et~al.(2025)Li, Springer, Kusche, Gutknecht, and
@@ -194,7 +200,7 @@ Newey, W.~K. and West, K.~D.: A Simple, Positive Semi-Definite,
 Nie, W., Kumar, S.~V., Chen, J., Zhao, L., Skulovich, O., Yoo, J., Pflug, J.,
   Ahmad, S.~K., and Konapala, G.: Rethinking deep learning: linear regression
   remains a key benchmark in predicting terrestrial water storage,
-  \urlprefix\url{https://arxiv.org/abs/2510.10799}, 2025.
+  \doi{10.48550/arXiv.2510.10799}, 2025.
 
 \bibitem[{Niraula and Goessling(2021)}]{niraula2021seaice}
 Niraula, B. and Goessling, H.~F.: Spatial Damped Anomaly Persistence of the Sea
@@ -211,6 +217,10 @@ Pechlivanidis, I.~G., Crochemore, L., Rosberg, J., and Bosshard, T.: What Are
 Reager, J.~T., Thomas, B.~F., and Famiglietti, J.~S.: River basin flood
   potential inferred using {GRACE} gravity observations at several months lead
   time, Nature Geoscience, 7, 588--592, \doi{10.1038/ngeo2203}, 2014.
+
+\bibitem[{Save(2020)}]{save2020rl06}
+Save, H.: {CSR GRACE} and {GRACE-FO RL06} Mascon Solutions v02,
+  \doi{10.15781/cgq9-nh24}, 2020.
 
 \bibitem[{Save et~al.(2016)Save, Bettadpur, and Tapley}]{save2016mascons}
 Save, H., Bettadpur, S., and Tapley, B.~D.: High-resolution {CSR GRACE RL05}
@@ -249,6 +259,12 @@ Steidl, V. and Zhu, X.~X.: Hierarchical Graph Networks for Forecasting
 Tapley, B.~D., Bettadpur, S., Watkins, M., and Reigber, C.: The gravity
   recovery and climate experiment: Mission overview and early results,
   Geophysical Research Letters, 31, \doi{10.1029/2004GL019920}, 2004.
+
+\bibitem[{Wiese et~al.(2023)Wiese, Yuan, Boening, Landerer, and
+  Watkins}]{wiese2023jpl}
+Wiese, D.~N., Yuan, D.-N., Boening, C., Landerer, F.~W., and Watkins, M.~M.:
+  {JPL GRACE} and {GRACE-FO} Mascon Ocean, Ice, and Hydrology Equivalent Water
+  Height {CRI} Filtered {RL06.3Mv04}, \doi{10.5067/TEMSC-3JC634}, 2023.
 
 \bibitem[{Wilks(2016)}]{wilks2016stippling}
 Wilks, D.~S.: ``The Stippling Shows Statistically Significant Grid Points'':

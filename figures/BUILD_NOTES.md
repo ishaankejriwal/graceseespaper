@@ -15,13 +15,14 @@ Sign convention: `skill = 1 - MSE(first)/MSE(second)`, so positive means the
 first-named model is better.
 
 Model names in legends are the manuscript's (Table 1): KF, KF-R1,
-KF-R1, KF-R12, KF-R12E, KF-R1E, per-basin
+KF-R12, KF-R12E, KF-R1E, per-basin
 lag ridge, pooled lag ridge, damped persistence, persistence, climatology,
-MLP, LSTM ensemble, GRACE-FCast (full), published
-product (non-seasonal). No code identifier appears in a legend.
+MLP, LSTM ensemble, GRACE-FCast (full), and GRACE-FCast
+(non-seasonal). No code identifier appears in a legend.
 
 Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
-3 filter mechanism, 4 where ERA5 helps, 5 sequence models, 6 crossing.
+3 example time series, 4 filter mechanism, 5 where ERA5 helps,
+6 sequence models, 7 crossing.
 
 ## `fig01_basins`
 
@@ -102,7 +103,10 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
 - **Caveats the caption must carry**:
   - training-window std of the 45 BH-significant basins: min 1.13 cm, max 8.07 cm; sample max 48.50 cm
   - Significance is a per-basin Diebold-Mariano test on the monthly squared-loss differential with a Newey-West HAC lag of max(h-1, 1) (gracefc.stats.per_basin_dm_fdr, the same routine the per-basin FDR scripts use), then Benjamini-Hochberg at q = 0.10.
-  - Panel (b) clips 3 basin(s) below its lower axis limit of -42 %; the panel says so in its corner annotation.
+  - Panel (b) marks 3 basin(s) below its lower axis limit of -42 % with downward triangles at their actual x positions.
+  - Off-scale basin C_South_Alaska_Coast_Frazer_River: training-window SD 9.565 cm; skill -49.632 %.
+  - Off-scale basin R_Amazon_River: training-window SD 4.779 cm; skill -125.037 %.
+  - Off-scale basin R_Congo_River: training-window SD 3.396 cm; skill -58.405 %.
   - The x axis of panel (b) is the median, across the five expanding-window folds, of the per-basin training-window standard deviation of the deseasonalized target, recomputed with gracefc.evaluate.deseasonalize_fold. The per-fold values move by a median of 13 % across folds, so the median is used as the single basin-level scale.
 
 ## `fig06_sequence_models`
@@ -155,10 +159,10 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
   compact headline, summary and per-basin CSVs are versioned here. The
   panel therefore shades the 67 strict basins and leaves the other 167 of
   the 234 CSR-kept basins neutral, and says so on the figure.
-- Fig. 5 covers leads 1-3 only. The LSTM and MLP were never
+- Fig. 6 covers leads 1-3 only. The LSTM and MLP were never
   run past lead 3, so there is no lead 4-6 row to plot.
 - `results/phase7_lstm_summary.csv` has no `skill_vs_kalman` column and no
-  CI columns, so Fig. 5 recomputes both from
+  CI columns, so Fig. 6 recomputes both from
   `results/phase7_lstm_predictions.csv` and asserts the point estimates
   back against the summary file's `rmse_std`.
 - The JPL skill is inverted with the reciprocal transform

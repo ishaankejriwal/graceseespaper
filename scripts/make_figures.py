@@ -530,8 +530,8 @@ def fig03_example_series():
         area_txt = f"{area / 1e6:.2f} million km$^2$" if area >= 1e6 else f"{area / 1e3:,.0f} thousand km$^2$"
         panel_head(ax, letter, f"{display[name]}, {area_txt}", y=1.13)
         ax.text(0.0, 1.03,
-                f"1-month RMSE {rmse_dp:.2f} cm (damped persistence), {rmse_kf:.2f} cm (Kalman filter)",
-                transform=ax.transAxes, ha="left", va="bottom", fontsize=6.8, color="0.30")
+                f"RMSE (cm): damped persistence {rmse_dp:.2f}; KF {rmse_kf:.2f}",
+                transform=ax.transAxes, ha="left", va="bottom", fontsize=7, color="0.30")
         ax.set_ylabel("anomaly (cm)")
         ax.margins(x=0.01)
     for ax in axes[-1]:
@@ -781,20 +781,11 @@ def fig07_crossing():
         xc = zero_crossing(y)
         if xc is not None:
             # The four CSR curves cross within a third of a lead of each other,
-            # so only the marker goes on the axis; the values are listed in a
-            # colour-keyed block in the corner.
+            # so only the marker goes on the axis; the interpolated values are
+            # listed in the build notes rather than on the figure.
             ax.plot([xc], [0], marker="v", ms=4.5, mfc=c, mec="white", mew=0.5,
                     zorder=8, clip_on=False)
         return xc
-
-    def crossing_block(ax, rows, y0=0.245):
-        ax.annotate("zero crossing (lead $h$)", xy=(0.025, y0), xycoords="axes fraction",
-                    ha="left", va="bottom", fontsize=7, color="0.30",
-                    path_effects=halo, zorder=9)
-        for k, (colour, txt) in enumerate(rows):
-            ax.annotate(txt, xy=(0.025, y0 - 0.062 * (k + 1)),
-                        xycoords="axes fraction", ha="left", va="bottom",
-                        fontsize=7, color=colour, path_effects=halo, zorder=9)
 
     crossings = {}
     for i, (model, vs) in enumerate(csr_pairs):
@@ -807,13 +798,6 @@ def fig07_crossing():
         crossings[("JPL", "kalman_ar1", vs)] = draw(axb, OFF[i * 2], y, lo, hi, p,
                                                     c, ls, mk, lab)
 
-    def row(tag, model):
-        f = crossings[(tag, model, "li_lstm_full")]
-        n = crossings[(tag, model, "li_lstm_nonseas")]
-        return (STYLE[model]["c"],
-                f"{STYLE[model]['label']}:  {f:.2f} vs full,  {n:.2f} vs non-seasonal")
-
-
     for ax in (axa, axb):
         ax.axhline(0.0, color=REFGRAY, lw=0.9, zorder=2)
         lead_axis(ax)
@@ -825,7 +809,7 @@ def fig07_crossing():
     panel_head(axa, "(a)", f"CSR mascons, 209 basins, {n_months} months")
     panel_head(axb, "(b)", f"JPL mascons, 67 basins, {n_jpl_m} months")
     for ax in (axa, axb):
-        ax.annotate("our forecast better", xy=(0.985, 0.985), xycoords="axes fraction",
+        ax.annotate("KF-based forecast better", xy=(0.985, 0.985), xycoords="axes fraction",
                     ha="right", va="top", fontsize=7, color=REFGRAY)
         ax.annotate("GRACE-FCast better", xy=(0.985, 0.015),
                     xycoords="axes fraction", ha="right", va="bottom",
@@ -834,9 +818,8 @@ def fig07_crossing():
     handles, labels = axa.get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.005),
                ncol=2, handlelength=2.4, columnspacing=2.0, fontsize=7.5)
-    fig.text(0.5, 0.115, "filled markers: Diebold-Mariano $p<0.05$;  open markers: "
-                         "not significant;  triangles on the zero line mark the "
-                         "lead time at which each curve crosses zero",
+    fig.text(0.5, 0.115, "Filled: Diebold-Mariano $p<0.05$; open: $p\\geq0.05$; "
+                         "triangles: interpolated zero crossings",
              ha="center", va="bottom", fontsize=7, color="0.30")
 
     note(stem, "The JPL file reports GRACE-FCast first. The figure "
@@ -926,7 +909,7 @@ def fig04_filter_mechanism():
                      arrowprops=dict(arrowstyle="-", lw=0.5, color="0.55"), zorder=4)
     mid = int(np.argmax(y_gap))
     from matplotlib.patheffects import withStroke
-    axa.annotate("the shaded gap is the noise term:\n"
+    axa.annotate("KF relative to $r = 0$:\n"
                  f"+{y_gap[0]:.1f} % at 1 month, +{y_gap[mid]:.1f} % at {H[mid]} months",
                  xy=(0.025, 0.02), xycoords="axes fraction", ha="left",
                  va="bottom", fontsize=7, color="0.20", zorder=7,
@@ -1093,10 +1076,24 @@ def fig05_era5_where():
                    "of the deseasonalized target (cm)")
     axb.set_ylabel("1-month skill over KF (%)")
     n_off = int((y < YLO).sum())
-    tail = f"\n{n_off} basin{'s' if n_off != 1 else ''} below the axis" if n_off else ""
+    # Show the x positions of off-scale basins without implying that their
+    # skill equals the plotting limit. Downward triangles mark clipped values.
+    off = y < YLO
+    if n_off:
+        axb.scatter(x[off], np.full(n_off, YLO), s=22, marker="v",
+                    facecolors=[BATLOW["navy"] if s else "white" for s in is_sig[off]],
+                    edgecolors=[BATLOW["navy"] if s else "0.45" for s in is_sig[off]],
+                    linewidth=0.6, zorder=6, clip_on=False)
+    tail = f"\n{n_off} triangles: skill below {YLO:.0f}%" if n_off else ""
+    # One non-significant basin falls under this label. The scatter has zorder
+    # 4-5, so the box is raised above it and left slightly transparent: the
+    # text stays legible and the marker underneath is still visible. The top
+    # right corner was tried instead and collides with the legend.
     axb.annotate(f"Spearman $\\rho$ = {rho:+.2f} ($p$ = {p_rho:.3f}, $n$ = 234)"
                  f"{tail}", xy=(0.97, 0.035), xycoords="axes fraction",
-                 ha="right", va="bottom", fontsize=7.5, color="0.15")
+                 ha="right", va="bottom", fontsize=7.5, color="0.15", zorder=6,
+                 bbox=dict(facecolor=(1.0, 1.0, 1.0, 0.85), edgecolor="none",
+                           pad=2.0))
     axb.legend(loc="upper left", bbox_to_anchor=(-0.01, 1.005), fontsize=7,
                handletextpad=0.3, borderaxespad=0.0)
     panel_head(axb, "(b)", "skill against storage variability")
@@ -1105,8 +1102,11 @@ def fig05_era5_where():
                "squared-loss differential with a Newey-West HAC lag of max(h-1, 1) "
                "(gracefc.stats.per_basin_dm_fdr, the same routine the per-basin "
                "FDR scripts use), then Benjamini-Hochberg at q = 0.10.")
-    note(stem, f"Panel (b) clips {n_off} basin(s) below its lower axis limit of "
-               f"{YLO:.0f} %; the panel says so in its corner annotation.")
+    note(stem, f"Panel (b) marks {n_off} basin(s) below its lower axis limit of "
+               f"{YLO:.0f} % with downward triangles at their actual x positions.")
+    for name, xv, yv in zip(common[off], x[off], y[off]):
+        note(stem, f"Off-scale basin {name}: training-window SD {xv:.3f} cm; "
+                   f"skill {yv:.3f} %.")
     note(stem, "The x axis of panel (b) is the median, across the five "
                "expanding-window folds, of the per-basin training-window standard "
                "deviation of the deseasonalized target, recomputed with "
@@ -1240,7 +1240,8 @@ def fig06_sequence_models():
     bars = axb.bar(L3, published, width=0.56, color=BATLOW["gold"],
                    edgecolor="none", zorder=4)
     for h, v, pv in zip(L3, published, dmp):
-        lab = f"+{v:.2f}%\n$p$ = {pv:.2g}" if pv >= 1e-4 else f"+{v:.2f}%\n$p$ < $10^{{-4}}$"
+        # same convention as the tables: anything below 0.001 is written < 0.001
+        lab = f"+{v:.2f}%\n$p$ = {pv:.3f}" if pv >= 1e-3 else f"+{v:.2f}%\n$p$ < 0.001"
         axb.annotate(lab, xy=(h, v), xytext=(0, 3), textcoords="offset points",
                      ha="center", va="bottom", fontsize=7, color="0.15")
     axb.set_xticks(L3)
@@ -1298,13 +1299,14 @@ def write_build_notes(f1, f3, f4, f5, f6x):
     A("first-named model is better.")
     A("")
     A("Model names in legends are the manuscript's (Table 1): KF, KF-R1,")
-    A("KF-R1, KF-R12, KF-R12E, KF-R1E, per-basin")
+    A("KF-R12, KF-R12E, KF-R1E, per-basin")
     A("lag ridge, pooled lag ridge, damped persistence, persistence, climatology,")
-    A("MLP, LSTM ensemble, GRACE-FCast (full), published")
-    A("product (non-seasonal). No code identifier appears in a legend.")
+    A("MLP, LSTM ensemble, GRACE-FCast (full), and GRACE-FCast")
+    A("(non-seasonal). No code identifier appears in a legend.")
     A("")
     A("Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,")
-    A("3 filter mechanism, 4 where ERA5 helps, 5 sequence models, 6 crossing.")
+    A("3 example time series, 4 filter mechanism, 5 where ERA5 helps,")
+    A("6 sequence models, 7 crossing.")
     A("")
 
     def block(stem, width, shows, sources, asserts):
@@ -1444,10 +1446,10 @@ def write_build_notes(f1, f3, f4, f5, f6x):
     A("  compact headline, summary and per-basin CSVs are versioned here. The")
     A("  panel therefore shades the 67 strict basins and leaves the other 167 of")
     A("  the 234 CSR-kept basins neutral, and says so on the figure.")
-    A("- Fig. 5 covers leads 1-3 only. The LSTM and MLP were never")
+    A("- Fig. 6 covers leads 1-3 only. The LSTM and MLP were never")
     A("  run past lead 3, so there is no lead 4-6 row to plot.")
     A("- `results/phase7_lstm_summary.csv` has no `skill_vs_kalman` column and no")
-    A("  CI columns, so Fig. 5 recomputes both from")
+    A("  CI columns, so Fig. 6 recomputes both from")
     A("  `results/phase7_lstm_predictions.csv` and asserts the point estimates")
     A("  back against the summary file's `rmse_std`.")
     A("- The JPL skill is inverted with the reciprocal transform")
