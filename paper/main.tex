@@ -135,7 +135,11 @@ its error, unchanged for raw persistence and attenuated for damped
 persistence. The
 benchmark we propose is a per-basin Kalman filter \citep{kalman1960} with
 a first-order autoregressive (AR(1)) state and additive observation noise.
-It separates signal from noise before extrapolating, has three parameters
+In this model, noise is any month-to-month variation that the AR(1) state
+cannot carry forward: instrument error, but also fast hydrological
+variability and errors in the seasonal correction
+(Sect.~\ref{sec:methods-kalman}).
+The filter separates the persistent signal from this noise before extrapolating, has three parameters
 per basin, and needs no data beyond the storage series itself. Because it
 propagates its state through months without an observation, it also
 remains defined across the eleven-month gap between GRACE and GRACE-FO
@@ -146,7 +150,7 @@ The same argument has been made in sea-ice forecasting, where
 \citet{niraula2021seaice} showed that damped-persistence references
 that ``do not exploit observations optimally'' overstate the skill of
 dynamical forecast systems, and built a stronger reference from spatial
-damping. Here we follow the same reasoning for satellite-observed TWSA, and strengthen the reference by separating signal from noise. Kalman methods are well established in the GRACE literature, although they have been used for other purposes. For example, ensemble Kalman filters
+damping. Here we follow the same reasoning for satellite-observed TWSA, and strengthen the reference by filtering the storage record. Kalman methods are well established in the GRACE literature, although they have been used for other purposes. For example, ensemble Kalman filters
 assimilate TWSA into land-surface models \citep{springer2026review},
 forward Kalman filters predict gravity-field coefficients
 \citep{kankanige2026persistence}, and integrated postprocessing separates
@@ -227,7 +231,8 @@ colored by their role in the comparison with GRACE-FCast
 mascon grid and the forecast grid and enter the comparison, 18 have
 partial coverage and are excluded by the coverage rule, and 7 have no
 usable GRACE-FCast cell. (b)~The JPL product: the 67 basins that pass the
-coverage rule there. The remaining basins of the CSR sample are shaded
+coverage rule there, fewer than on CSR because JPL's coarser native
+mascons (Sect.~\ref{sec:data-grace}) are fully contained by fewer basins. The remaining basins of the CSR sample are shaded
 neutral; the three-way split of (a) was not evaluated on JPL. Land outside
 the basin sample is pale grey in both panels.}
 % source: data/processed/li2026_basin_coverage.csv (227 with coverage > 0, 209 with >=1 full Li cell and >=1 full native mascon);
@@ -240,14 +245,15 @@ the basin sample is pale grey in both panels.}
 
 We use 11 ERA5-Land variables \citep{munozsabater2021era5land} at
 $0.5^{\circ}$, regridded server-side from $0.1^{\circ}$, for January 2001
-through May 2026: total precipitation, evaporation, total, surface and
-subsurface runoff, volumetric soil water in four layers, 2-m temperature,
+through May 2026: total precipitation, total evaporation, runoff
+(total, surface and subsurface), volumetric soil water in four layers, 2-m temperature,
 and snow depth water equivalent.
 % source: src/gracefc/era5.py variable list; results log era5 ingestion entry (11 variables, unit conversions)
-Accumulated fluxes are converted from mean daily rates to monthly totals,
-evaporation is sign-flipped so that positive values mean moisture loss,
-temperature is converted to degrees Celsius, and snow depth to centimeters
-of water equivalent. Basin aggregation uses the same cosine-latitude
+Accumulated fluxes are converted from mean daily rates to calendar-month
+totals, the same months to which the storage solutions are assigned
+(Sect.~\ref{sec:data-grace}). Evaporation is sign-flipped so that positive
+values mean moisture loss, temperature is converted to degrees Celsius, and
+snow depth to centimeters of water equivalent. Basin aggregation uses the same cosine-latitude
 weighted means as the storage aggregation, mapping each $0.25^{\circ}$
 mask cell to its nearest $0.5^{\circ}$ ERA5 cell. Because ERA5-Land is
 defined over land only, coastal and island basins aggregate their forcing
@@ -524,7 +530,10 @@ only if it fully contains every $0.25^{\circ}$ mask cell of at least one
 native mascon of the product being scored, and all sixteen cells of at
 least one finite $1^{\circ}$ GRACE-FCast cell. This rule tests cell containment directly and does not rely on an area or coverage threshold. On CSR, 229 basins
 contain a full native mascon, 211 contain a full forecast cell, and 209 satisfy both. On JPL, whose native mascons are coarser on the sampled grid,
-67 do.
+67 do. The rule screens grid geometry only: a single native mascon is not
+an independently resolved gravity signal, because the effective resolution
+of the observations is coarser than the mascon and the regularized
+estimation couples neighboring mascons (Sect.~\ref{sec:data-grace}).
 % source: data/processed/li2026_basin_coverage.csv (n_full_native_mascons >= 1: 229; n_full_li_cells >= 1: 211; both: 209); results/jpl/phase6_li_comparison_summary.csv (joint_full_cells n_basins 67)
 We report the fully covered set. On the matched set, the standardized
 1-month error of the full product on JPL is
