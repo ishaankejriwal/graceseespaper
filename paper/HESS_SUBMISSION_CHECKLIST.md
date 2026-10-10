@@ -18,8 +18,8 @@ is ready to submit. No manuscript was registered, uploaded or published.
   portrait pages, consecutive page numbers and line numbers.
 - Removed custom equal-contribution/class patches and the local table
   line-spacing redefinition. Equal contribution uses the standard template.
-- Added Ian Wang's institutional affiliation, separating it from Ishaan
-  Kejriwal's affiliation. His home address is omitted at his request.
+- Added the school affiliations for Ian Wang and Ishaan Kejriwal. Ian's
+  home address is omitted at his request.
 - Moved code/data availability after the appendices and before author
   contributions. Used the journal's standard conflict-of-interest wording.
 - Defined the mission and processing-centre abbreviations in the abstract
@@ -76,8 +76,9 @@ moved to a separate supplement. URLs are written out with `\url`.
 
 ## Remaining before submission
 
-1. **Ishaan Kejriwal's full affiliation address.** His entry still reads
-   “Independent researcher.” Obtain the author-approved full address.
+1. **Institutional affiliation details.** Both school names are supplied.
+   Confirm the schools' institutional address information for the final
+   affiliations; this refers to school addresses rather than home addresses.
 2. **Archive the code and supporting data with a persistent identifier.**
    The current availability statement explicitly says the archive is being
    prepared. Deposit the benchmark/prediction files, result tables and
