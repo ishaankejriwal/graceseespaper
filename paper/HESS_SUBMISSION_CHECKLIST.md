@@ -18,10 +18,8 @@ is ready to submit. No manuscript was registered, uploaded or published.
   portrait pages, consecutive page numbers and line numbers.
 - Removed custom equal-contribution/class patches and the local table
   line-spacing redefinition. Equal contribution uses the standard template.
-- Added Ian Wang's supplied affiliation, separating it from Ishaan
-  Kejriwal's affiliation. The draft uses Naperville, IL 60564, United
-  States as supplied; the authors should confirm the final institutional
-  mailing address and whether a street address should be added.
+- Added Ian Wang's institutional affiliation, separating it from Ishaan
+  Kejriwal's affiliation. His home address is omitted at his request.
 - Moved code/data availability after the appendices and before author
   contributions. Used the journal's standard conflict-of-interest wording.
 - Defined the mission and processing-centre abbreviations in the abstract
