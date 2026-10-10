@@ -515,6 +515,11 @@ you update the ledger *and* the script's assert next to it.)
 
 ---
 
+HESS submission formatting and unresolved author/data items are documented in
+[`paper/HESS_SUBMISSION_CHECKLIST.md`](paper/HESS_SUBMISSION_CHECKLIST.md).
+After compiling `paper/main.tex`, run `python scripts/check_hess_submission.py --bundle`
+to check the PDF and figures and create the local draft submission packet.
+
 ## 8. Rules for working here
 
 A few conventions. Please don't break them — each one exists because something went wrong before.
