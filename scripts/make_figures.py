@@ -820,8 +820,9 @@ def fig07_crossing():
     for ax in (axa, axb):
         ax.annotate("KF-based forecast better", xy=(0.985, 0.985), xycoords="axes fraction",
                     ha="right", va="top", fontsize=7, color=REFGRAY)
-        ax.annotate("GRACE-FCast better", xy=(0.985, 0.015),
-                    xycoords="axes fraction", ha="right", va="bottom",
+        # Lower left is clear of the long-lead error bars that reach the bottom right.
+        ax.annotate("GRACE-FCast better", xy=(0.015, 0.015),
+                    xycoords="axes fraction", ha="left", va="bottom",
                     fontsize=7, color=REFGRAY)
 
     handles, labels = axa.get_legend_handles_labels()

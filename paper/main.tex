@@ -379,12 +379,12 @@ the required lagged predictors are incomplete across the 2017--2018 gap.
 Every model is scored on the same rows at
 a given lead time, so the sample on the CSR product is
 % source: results/paper_baseline_ladder.csv, column n (19422/19188/18954/18720/18486/18252)
-$n = 19{,}422$, $19{,}188$, $18{,}954$, $18{,}720$, $18{,}486$ and $18{,}252$
+$n = 19\,422$, $19\,188$, $18\,954$, $18\,720$, $18\,486$ and $18\,252$
 basin-months at lead times of 1 to 6 months. On the JPL product, whose
 record runs one month longer, the 228 basins carry 84 issue months at a
 1-month lead against 83 on CSR, so
 % source: results/jpl/paper_baseline_ladder.csv, column n at horizon 1 (19152 = 228 x 84); results/paper_baseline_ladder.csv n at h1 (19422 = 234 x 83); JPL record to 2026-06 (Sect. 2.1)
-$n = 19{,}152$ there. Issue time is defined relative to the last available
+$n = 19\,152$ there. Issue time is defined relative to the last available
 observation, so the release latency of GRACE-FO is not modeled and all
 results are retrospective potential skill.
 
@@ -735,7 +735,7 @@ precipitation over 2001--2025 ($p < 0.001$ for each). In the driest
 quarter of the basins the median gain is 5.0\,\%, against 0.9\,\%
 elsewhere. The two largest gains are in the
 Egyptian Western Desert and the Saharan and Algerian Atlas
-(Fig.~\ref{fig:examples}a).
+(Figs.~\ref{fig:examples}a and \ref{fig:mechanism}c).
 % source: results/conventional_metrics_perbasin.csv, horizon 1, skill from rmse_cm: E_Egyptian_Western_Desert 0.410, E_Saharan_and_Algerian_Atlas 0.333
 
 \begin{figure*}[!htbp]
@@ -769,7 +769,7 @@ $p = 0.60$). Against the per-basin lag ridge the pattern is the same: KF
 is behind at 1 month
 % source: results/jpl/paper_baseline_contrasts.csv, kalman_ar1 vs ridge_own_perbasin (skill x100: -0.66, 3.21, 2.44, 2.11, 3.92, 6.67; dm_p 0.46, 7.3e-4, 0.0035, 0.026472, 0.0020, 3.5e-5)
 ($-0.66\,\%$, $p = 0.46$) and ahead by $+2.11$ to $+6.67\,\%$ at 2 to 6
-months ($p < 0.03$; Table~\ref{tab:ladderjpl}). Damped persistence itself
+months ($p < 0.03$). Damped persistence itself
 has a smaller standardized 1-month error on JPL
 % source: results/jpl/paper_baseline_ladder.csv, damped_persistence_rho h1 rmse_std 0.666; results/paper_baseline_ladder.csv, damped_persistence_rho h1 rmse_std 1.076
 (0.67 against 1.08 on CSR), so the JPL residual is more persistent from
@@ -876,7 +876,7 @@ standardized units at 1 to 4 months. At 5 and 6 months, KF-R1, with one
 coefficient on the current filtered state, is better by less than 1\,\%
 % source: results/flat12_ridge_summary.csv, ridge_own_era5_flat12 rows h5-h6, skill_vs_ridge_own x100 (-0.58, -0.73); results/paper_baseline_ladder.csv rmse_std h5 1.3804 vs 1.3764, h6 1.4421 vs 1.4369
 (Appendix~\ref{app:ladder}). The forcing window improves on KF-R1 only up
-to a lead time of 4 months.
+to a lead time of 4~months.
 
 \begin{table*}[!htbp]
 \caption{Own-basin models against the Kalman filter: pooled skill (\%)
@@ -977,7 +977,7 @@ KF-R1E & 1.0254 & 1.1930 & 1.2685 \\
 % source: phase7_lstm_summary.csv, ridge_own_flat12
 KF-R12 & 1.0448 & 1.1865 & 1.2622 \\
 % source: phase7_lstm_summary.csv, ridge_own_era5_flat12
-KF-R12E & $\mathbf{1.0081}$ & $\mathbf{1.1627}$ & $\mathbf{1.2462}$ \\
+KF-R12E & \textbf{1.0081} & \textbf{1.1627} & \textbf{1.2462} \\
 % source: phase7_lstm_summary.csv, lstm_own_era5_s0 / _s1
 LSTM, seed 0 / seed 1 & 1.0132 / 1.0188 & 1.1758 / 1.1851 & 1.2578 / 1.2630 \\
 % source: phase7_lstm_summary.csv, mlp_own_era5_flat12_s0 / _s1
@@ -1009,7 +1009,7 @@ the individual GRACE-FCast members on the fully covered basins, in
 standardized units. On CSR, over 209 basins and 60
 months
 % source: results/phase6_li_comparison_headline.csv, joint_full_cells, n_rows 12540
-($12{,}540$ basin-months per lead time), KF, with no forcing input, has
+($12\,540$ basin-months per lead time), KF, with no forcing input, has
 lower error than the full product at a 1-month lead time, by
 % source: results/phase6_li_comparison_headline.csv, joint_full_cells, kalman_ar1 vs li_lstm_full (skill x100: 16.4, -6.0, -16.3, -23.2, -28.9, -35.4; ci h1 4.9..26.6; dm_p 2.2e-3, 0.23, 1.4391e-3, 3.9e-5, 1.7e-6, 1.7e-8)
 $16.4\,\%$ (95\,\% interval $+4.9$ to $+26.6\,\%$). The difference is
@@ -1025,7 +1025,7 @@ differences against both product variants, with larger
 ($+21.5$ and $+32.8\,\%$) and interpolated zero crossings slightly later
 (Fig.~\ref{fig:crossing}). On JPL, over 67 basins and 59 months
 % source: results/jpl/phase6_li_comparison_headline.csv, joint_full_cells, n_rows 3953, n_months 59
-($3{,}953$ basin-months per lead time), only KF is compared with
+(3953 basin-months per lead time), only KF is compared with
 GRACE-FCast. Against the full
 product, KF has significantly lower error at 1 month, no significant
 difference at 2 and 3 months, and higher error from 4 months on. Against
@@ -1037,14 +1037,30 @@ $+43.7\,\%$ against the full product and $+52.9\,\%$ against the
 non-seasonal component, so that KF's mean squared error is less than
 half that of the non-seasonal component.
 
+\begin{figure*}[!htbp]
+\includegraphics[width=\textwidth]{fig07_crossing.pdf}
+\caption{Comparison with GRACE-FCast on the fully covered basins. (a)~CSR,
+209 basins and 60 months: skill (\%) of KF and of KF-R12E over GRACE-FCast,
+full and non-seasonal, by lead time, with moving-block bootstrap 95\,\%
+confidence intervals. Positive means our forecast has the lower error.
+(b)~JPL, 67 basins and 59 months, KF only. Filled markers are significant
+at $p < 0.05$, open markers are not, and the triangles on the zero line
+mark the interpolated lead time at which each curve crosses zero. Damped
+persistence, not drawn, also has lower error than both GRACE-FCast
+variants at a 1-month lead time on both products (Table~\ref{tab:li}), so
+the 1-month advantage is also present without Kalman filtering.}
+% source: results/phase6_li_comparison_headline.csv (joint_full_cells rows, ours first); results/jpl/phase6_li_comparison_headline.csv (joint_full_cells rows, product first, converted as 1 - 1/(1 - s))
+\label{fig:crossing}
+\end{figure*}
+
 \begin{table*}[!htbp]
 \caption{Comparison with GRACE-FCast on the fully covered basins, with
 damped persistence in its $\rho^{h}$ variant at every lead time. Skill
 (\%) of our forecast over GRACE-FCast at each lead time $h$ (months),
 upper value, with the Diebold--Mariano $p$ value below it. Positive means
 our forecast has the lower error. CSR:
-209 basins, 60 months, $12{,}540$ basin-months per lead time. JPL: 67
-basins, 59 months, $3{,}953$ basin-months per lead time, same convention.
+209 basins, 60 months, $12\,540$ basin-months per lead time. JPL: 67
+basins, 59 months, 3953 basin-months per lead time, same convention.
 The last two rows count the CSR basins, of 209, in which the full product
 has the lower error at $h = 1$ and $h = 6$.}
 \label{tab:li}
@@ -1129,22 +1145,6 @@ JPL member of GRACE-FCast was trained on an earlier release than the one
 we score it against (Sect.~\ref{sec:data-li}). Our JPL target also has the
 product's gain scale factors applied, and \citet{li2026fcast} do not state
 whether their JPL training target did. We cannot separate these effects.
-
-\begin{figure*}[!htbp]
-\includegraphics[width=\textwidth]{fig07_crossing.pdf}
-\caption{Comparison with GRACE-FCast on the fully covered basins. (a)~CSR,
-209 basins and 60 months: skill (\%) of KF and of KF-R12E over GRACE-FCast,
-full and non-seasonal, by lead time, with moving-block bootstrap 95\,\%
-confidence intervals. Positive means our forecast has the lower error.
-(b)~JPL, 67 basins and 59 months, KF only. Filled markers are significant
-at $p < 0.05$, open markers are not, and the triangles on the zero line
-mark the interpolated lead time at which each curve crosses zero. Damped
-persistence, not drawn, also has lower error than both GRACE-FCast
-variants at a 1-month lead time on both products (Table~\ref{tab:li}), so
-the 1-month advantage is also present without Kalman filtering.}
-% source: results/phase6_li_comparison_headline.csv (joint_full_cells rows, ours first); results/jpl/phase6_li_comparison_headline.csv (joint_full_cells rows, product first, converted as 1 - 1/(1 - s))
-\label{fig:crossing}
-\end{figure*}
 
 \subsection{Sensitivity to basin weighting}
 \label{sec:results-weighting}
@@ -1276,7 +1276,7 @@ to subseasonal precipitation and temperature forecasts in coupled models
 \citep{koster2010glace2}. The
 comparison in Sect.~\ref{sec:results-li} is consistent with this pattern.
 KF has lower error at short leads, whereas GRACE-FCast has significantly
-lower error from 3 to 5 months onward, depending on the product and
+lower error from 3 to 5~months onward, depending on the product and
 component (Table~\ref{tab:li}). The crossover describes these forecast systems and
 does not decompose skill into contributions from storage and forcing.
 Architecture, training data, gap treatment, predictor sets and target
@@ -1373,7 +1373,7 @@ low-variance basins and does not significantly reduce pooled error in
 centimeters.
 In the comparisons with individual GRACE-FCast members on the fully
 covered basins, GRACE-FCast has lower standardized error at longer leads,
-whereas both KF and damped persistence have lower error at 1 month. Any evaluation of storage
+whereas both KF and damped persistence have lower error at 1~month. Any evaluation of storage
 forecasts, including any future combination of storage-based and
 forcing-based predictions, has to account for this dependence on lead
 time, error scaling and input availability.
@@ -1419,6 +1419,7 @@ Fully covered basin set & \texttt{joint\_full\_cells}; matched set \texttt{all\_
 \end{tabular}
 \end{table*}
 
+\clearpage
 \section{The full benchmark tables}
 \label{app:ladder}
 
@@ -1436,7 +1437,7 @@ Diebold--Mariano (DM) $p$ value against the stronger damped-persistence
 variant for every forecast of Table~\ref{tab:ladder} at lead times $h$ of 1
 to 6 months, over 234 basins and five folds. The pooled test uses the monthly
 mean loss difference across basins as its temporal observations (83 at $h=1$),
-not the 19,422 scored basin-months as independent replicates. A small $p$
+not the 19\,422 scored basin-months as independent replicates. A small $p$
 value indicates a difference in either direction. The reference row has no test.}
 \label{tab:ladderfull}
 % source: results/paper_baseline_ladder.csv, rmse_std (four decimals) and dm_p_vs_damped (two significant figures)
@@ -1484,7 +1485,7 @@ KF-R12E & RMSE & 1.0081 & 1.1627 & 1.2462 & 1.3148 & 1.3804 & 1.4421 \\
 \begin{table*}[!htbp]
 \caption{JPL product: pooled skill (\%) against the stronger
 damped-persistence variant and two-sided Diebold--Mariano (DM) $p$ value at
-lead times $h$ of 1 to 6 months, over 228 basins and five folds ($n = 19{,}152$
+lead times $h$ of 1 to 6 months, over 228 basins and five folds ($n = 19\,152$
 scored basin-months at $h = 1$). The reference is the $\rho^{h}$ variant at $h = 1$
 and 2 and the regression variant at $h = 3$ to 6. A small $p$ value indicates
 a difference in either direction. The
@@ -1526,6 +1527,7 @@ KF-R1 & Skill (\%) & $+0.3$ & $+5.2$ & $+5.1$ & $+3.3$ & $+3.5$ & $+4.2$ \\
 \end{tabular}
 \end{table*}
 
+\clearpage
 \section{Conventional metrics in centimeters}
 \label{app:conventional}
 

@@ -6,6 +6,26 @@ references and end matter meet the HESS rules checked by
 is the data/code DOI below. The earlier, longer version of this file (10 October)
 is in the git history.
 
+## What Ian needs to do
+
+1. **JPL row-level predictions.** Copy the JPL prediction files from your machine
+   (`results/jpl/*_predictions.csv`, `results/jpl/*_placebo_*.csv` that git ignores)
+   into the Zenodo deposit alongside the two zips from `scripts/build_deposit.py`, and
+   add one line to `docs/DEPOSIT_README.md` listing them. If they cannot be shared,
+   leave the README sentence that says they are excluded.
+2. **Confirm your title-page entries** in `paper/main.tex`: name, email
+   (ianwa09@gmail.com), affiliation 2 (Illinois Mathematics and Science Academy,
+   1500 Sullivan Road, Aurora, IL 60506, USA) and affiliation 3 (SEES High School
+   Summer Intern Program). Remove affiliation 3 from your `\Author` line if you were
+   not a SEES intern on this project.
+3. **Confirm the author-contribution text** (end of `paper/main.tex`). It was
+   reformatted to HESS style (IK, IW) without changing what you wrote.
+4. **Read the final PDF** (`paper/main.pdf`) once, in particular the JPL results
+   (Sects. 4.1 and 4.4, Table 5, Fig. 7, Appendix Table B2), and report anything
+   that does not match your JPL runs.
+5. **Agree on the licences** (MIT for code, CC BY 4.0 for data proposed) and on the
+   AI-use statement with Ishaan before the deposit is published.
+
 ## Open items
 
 | Item | What to do | Who |
