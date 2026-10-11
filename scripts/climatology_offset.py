@@ -14,8 +14,9 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 
 d = pd.read_csv(ROOT / "results/phase2_baseline_predictions.csv",
-                usecols=["name", "model", "horizon", "fold", "target_std_units"])
+                usecols=["name", "model", "horizon", "fold", "target_std_units", "pred_std_units"])
 y = d.loc[(d.model == "climatology_zero") & (d.horizon == 1)]
+assert (y["pred_std_units"] == 0).all()  # climatology forecasts zero, so the target is the error
 mean = y.groupby(["name", "fold"])["target_std_units"].transform("mean")
 mse = (y["target_std_units"] ** 2).mean()
 out = pd.DataFrame([{"mse": mse, "rmse": mse ** 0.5,

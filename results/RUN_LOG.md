@@ -1945,7 +1945,7 @@ DOI (the checker fails until the availability statement cites it), the JPL row-l
 prediction files (held by the second author, not in this checkout), and the authors'
 AI-policy statement.
 
-## 2026-10-11 (later) - Audit fixes on the HESS branch (no change to any existing result)
+## 2026-10-11 (later) - Audit fixes on the HESS branch (no model rerun; one input-window change)
 
 Five independent audits (numbers, cold referee, HESS compliance, citations,
 reproducibility) ran on the merged branch. The number audit found no wrong value in
@@ -1955,10 +1955,11 @@ about 800 numerals. Fixes applied:
   damped persistence at every lead, p < 0.001; KF-R12E vs KF not significant at any
   lead, p >= 0.25, so the abstract now says "does not differ significantly" instead of
   "higher") and `scripts/climatology_offset.py` (57 % of climatology's 1-month MSE is
-  the basin-fold mean residual, which explains its RMSE of 1.62).
+  the basin-fold mean residual, which accounts for most of its RMSE of 1.62).
 - `scripts/kalman_gain_correlates.py` now uses full calendar years 2001-2025 for mean
   annual precipitation; the driest-quarter median gain is 5.0 % (was 6.0 %, which
-  depended on the partial 2026 year). Spearman values unchanged.
+  depended on the partial 2026 year). The precipitation Spearman value moves from
+  -0.3003 to -0.2999 (unchanged at two decimals).
 - Table 5 gains damped persistence vs the non-seasonal GRACE-FCast component (CSR
   +24.6 %, JPL +52.5 % at 1 month, both p < 0.001), so the 1-month claim holds
   against both variants.
