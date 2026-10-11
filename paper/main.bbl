@@ -1,4 +1,4 @@
-\begin{thebibliography}{45}
+\begin{thebibliography}{47}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \providecommand{\urlprefix}{}
@@ -164,6 +164,13 @@ Li, F., Springer, A., Kusche, J., Gutknecht, B.~D., and Ewerdwalbesloh, Y.:
   Combining Machine Learning With {CLM} Model Simulations and {GRACE} Data
   Assimilation, Water Resources Research, 61, \doi{10.1029/2024WR037926}, 2025.
 
+\bibitem[{Longuevergne et~al.(2010)Longuevergne, Scanlon, and
+  Wilson}]{longuevergne2010smallbasins}
+Longuevergne, L., Scanlon, B.~R., and Wilson, C.~R.: {GRACE} hydrological
+  estimates for small basins: Evaluating processing approaches on the {High
+  Plains Aquifer}, {USA}, Water Resources Research, 46, W11\,517,
+  \doi{10.1029/2009WR008564}, 2010.
+
 \bibitem[{Mo et~al.(2022)Mo, Zhong, Forootan, Mehrnegar, Yin, Wu, Feng, and
   Shi}]{mo2022gap}
 Mo, S., Zhong, Y., Forootan, E., Mehrnegar, N., Yin, X., Wu, J., Feng, W., and
@@ -259,6 +266,12 @@ Steidl, V. and Zhu, X.~X.: Hierarchical Graph Networks for Forecasting
 Tapley, B.~D., Bettadpur, S., Watkins, M., and Reigber, C.: The gravity
   recovery and climate experiment: Mission overview and early results,
   Geophysical Research Letters, 31, \doi{10.1029/2004GL019920}, 2004.
+
+\bibitem[{Vishwakarma et~al.(2018)Vishwakarma, Devaraju, and
+  Sneeuw}]{vishwakarma2018resolution}
+Vishwakarma, B.~D., Devaraju, B., and Sneeuw, N.: What is the spatial
+  resolution of {GRACE} satellite products for hydrology?, Remote Sensing, 10,
+  852, \doi{10.3390/rs10060852}, 2018.
 
 \bibitem[{Wiese et~al.(2023)Wiese, Yuan, Boening, Landerer, and
   Watkins}]{wiese2023jpl}

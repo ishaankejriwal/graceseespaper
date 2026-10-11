@@ -47,12 +47,14 @@ Data-driven forecasts of terrestrial water storage are usually scored by
 their agreement with the observations, or against competing models,
 rarely against the storage record they start from. How much skill that
 record alone supplies is unclear. Persistence, the simplest
-such reference, carries forward the latest observed anomaly and its
-measurement error. We test whether filtering the GRACE and GRACE-FO record
+such reference, carries forward the latest deseasonalized residual,
+including whatever transient part it contains. We test whether filtering the
+GRACE and GRACE-FO record
 before extrapolation gives a stronger reference. For each basin we fit a
 Kalman filter with a first-order autoregressive state and additive
-observation noise, and forecast from the filtered state. Forecasts are
-evaluated on deseasonalized anomalies over
+model noise, and forecast from the filtered state. The split between
+state and noise is statistical and does not separate physical variability
+from observation error. Forecasts are evaluated on deseasonalized residuals over
 % source: Sect. 2.2 basin selection (284 mask basins - 46 ice-sheet - 4 water-body = 234, CSR); Sect. 3.2
 % folds (issue starts 2019-06, 2020-11, 2022-04, 2023-09, 2025-02; CSR targets to 2026-05)
 234 basins and five expanding-window test periods in 2019--2026. On
@@ -63,7 +65,7 @@ the CSR mascon product the filter reduces mean squared error by
 of two damped-persistence references.
 % source: results/r0_ablation_summary.csv, rho_estimation_term h1 rmse_a 1.078260 (kalman_r0) against
 % results/paper_baseline_ladder.csv damped_persistence_rho h1 rmse_std 1.076129: 1 - (1.078260/1.076129)^2 = -0.0040
-Refitting with zero observation-noise variance removes that 1-month gain.
+Refitting with zero model-noise variance removes that 1-month gain.
 % source: results/jpl/paper_baseline_ladder.csv, kalman_ar1 rows, skill_vs_damped h2..h6 (0.0635, 0.0464,
 % 0.0155, 0.0236, 0.0474), all dm_p < 0.02; h1 skill 0.0056, dm_p 0.60
 On the JPL product the filter improves on damped persistence at 2--6
@@ -79,8 +81,10 @@ ridge at 1--3 months. Both the filter and damped persistence have lower
 % joint_full_cells: at h1 KF vs li_lstm_full +16.4 (CSR, p 2.2e-3) and +43.7 (JPL, p < 1e-3), damped vs
 % li_lstm_full +11.9 (CSR, p 0.029) and +43.2 (JPL); GRACE-FCast has significantly lower error than KF
 % from h3 (CSR full), h4 (CSR non-seasonal, JPL full) and h5 (JPL non-seasonal)
-error than the forcing-driven GRACE-FCast hindcast at 1 month. GRACE-FCast
-has significantly lower error than the filter from 3--5 months onward.
+standardized error than the GRACE-FCast member built on the same mascon
+product, on the fully covered basins, at 1 month. GRACE-FCast
+has significantly lower error than the filter from 3 to 5 months onward,
+depending on product and variant.
 Storage forecasts should be scored against a filtered reference and in
 physical units.
 \end{abstract}
@@ -127,20 +131,21 @@ dominance with a lag-autocorrelation diagnostic rather than with a
 benchmark forecast.
 
 We test whether filtering the storage record gives a stronger benchmark.
-Basin-average TWSA is a state variable
-observed through a noisy instrument, and the observation errors are large
-for small and arid basins \citep{save2016mascons, landerer2020gracefo}. A
-persistence forecast starts from the last observed month and propagates
-its error, unchanged for raw persistence and attenuated for damped
-persistence. The
-benchmark we propose is a per-basin Kalman filter \citep{kalman1960} with
-a first-order autoregressive (AR(1)) state and additive observation noise.
-In this model, noise is any month-to-month variation that the AR(1) state
-cannot carry forward: instrument error, but also fast hydrological
-variability and errors in the seasonal correction
-(Sect.~\ref{sec:methods-kalman}).
-The filter separates the persistent signal from this noise before extrapolating, has three parameters
-per basin, and needs no data beyond the storage series itself. Because it
+Basin-average TWSA is subject to observation noise
+\citep{save2016mascons, landerer2020gracefo}. We work with the residual
+after removing a fitted trend and seasonal cycle. A persistence forecast
+carries forward the latest residual, including any transient part of that
+month's value, unchanged for raw persistence and attenuated for damped
+persistence. The benchmark we propose is a per-basin Kalman filter
+\citep{kalman1960} with a first-order autoregressive (AR(1)) state and an
+additive noise term in the observation equation, which we call model
+noise. Section~\ref{sec:methods-kalman} defines this term. It is a
+statistical component of the residual that may mix fast hydrological
+variability, errors in the trend and seasonal fit, and instrument and
+processing errors; nothing in the method separates these contributions or
+measures the accuracy of the satellite data. The filter estimates a persistent state
+from the residual before extrapolation, has three parameters per basin,
+and needs no data beyond the storage series itself. Because it
 propagates its state through months without an observation, it also
 remains defined across the eleven-month gap between GRACE and GRACE-FO
 without interpolation. Its treatment of missing observations follows from
@@ -166,7 +171,7 @@ filtered than on the choice of architecture.
 
 We compare the filter with persistence and conventional statistical
 forecasts, then use ablation experiments to assess the contribution of
-its observation-noise term. We also test whether a basin's forcing history
+its model-noise term. We also test whether a basin's forcing history
 improves the filtered forecast and whether nonlinear models outperform
 linear regression on the same inputs. Finally, we compare with the
 published GRACE-FCast hindcast \citep{li2026fcast} using two independently
@@ -277,24 +282,26 @@ target, so that each comparison shares a gravity solution. The CSR member
 holds monthly $1^{\circ}$ global forecasts at lead times of 1 to 12 months,
 initialized December 2009 through May 2024 (174 initializations), and the JPL member holds 173 initializations through April 2024.
 % source: results log, Li ingestion entry (174 init files, 2009-12..2024-05, 1 deg); results/jpl/RUN_PROVENANCE.md (173 files, 2009-12..2024-04)
-GRACE-FCast is a long short-term memory network that forecasts the
-interannual and sub-seasonal components of TWSA from antecedent
-hydrometeorological and oceanographic predictors, with correlation-based
-spatial shifting of the predictors. By design it takes no lagged storage
-as input, and its seasonal and trend components are extrapolated from the
-previous year and added back \citep{li2026fcast}. We evaluate both the
-full product and its non-seasonal component (Sect.~\ref{sec:methods-li}).
+GRACE-FCast forecasts the interannual and sub-seasonal components of TWSA
+with separate long short-term memory networks. Their inputs are antecedent
+hydrometeorological and oceanographic predictors, each selected by
+correlation from a range of lags and neighboring locations; lagged storage
+is not among them. The full forecast adds seasonal and trend components
+extrapolated from the previous year of GRACE observations
+\citep{li2026fcast}. We evaluate both the full product and its
+non-seasonal component (Sect.~\ref{sec:methods-li}).
 
-The skill reported by
-\citet{li2026fcast} is for the average of the three members, and their
-training-residual diagnostic ranks the CSR member as the least certain of
-the three (3.0 against 2.8\,cm), so our results apply to the individual members that we score and not to their three-member average.
-% source: docs/reference/li_kusche_2026_core.md sect. 4.1 (JPL 2.8, CSR 3.0, GSFC 2.8 cm)
+\citet{li2026fcast} validate the average of the three forecast members
+against the average of the three mascon solutions; our results apply to
+the individual members scored here.
 Their JPL member was trained against JPL RL06.1, whereas our JPL target is
 RL06.3Mv04, so the JPL comparison involves two different releases.
 % source: results/jpl/RUN_PROVENANCE.md (Li trained on RL06.1_v03; verification target RL06.3Mv04 CRI)
 Their training also fills the 2017--2018 mission gap with the
 reconstruction of \citet{yin2023gtws}, which is not used by any of our models.
+Their networks are retrained, and their predictors reselected, at each
+monthly initialization \citep{li2026fcast}, whereas our fitted parameters
+are held fixed within each evaluation fold (Sect.~\ref{sec:methods-folds}).
 
 \section{Methods}
 \label{sec:methods}
@@ -308,8 +315,8 @@ semiannual harmonics (six coefficients, ordinary least squares). The
 frozen coefficients are used to deseasonalize both the training and the
 test data, and the residual is divided by its training-window standard
 deviation. The forecast target is this deseasonalized, per-basin
-standardized residual. It retains interannual and shorter-term anomalies
-relevant to drought and flood applications. Standardization expresses each
+standardized residual. It retains the interannual and shorter-term
+variations relevant to drought and flood applications. Standardization expresses each
 basin's error relative to its own training variability; it does not impose
 equal realized error contributions. Section~\ref{sec:results-weighting} and
 Appendix~\ref{app:conventional} report the same forecasts in centimeters,
@@ -350,13 +357,13 @@ results are retrospective potential skill.
 
 We evaluate the following benchmark forecasts:
 \begin{itemize}
-\item climatology, the zero-anomaly forecast;
-\item persistence, the last observed anomaly carried forward unchanged;
+\item climatology, which forecasts a residual of zero;
+\item persistence, the last observed residual carried forward unchanged;
 \item damped persistence in two variants: the $\rho^{h}$ variant
-multiplies the last anomaly by a per-basin AR(1) coefficient $\rho$ raised
+multiplies the last residual by a per-basin AR(1) coefficient $\rho$ raised
 to the power of the lead time, and the regression variant regresses the
-lead-$h$ target directly on the last anomaly;
-\item a pooled ridge regression on own-basin lagged anomalies (penalty 1;
+lead-$h$ target directly on the last residual;
+\item a pooled ridge regression on own-basin lagged residuals (penalty 1;
 lags 0, 1, 2, 5 and 11 months; one model for all basins), and the same
 ridge with the lagged climate indices of Sect.~\ref{sec:data-era5} added;
 \item a per-basin ridge on the same lags, refit separately for each basin.
@@ -377,12 +384,15 @@ and figure states the reference used.
 \label{sec:methods-kalman}
 
 The proposed benchmark models each basin's deseasonalized residual
-$y_{t}$ as an AR(1) latent signal $x_{t}$ observed with additive white
-noise:
+$y_{t}$ as the sum of an AR(1) latent state $x_{t}$ and a white
+model-noise term $\eta_{t}$:
 \begin{align}
 x_{t} &= \rho\, x_{t-1} + \epsilon_{t}, \qquad \epsilon_{t} \sim \mathcal{N}(0, q),\\
 y_{t} &= x_{t} + \eta_{t}, \qquad \eta_{t} \sim \mathcal{N}(0, r).
 \end{align}
+We call $\eta_{t}$ the model noise; $r$ is its variance and $q$ the
+process-noise variance. The latent state $x_{t}$ is a statistical
+estimate of the persistent part of the residual.
 The three parameters $(\rho, q, r)$ are estimated per basin and fold by
 maximum likelihood on training months only, using L-BFGS-B from several
 starting points.
@@ -400,31 +410,32 @@ which applies damping to the filtered state. We refer to this forecast as
 the Kalman filter (KF). The state-space model contains one scalar storage
 state per basin and no hydrological model.
 
-We use two variants of the filter to explain its margin over damped persistence. In the \emph{noise-free variant} ($r = 0$) the same model is refit with the same likelihood and with $r$ fixed at zero. This forces
-the Kalman gain to one, so the state tracks the raw observation and the
+We use two variants of the filter to explain its margin over damped persistence. In the \emph{zero-$r$ variant} the same model is refit with the same likelihood and with $r$ fixed at zero. This forces
+the Kalman gain to one, so the state tracks the observed residual and the
 forecast reduces to damped persistence with a maximum-likelihood $\rho$.
-The comparison measures the effect of allowing a nonzero observation-noise
+The comparison measures the effect of allowing a nonzero model-noise
 variance, including the resulting changes in the fitted state parameters.
 % source: src/gracefc/kalman.py fit_kalman_ar1(fixed_r=0.0); scripts/run_r0_ablation.py
 In the \emph{two-variance variant} the observation equation has separate
-noise variances for months before January 2018 and for GRACE-FO months
+model-noise variances for months before January 2018 and for GRACE-FO months
 from then on, so the parameter vector is $(\rho, q, r_{\mathrm{GRACE}},
 r_{\mathrm{FO}})$. We require at least 12 observed GRACE-FO months in the
 training window to fit a separate variance; otherwise, the fit uses the
 single-variance model.
 % source: src/gracefc/kalman_mission.py (MISSION_SPLIT 2018-01-01, MIN_FO_OBS 12); results/kalman_mission_summary.csv diagnostic rows mission_split, min_fo_obs
 
-The split between signal variance $q$ and observation variance $r$ is
-set by the likelihood and should not be read as a measurement of
-instrument noise. Fast hydrological variability that an
-AR(1) state cannot carry forward, and errors in the deseasonalization, are
-absorbed into $r$ alongside instrument noise, and in a minority of fits
-the likelihood pushes $r$ to its lower bound:
-% source: results/kalman_mission_summary.csv, diagnostic rows n_fits 1170 and n_r_one_at_boundary 259
-259 of the 1170 basin-fold fits do so. We therefore use ``observation
-noise'' in the model's sense, as whatever the filter treats as
-unpredictable month-to-month variation, rather than as an estimate of
-instrument error.
+The likelihood determines the allocation of residual variability between
+the evolving state and the additive model-noise term. The model-noise
+term is presumed to be a mixture of fast hydrological variability, errors
+in the fitted trend and seasonal cycle, and instrument or processing
+errors; their shares are not estimated. Unpredictable changes can also
+enter the state through the process-noise term, so $r$ does not represent
+all variation that cannot be forecast.
+% source: results/kalman_mission_summary.csv, diagnostic rows n_fits 1170 and n_r_one_at_boundary 259; src/gracefc/kalman.py r_at_boundary = r < 1e-6
+In 259 of the 1170 basin-fold fits the likelihood drives $r$ to
+effectively zero (below $10^{-6}$ in standardized units). The fitted $r$
+is a model parameter, not a measure of observation error in the mascon
+solutions.
 
 \subsection{Forecast models built on the filter}
 \label{sec:methods-corrections}
@@ -478,14 +489,14 @@ and data repository.}
 \tophline
 Name & Definition \\
 \middlehline
-Climatology & Zero-anomaly forecast (Sect.~\ref{sec:methods-benchmarks}). \\
-Persistence & Last observed anomaly carried forward (Sect.~\ref{sec:methods-benchmarks}). \\
-Damped persistence & Last anomaly damped toward zero; $\rho^{h}$ and regression variants, always scored against the stronger at each lead time (Sect.~\ref{sec:methods-benchmarks}). \\
-Pooled lag ridge & Ridge regression on own-basin lagged anomalies, one model for all basins; the index variant adds lagged climate indices (Sect.~\ref{sec:methods-benchmarks}). \\
+Climatology & Zero-residual forecast (Sect.~\ref{sec:methods-benchmarks}). \\
+Persistence & Last observed residual carried forward (Sect.~\ref{sec:methods-benchmarks}). \\
+Damped persistence & Last residual damped toward zero; $\rho^{h}$ and regression variants, always scored against the stronger at each lead time (Sect.~\ref{sec:methods-benchmarks}). \\
+Pooled lag ridge & Ridge regression on own-basin lagged residuals, one model for all basins; the index variant adds lagged climate indices (Sect.~\ref{sec:methods-benchmarks}). \\
 Per-basin lag ridge & The pooled lag ridge's features, refit separately for each basin (Sect.~\ref{sec:methods-benchmarks}). \\
-KF & The proposed benchmark: damped persistence of the filtered state from the per-basin AR(1) plus observation-noise model (Sect.~\ref{sec:methods-kalman}). \\
-KF, $r = 0$ & The noise-free variant, refit with the observation variance fixed at zero (Sect.~\ref{sec:methods-kalman}). \\
-KF, two variances & The two-variance variant, with separate observation variances for GRACE and GRACE-FO months (Sect.~\ref{sec:methods-kalman}). \\
+KF & The proposed benchmark: damped persistence of the filtered state from the per-basin AR(1) plus model-noise specification (Sect.~\ref{sec:methods-kalman}). \\
+KF, $r = 0$ & The zero-$r$ variant, refit with the model-noise variance fixed at zero (Sect.~\ref{sec:methods-kalman}). \\
+KF, two variances & The two-variance variant, with separate model-noise variances for GRACE and GRACE-FO months (Sect.~\ref{sec:methods-kalman}). \\
 KF-R1 & KF plus a ridge correction on the current filtered state (Sect.~\ref{sec:methods-corrections}). \\
 KF-R12 & KF plus a ridge correction on the 12-month history of the filtered state (Sect.~\ref{sec:methods-corrections}). \\
 KF-R12E & KF-R12 with the 12-month history of the 11 ERA5-Land anomalies added (Sect.~\ref{sec:methods-corrections}). \\
@@ -504,15 +515,16 @@ GRACE-FCast, full and non-seasonal & The published forecast of \citet{li2026fcas
 
 The GRACE-FCast hindcast \citep{li2025pangaea} is aggregated to our basin
 geometry with exact $0.25^{\circ}$ to $1^{\circ}$ cell-containment
-weights. Its forecasts are moved into each fold's deseasonalized,
-standardized space using our train-window climatology plus a per-fold,
-per-basin, per-lead mean offset estimated on pre-test data only. The full
-product is scored after our climatology is subtracted, so any difference
-between their seasonal and trend convention and ours is absorbed there.
-The non-seasonal component, which is their interannual plus sub-seasonal
-forecast, is scored in the same space, which removes the advantage that
-their monthly re-extrapolation of the seasonal cycle and trend would
-otherwise carry. Every model is scored on the identical set of basin-months at every lead
+weights. Its forecasts are moved into each fold's standardized residual
+space as follows. The full product has our train-window climatology
+subtracted; the non-seasonal component, their interannual plus
+sub-seasonal forecast, does not. Both then receive a per-fold, per-basin,
+per-lead mean offset estimated on pre-test data only, which requires at
+least 24 such months, and are divided by our training-window residual
+standard deviation. This aligns their mean levels with our target; the
+two decomposition conventions otherwise differ. Scoring both variants
+shows how their extrapolated seasonal and trend terms affect error
+against our target. Every model is scored on the identical set of basin-months at every lead
 time. On CSR it spans 60 test months: folds
 1 to 3 in full, 9 of the 17 issue months of fold 4, and none of fold 5,
 because GRACE-FCast's final initialization, May 2024, falls inside fold 4.
@@ -666,27 +678,36 @@ high-variance basins contribute more to pooled error and the ranking changes
 
 Figure~\ref{fig:examples} shows the 1-month forecasts in four basins. In
 the Saharan and Algerian Atlas and in the East Nile Delta, where the
-month-to-month scatter is large relative to the interannual signal, damped
+month-to-month scatter is large relative to the slower residual variations, damped
 persistence follows each excursion of the last observation while the
-filter tracks the slower signal beneath it. In the Danube the two
-forecasts are close, and in the Amazon, where the signal is large and
+filter gives less weight to each new observation. In the Danube the two
+forecasts are close, and in the Amazon, where residual variability is large and
 smooth, they are nearly indistinguishable and damped persistence is
 marginally better. Across the sample, KF has the lower 1-month RMSE in
 centimeters in
 % source: results/conventional_metrics_perbasin.csv, rmse_cm at horizon 1, kalman_ar1 < damped_persistence in 158 of 234 basins (computed in scripts/make_figures.py fig04_filter_mechanism, n_pos/n_neg)
-158 of the 234 basins and damped persistence in 76. The largest gains are
-in arid and small basins (Fig.~\ref{fig:mechanism}c), where the formal
-error estimates of the mascon solutions are also largest
-\citep{save2016mascons}.
+158 of the 234 basins and damped persistence in 76. The gain is largest
+where the residual has the least month-to-month persistence, and in small
+and dry basins (Fig.~\ref{fig:mechanism}c). Across the 234 basins the
+per-basin skill has a Spearman rank correlation of
+% source: results/kalman_gain_correlates.csv (scripts/kalman_gain_correlates.py): resid_ac1 -0.337 (p 1.2e-7),
+% area_km2 -0.274 (p 2.2e-5), precip_cm_yr -0.300 (p 2.9e-6); median skill driest quartile 0.060 (n 59), other 0.009 (n 175)
+$-0.34$ with the lag-1 autocorrelation of the residual, $-0.27$ with
+basin area and $-0.30$ with mean annual ERA5-Land precipitation ($p <
+0.001$ for each). In the driest quarter of the basins the median gain is
+6.0\,\%, against 0.9\,\% elsewhere. The two largest gains are in the
+Egyptian Western Desert and the Saharan and Algerian Atlas
+(Fig.~\ref{fig:examples}a).
+% source: results/conventional_metrics_perbasin.csv, horizon 1, skill from rmse_cm: E_Egyptian_Western_Desert 0.410, E_Saharan_and_Algerian_Atlas 0.333
 
 \begin{figure*}[!htbp]
 \includegraphics[width=\textwidth]{fig03_example_series.pdf}
-\caption{Observed deseasonalized storage anomaly (grey) and the 1-month
+\caption{Observed deseasonalized storage residual (grey) and the 1-month
 forecasts of damped persistence ($\rho^{h}$ variant, dashed) and KF
 (solid) in four basins, in centimeters of equivalent water
 height, over the full test window. The panels span the range of per-basin
-outcomes at a 1-month lead time: (a)~and~(b) two arid basins with noisy
-observations, where the filter gains most; (c)~a mid-latitude river basin
+outcomes at a 1-month lead time: (a)~and~(b) two arid basins with pronounced
+month-to-month residual scatter and large filter gains; (c)~a mid-latitude river basin
 where the gain is a few percent; (d)~the Amazon, where damped persistence
 is marginally better. Each panel states the 1-month RMSE of both forecasts
 over the window.}
@@ -711,46 +732,43 @@ $p = 0.60$). Against the per-basin lag ridge the pattern is the same: KF
 is behind at 1 month
 % source: results/jpl/paper_baseline_contrasts.csv, kalman_ar1 vs ridge_own_perbasin (skill x100: -0.66, 3.21, 2.44, 2.11, 3.92, 6.67; dm_p 0.46, 7.3e-4, 0.0035, 0.026472, 0.0020, 3.5e-5)
 ($-0.66\,\%$, $p = 0.46$) and ahead by $+2.11$ to $+6.67\,\%$ at 2 to 6
-months ($p < 0.03$; Table~\ref{tab:ladderjpl}). The small 1-month difference on JPL is
-consistent with the mechanism of Sect.~\ref{sec:results-mechanism}: if
-JPL's coarser mascons and coastline filter leave less month-to-month noise
-in the basin series, the filter has less to remove at the lead time where
-noise matters most. The smaller standardized damped-persistence error on
-JPL
+months ($p < 0.03$; Table~\ref{tab:ladderjpl}). Damped persistence itself
+has a smaller standardized 1-month error on JPL
 % source: results/jpl/paper_baseline_ladder.csv, damped_persistence_rho h1 rmse_std 0.666; results/paper_baseline_ladder.csv, damped_persistence_rho h1 rmse_std 1.076
-(0.67 against 1.08 on CSR at a 1-month lead time) is consistent with that
-reading, which we do not test directly
+(0.67 against 1.08 on CSR), so the JPL residual is more persistent from
+one month to the next and leaves the filter less to remove at the shortest
+lead. Which processing choices produce this is not tested
 (Sect.~\ref{sec:disc-limitations}).
 
 \subsection{Why the filter improves on damped persistence}
 \label{sec:results-mechanism}
 
 We use two ablation experiments to identify the source of the margin (Fig.~\ref{fig:mechanism}). The
-noise-free variant, the same model refit with $r = 0$, loses to the full
+zero-$r$ variant, the same model refit with $r = 0$, loses to the full
 filter at every lead time, by
 % source: results/r0_ablation_summary.csv, noise_filtering_term rows, skill_pct (5.35, 9.63, 11.67, 12.48, 12.65, 12.27) and dm_p (max 7.2e-14 at h1)
 $5.35\,\%$ at 1 month, rising to $12.65\,\%$ at 5 months ($p < 0.001$
 at every lead time). Scored against the regression variant at every lead
-time, the noise-free variant is
+time, the zero-$r$ variant is
 % source: results/r0_ablation_summary.csv, rho_estimation_term rows, skill_pct (0.90, -0.93, -6.84, -10.75, -11.57, -9.85) and dm_p (1.6e-5, 0.0022, ...)
 $+0.90\,\%$ ahead at 1 month and $0.93$ to $11.57\,\%$ behind at 2 to 6
 months; against the $\rho^{h}$ variant, the stronger one at 1 month, it is
 % source: results/r0_ablation_summary.csv, rho_estimation_term h1 rmse_a 1.078260 (kalman_r0); results/paper_baseline_ladder.csv, damped_persistence_rho h1 rmse_std 1.076129; 1 - (1.078260/1.076129)^2 = -0.0040
 $0.40\,\%$ behind. At a 1-month lead time the AR(1) structure without the
-noise term is therefore within 1\,\% of damped persistence in either
+model-noise term is therefore within 1\,\% of damped persistence in either
 direction. The corresponding mean-squared-error ratios multiply:
 $0.9465 \times 1.0040 \simeq 0.9502$, recovering the $4.98\,\%$
-improvement in Table~\ref{tab:ladder}. Allowing a nonzero observation-noise
+improvement in Table~\ref{tab:ladder}. Allowing a nonzero model-noise
 variance accounts for the improvement within this model family.
 % source: (1 - 0.05354) x (1.078260/1.076129)^2 = 0.94646 x 1.00397 = 0.95021 = 1 - 0.0498; results/r0_ablation_summary.csv and results/paper_baseline_ladder.csv as above
-Because $r$ absorbs whatever an AR(1) state cannot carry forward
+Because $r$ is estimated from the residual under the state-space assumptions
 (Sect.~\ref{sec:methods-kalman}), the ablation attributes the margin to
 filtering within the model class rather than to a particular physical
 noise source.
 
-The second ablation asks whether the margin depends on treating GRACE and
-GRACE-FO as one instrument. The two-variance variant, with a separate
-observation variance for GRACE-FO months, is worse than the
+The second ablation asks whether the two-variance variant
+(Sect.~\ref{sec:methods-kalman}), with a separate model-noise variance for
+GRACE-FO months, improves the forecast. It is worse than the
 single-variance filter at every lead time:
 % source: results/kalman_mission_summary.csv, mission_split_term rows, skill_pct (-1.84, -0.80, -0.65, -0.57, -0.53, -0.38) and dm_p (1.7e-7, 1.1e-4, 2.7e-4, 5.3e-4, 0.0020, 0.0060425)
 $-1.84\,\%$ at 1 month ($p < 0.001$) and $-0.80$ to $-0.38\,\%$ at 2 to
@@ -772,7 +790,7 @@ for the remaining comparisons.
 \includegraphics[width=\textwidth]{fig04_filter_mechanism.pdf}
 \caption{Attribution of the filter's margin. (a)~Skill (\%) against the
 regression damped-persistence variant at every lead time for KF and for
-the noise-free variant (KF with $r = 0$). Shading shows the difference in
+the zero-$r$ variant (KF with $r = 0$). Shading shows the difference in
 skill relative to this common reference, without a confidence interval.
 The annotated improvement of KF relative to $r = 0$ uses the latter's MSE
 as its denominator and therefore differs from the shaded vertical gap.
@@ -949,7 +967,8 @@ Diebold--Mariano $p$ value.}
 \label{sec:results-li}
 
 Table~\ref{tab:li} and Fig.~\ref{fig:crossing} compare our forecasts with
-GRACE-FCast on the fully covered basins. On CSR, over 209 basins and 60
+the individual GRACE-FCast members on the fully covered basins, in
+standardized units. On CSR, over 209 basins and 60
 months
 % source: results/phase6_li_comparison_headline.csv, joint_full_cells, n_rows 12540
 ($12{,}540$ basin-months per lead time), KF, with no forcing input, has
@@ -969,7 +988,7 @@ differences against both product variants, with larger
 (Fig.~\ref{fig:crossing}). On JPL, over 67 basins and 59 months
 % source: results/jpl/phase6_li_comparison_headline.csv, joint_full_cells, n_rows 3953, n_months 59
 ($3{,}953$ basin-months per lead time), only KF is compared with
-GRACE-FCast in the filter-based comparisons reported here. Against the full
+GRACE-FCast. Against the full
 product, KF has significantly lower error at 1 month, no significant
 difference at 2 and 3 months, and higher error from 4 months on. Against
 the non-seasonal component, KF has significantly lower error at 1 and 2
@@ -1047,8 +1066,10 @@ error in
 margin therefore reflects large gains in a subset of basins and not a consistent advantage across basins.
 
 The short-lead comparison is sensitive to the available inputs.
-GRACE-FCast takes no lagged storage as input, whereas damped persistence,
-KF and its corrections use the recent storage record. Damped persistence
+GRACE-FCast's non-seasonal networks use forcing predictors without lagged
+storage, while its full forecast extrapolates seasonal and trend terms
+from past GRACE observations. Damped persistence, KF and its corrections
+use the recent residual directly. Damped persistence
 has lower error than the full product at 1 month, by
 % source: results/phase6_li_comparison_headline.csv, joint_full_cells, damped_persistence_rho vs li_lstm_full (skill x100: 11.9, -16.9, -30.9, -42.2, -47.9, -54.3; dm_p 0.029, 1.1e-3, ...)
 $+11.9\,\%$ on CSR and
@@ -1101,12 +1122,12 @@ standardized error.
 \subsection{Neighboring-basin predictors}
 \label{sec:results-dropped}
 
-Spatial and graph-based TWSA methods assume that one basin's history helps
-forecast another's future: \citet{li2026fcast} shift predictors across
+Spatial and graph-based TWSA methods use information from other locations:
+\citet{li2026fcast} shift forcing predictors across
 space, \citet{arzoumanidis2026stgnn} build a proximity and correlation
 basin graph for reconstruction, and \citet{steidl2025hignn} forecast with
-a hierarchical basin graph. We tested the simplest version of that
-assumption: whether one other basin's filtered state, propagated to the
+a hierarchical basin graph. We tested a storage-based version of this
+idea: whether one other basin's filtered state, propagated to the
 target month and added as a feature to KF-R1, improves the forecast. On
 CSR a correlation-selected neighbor was worth
 % source: results/phase3b_summary.csv, kalman_corr_top1 h1, skill_vs_own_ridge 0.0031, placebo_beaten 50 of 50; results/phase4_surrogate_summary.csv h1 beats_n_of 99/99
@@ -1140,12 +1161,18 @@ In physical units the margin is modest. At a 1-month lead time the pooled
 RMSE falls from
 % source: results/conventional_metrics_summary.csv, h1 pooled_rmse_cm damped_persistence 5.321 -> kalman_ar1 5.128; rmse_cm_med 2.74 -> 2.66
 5.32 to 5.13\,cm of equivalent water height and the per-basin median from
-2.74 to 2.66\,cm (Appendix~\ref{app:conventional}). The gain is largest
-where the anomaly is small and the observation noisy
-(Fig.~\ref{fig:mechanism}c), which are the arid and small basins in which
-GRACE-based drought indicators are least certain \citep{save2016mascons}.
-In large humid basins such as the Amazon, the filter and damped persistence
-are nearly the same forecast (Fig.~\ref{fig:examples}d). The benchmark
+2.74 to 2.66\,cm (Appendix~\ref{app:conventional}). The gain is
+concentrated in small and arid basins (Sect.~\ref{sec:results-ladder}).
+These are the basins in which GRACE errors are largest relative to the
+signal: bias and leakage errors grow as basin size decreases
+\citep{longuevergne2010smallbasins, vishwakarma2018resolution}, and
+\citet{li2026fcast} report their lowest relative forecast skill in arid
+regions, where storage variability is small. The filter's gains follow
+the same pattern; whether the variation it removes there is observation
+error or fast hydrology is not resolved by the model
+(Sect.~\ref{sec:methods-kalman}). In large humid basins such as the
+Amazon, the filter and damped persistence are nearly the same forecast
+(Fig.~\ref{fig:examples}d). The benchmark
 therefore changes the accounting of learned skill more than it changes the
 error of the basins that dominate centimeter metrics.
 
@@ -1251,13 +1278,16 @@ $(\rho, q, r)$ estimated for each cell.
 
 The filter's definition across the 2017--2018 gap follows from its
 prediction step, which runs whenever an update is skipped. However, no scored forecast is issued across the gap (Sect.~\ref{sec:methods-folds}), so this
-property is not tested here. Similarly, the noise term is not identified
-as instrument noise: 259 of 1170 basin-fold fits push $r$ to its lower
-bound (Sect.~\ref{sec:methods-kalman}), and the AR(1) plus white-noise
-decomposition absorbs unmodeled dynamics into $r$. The ablation attributes
-the margin to filtering within the model class, and what is filtered out is a
-mixture of instrument noise and fast hydrology whose shares we do not
-estimate.
+property is not tested here.
+
+The model-noise term is not an estimate of instrument noise: in 259 of
+1170 basin-fold fits the likelihood sets $r$ to effectively zero
+(Sect.~\ref{sec:methods-kalman}). The ablation attributes the filter's
+margin to filtering within this model class. What is filtered out is
+presumed to be a mixture of physical variability and the errors listed in
+Sect.~\ref{sec:methods-kalman}, and we do not estimate their shares. The
+results concern forecast error against the
+observed residual, not the accuracy of the satellite data.
 
 The ranking of models above the filter depends on basin weighting. The
 forcing window's gain is concentrated in low-variance basins that contribute
@@ -1289,8 +1319,8 @@ evaluated.
 
 For deseasonalized basin-average GRACE storage, the per-basin Kalman
 forecast improves on the stronger damped-persistence variant at all six
-tested leads on CSR and at 2 to 6 months on JPL. Refitting without an
-observation-noise term removes the CSR 1-month advantage, supporting the
+tested leads on CSR and at 2 to 6 months on JPL. Refitting without a
+model-noise term removes the CSR 1-month advantage, supporting the
 use of temporal filtering within this model family. We recommend reporting
 skill against this benchmark alongside persistence and physical-unit errors.
 
@@ -1298,8 +1328,9 @@ A linear correction using twelve months of filtered storage and
 ERA5-Land history has the lowest standardized CSR error at short leads
 among the correction models tested. Its improvement is concentrated in
 low-variance basins and does not extend to pooled error in centimeters.
-GRACE-FCast has lower error at longer leads, whereas both KF and damped
-persistence have lower error at 1 month. Any evaluation of storage
+In the comparisons with individual GRACE-FCast members on the fully
+covered basins, GRACE-FCast has lower standardized error at longer leads,
+whereas both KF and damped persistence have lower error at 1 month. Any evaluation of storage
 forecasts, including any future combination of storage-based and
 forcing-based predictions, has to account for this dependence on lead
 time, error scaling and input availability.
@@ -1490,14 +1521,14 @@ damped persistence has a median full-signal correlation of
 % source: results/conventional_metrics_summary.csv, damped_persistence h1: cc_full_med 0.8615, nse_full_med 0.7236,
 % cc_anom_med 0.6250, nse_anom_med 0.3336
 0.86 and a median full-signal efficiency of 0.72, against 0.62 and 0.33
-for the same forecast scored on the anomalies alone. The extrapolated
+for the same forecast scored on the residuals alone. The extrapolated
 seasonal cycle and trend account for the difference.
 
 \begin{table*}[!htbp]
 \caption{Conventional metrics for the five forecasts reported in
 centimeters: pooled RMSE and per-basin median RMSE in centimeters of
 equivalent water height, and per-basin median correlation (CC) and
-Nash--Sutcliffe efficiency (NSE) on the anomaly and on the full signal,
+Nash--Sutcliffe efficiency (NSE) on the residual and on the full signal,
 over 234 basins, at lead times $h$ of 1 to 6 months. The damped-persistence
 rows use the stronger variant at each lead time.}
 \label{tab:conventional}

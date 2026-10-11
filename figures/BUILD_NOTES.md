@@ -69,7 +69,7 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
 ## `fig04_filter_mechanism`
 
 - **Print width**: double column (17 cm), three panels
-- **Shows**: (a) the filter with and without the observation-noise term; (b) the two-variance mission-split filter against the one-variance filter; (c) per-basin lead-1 skill of the filter over damped persistence
+- **Shows**: (a) the filter with and without the model-noise term; (b) the two-variance mission-split filter against the one-variance filter; (c) per-basin lead-1 skill of the filter over damped persistence
 - **Sources**:
   - `results/r0_ablation_summary.csv`
   - `results/kalman_mission_summary.csv`
@@ -77,7 +77,7 @@ Figure numbers follow first citation in paper/main.tex: 1 basins, 2 ladder,
   - `HydroShed+Mascon_Basins_L3.nc`
 - **Asserted against source**:
   - the noise term is worth +5.354 % at lead 1 and +9.633/+11.667/+12.481/+12.653/+12.272 % at leads 2-6
-  - filter with observation noise +6.206 % at lead 1, with r forced to zero +0.900 %, both against the regression damped variant
+  - filter with model noise +6.206 % at lead 1, with r forced to zero +0.900 %, both against the regression damped variant
   - mission-split filter -1.837 % at lead 1, and its CI stays below zero at every lead
   - per-basin map covers 234 basins; the filter is better in 158 and worse in 76
 - **Caveats the caption must carry**:

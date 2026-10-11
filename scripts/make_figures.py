@@ -520,7 +520,7 @@ def fig03_example_series():
 
         t = m["target_date"]
         ax.plot(t, m["target"], color="0.55", lw=0.8, marker="o", ms=2.2,
-                mfc="0.55", mec="none", label="observed anomaly", zorder=2)
+                mfc="0.55", mec="none", label="observed residual", zorder=2)
         ax.plot(t, m["pred"], color=BATLOW["orange"], lw=1.2, ls="--",
                 label="damped persistence", zorder=3)
         ax.plot(t, m["kf_cm"], color=BATLOW["navy"], lw=1.4,
@@ -532,7 +532,7 @@ def fig03_example_series():
         ax.text(0.0, 1.03,
                 f"RMSE (cm): damped persistence {rmse_dp:.2f}; KF {rmse_kf:.2f}",
                 transform=ax.transAxes, ha="left", va="bottom", fontsize=7, color="0.30")
-        ax.set_ylabel("anomaly (cm)")
+        ax.set_ylabel("residual (cm)")
         ax.margins(x=0.01)
     for ax in axes[-1]:
         ax.set_xlabel("target month")
@@ -844,7 +844,7 @@ def fig04_filter_mechanism():
     ms = pd.read_csv(RESULTS / "kalman_mission_summary.csv")
     cmet = pd.read_csv(RESULTS / "conventional_metrics_perbasin.csv")
 
-    # (a) the same filter with and without the observation-noise term, both
+    # (a) the same filter with and without the model-noise term, both
     # scored against the regression damped variant at every lead.
     full = r0[r0["component"] == "full_margin"].sort_values("horizon")
     zero = r0[r0["component"] == "rho_estimation_term"].sort_values("horizon")
@@ -857,7 +857,7 @@ def fig04_filter_mechanism():
     y_full = full["skill_pct"].to_numpy()
     y_zero = zero["skill_pct"].to_numpy()
     y_gap = gap["skill_pct"].to_numpy()
-    assert_source("F3a filter with observation noise, lead 1 (vs damped, reg)",
+    assert_source("F3a filter with model noise, lead 1 (vs damped, reg)",
                   y_full[:1], [6.206], tol=0.001)
     assert_source("F3a filter with r forced to zero, lead 1", y_zero[:1], [0.900],
                   tol=0.001)
@@ -866,7 +866,7 @@ def fig04_filter_mechanism():
     assert_source("F3a skill given up when r = 0, leads 1-6", y_gap,
                   [5.354, 9.633, 11.667, 12.481, 12.653, 12.272], tol=0.001)
 
-    # (b) two observation-noise variances (one per mission) against one
+    # (b) two model-noise variances (one per mission) against one
     split = ms[ms["component"] == "mission_split_term"].copy()
     split["horizon"] = split["horizon"].astype(int)
     split = split.sort_values("horizon")
@@ -901,9 +901,9 @@ def fig04_filter_mechanism():
     axa.fill_between(H, y_zero, y_full, color=BATLOW["navy"], alpha=0.10, lw=0,
                      zorder=3)
     axa.plot(H, y_full, ls="-", marker="o", color=BATLOW["navy"], lw=1.7,
-             label="KF (observation noise estimated)", zorder=5)
+             label="KF (model-noise variance estimated)", zorder=5)
     axa.plot(H, y_zero, ls="--", marker="s", color=BATLOW["gold"], lw=1.4,
-             label="KF with $r$ = 0 (noise-free variant)", zorder=5)
+             label="KF with $r$ = 0", zorder=5)
     for h, a, b in zip(H, y_zero, y_full):
         axa.annotate("", xy=(h, b), xytext=(h, a),
                      arrowprops=dict(arrowstyle="-", lw=0.5, color="0.55"), zorder=4)
@@ -920,7 +920,7 @@ def fig04_filter_mechanism():
     axa.set_yticks([-10, -5, 0, 5, 10])
     axa.legend(loc="upper left", bbox_to_anchor=(-0.015, 1.01), handlelength=2.2,
                fontsize=7.2)
-    panel_head(axa, "(a)", "noise-term ablation")
+    panel_head(axa, "(a)", "model-noise ablation")
 
     axb.axhline(0.0, color=REFGRAY, lw=0.9, zorder=2)
     axb.fill_between(H, lo_ms, hi_ms, color=BATLOW["teal"], alpha=0.16, lw=0, zorder=3)
@@ -1361,7 +1361,7 @@ def write_build_notes(f1, f3, f4, f5, f6x):
            "`damped_ref` is rho at lead 1 and the regression variant at leads 2-6"])
 
     block("fig04_filter_mechanism", "double column (17 cm), three panels",
-          "(a) the filter with and without the observation-noise term; (b) the "
+          "(a) the filter with and without the model-noise term; (b) the "
           "two-variance mission-split filter against the one-variance filter; "
           "(c) per-basin lead-1 skill of the filter over damped persistence",
           ["results/r0_ablation_summary.csv",
@@ -1370,7 +1370,7 @@ def write_build_notes(f1, f3, f4, f5, f6x):
            "HydroShed+Mascon_Basins_L3.nc"],
           ["the noise term is worth +5.354 % at lead 1 and +9.633/+11.667/"
            "+12.481/+12.653/+12.272 % at leads 2-6",
-           "filter with observation noise +6.206 % at lead 1, with r forced to "
+           "filter with model noise +6.206 % at lead 1, with r forced to "
            "zero +0.900 %, both against the regression damped variant",
            "mission-split filter -1.837 % at lead 1, and its CI stays below zero "
            "at every lead",
