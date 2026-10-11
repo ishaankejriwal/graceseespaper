@@ -18,8 +18,7 @@ is ready to submit. No manuscript was registered, uploaded or published.
   portrait pages, consecutive page numbers and line numbers.
 - Removed custom equal-contribution/class patches and the local table
   line-spacing redefinition. Equal contribution uses the standard template.
-- Added the school affiliations for Ian Wang and Ishaan Kejriwal. Ian's
-  home address is omitted at his request.
+- Added the school affiliations for Ian Wang and Ishaan Kejriwal.
 - Moved code/data availability after the appendices and before author
   contributions. Used the journal's standard conflict-of-interest wording.
 - Defined the mission and processing-centre abbreviations in the abstract
