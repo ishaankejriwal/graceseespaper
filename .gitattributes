@@ -1,0 +1,2 @@
+# Machine-local assistant configuration stays out of the code archive
+.claude/ export-ignore

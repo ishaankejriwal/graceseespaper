@@ -121,6 +121,8 @@ disagrees with the recorded value in `paper/notes/REWRITE_LEDGER.md`.
 residual autocorrelation) for the Sect. 4.1 paragraph.
 `check_hess_submission.py --bundle` checks the compiled manuscript and figures against the HESS
 rules and writes the local packet in `paper/submission/`.
+`centimeter_contrasts.py` runs the DM tests and bootstrap intervals on squared errors in cm for Sect. 4.5.
+`climatology_offset.py` splits climatology's 1-month error into the basin-fold mean residual and the rest (Sect. 3.1).
 `build_deposit.py` stages the two Zenodo archives (code at HEAD; large CSR files and processed
 inputs) into `deposit/`, uploading nothing.
 

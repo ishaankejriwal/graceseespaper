@@ -1,5 +1,10 @@
 # HESS submission preparation
 
+> Record of the 9 October 2026 formatting pass. Items 3 and 4 under "Remaining"
+> were completed on 11 October (all seven figures rebuilt from the full CSR
+> inputs and re-inspected). The current list of open items is
+> [HESS_REMAINING_REQUIREMENTS.md](HESS_REMAINING_REQUIREMENTS.md).
+
 Checked against the live journal instructions on **9 October 2026**:
 [submission and manuscript preparation](https://www.hydrology-and-earth-system-sciences.net/submission.html),
 [data policy](https://www.hydrology-and-earth-system-sciences.net/policies/data_policy.html),
@@ -104,7 +109,7 @@ moved to a separate supplement. URLs are written out with `\url`.
    These inspection copies approximate colour-vision deficiencies; they
    are not submission figures or a guarantee for every reader. Authors
    should repeat the visual check after changing any figure.
-5. **AI-policy review is deferred at the user's request.** No AI statement
+5. **AI-policy review is deferred by the authors.** No AI statement
    was inserted. The current policy exempts assistive language checking but
    distinguishes it from generative use. Authors must assess earlier use
    against the live policy and complete any applicable disclosure and

@@ -13,11 +13,12 @@
 \title{A Kalman filter benchmark for data-driven forecasts
 of GRACE terrestrial water storage}
 
-\Author[1][ishaankejriwal1@gmail.com]{Ishaan}{Kejriwal}
-\Author[2][ianwa09@gmail.com]{Ian}{Wang}
+\Author[1,3][ishaankejriwal1@gmail.com]{Ishaan}{Kejriwal}
+\Author[2,3][ianwa09@gmail.com]{Ian}{Wang}
 
 \affil[1]{Johns Creek High School, 5575 State Bridge Road, Johns Creek, GA 30022, USA}
 \affil[2]{Illinois Mathematics and Science Academy, 1500 Sullivan Road, Aurora, IL 60506, USA}
+\affil[3]{SEES High School Summer Intern Program, Center for Space Research, The University of Texas at Austin, 3925 West Braker Lane, Suite 200, Austin, TX 78759, USA}
 \equalcontrib{1,2}
 
 \runningtitle{A Kalman filter benchmark for GRACE water storage forecasts}
@@ -36,13 +37,13 @@ of GRACE terrestrial water storage}
 %% ------------------------------------------------------------------
 %% HESS SHORT SUMMARY (entered in the online submission form; <= 500 characters)
 %% ------------------------------------------------------------------
-%% Satellites measure changes in water stored on land. We evaluate
-%% a simple forecast that filters each basin's storage record before
-%% projecting it forward. It improves on damped persistence at most tested
-%% lead times in two mascon products. Adding weather history improves
-%% forecasts in standardized units, but changes the model ranking when
-%% errors are measured in centimeters. These results show why storage
-%% forecasts need explicit benchmarks and clearly stated error metrics.
+%% Satellites measure how much water is stored on land, and many studies
+%% now forecast it with machine learning. We test a simple forecast that
+%% smooths each river basin's storage record before projecting it forward.
+%% It is more accurate than forecasts built from the latest observation
+%% alone at most forecast horizons in two satellite data products, and than
+%% a published deep-learning forecast one month ahead. New storage forecasts
+%% should be compared against this kind of simple reference.
 %% ------------------------------------------------------------------
 
 \begin{abstract}
@@ -62,7 +63,7 @@ from observation error. Forecasts are evaluated on deseasonalized residuals over
 % source: Sect. 2.2 basin selection (284 mask basins - 46 ice-sheet - 4 water-body = 234, CSR); Sect. 3.2
 % folds (issue starts 2019-06, 2020-11, 2022-04, 2023-09, 2025-02; CSR targets to 2026-05)
 234 basins and five expanding-window test periods in 2019--2026. On
-the Center for Space Research (CSR) mascon product the filter reduces mean squared error by
+the Center for Space Research (CSR) mass concentration (mascon) product the filter reduces mean squared error by
 % source: results/paper_baseline_ladder.csv, kalman_ar1 rows, skill_vs_damped (0.0498, 0.0879); the
 % reference is the stronger of the two damped variants at each lead (scripts/build_paper_ladder.py)
 5.0\,\% at a 1-month lead and 8.8\,\% at 2 months, against the stronger
@@ -73,24 +74,25 @@ Refitting with zero model-noise variance removes that 1-month gain.
 % source: results/jpl/paper_baseline_ladder.csv, kalman_ar1 rows, skill_vs_damped h2..h6 (0.0635, 0.0464,
 % 0.0155, 0.0236, 0.0474), all dm_p < 0.02; h1 skill 0.0056, dm_p 0.60
 On the Jet Propulsion Laboratory (JPL) product the filter improves on damped persistence at 2--6
-months; the 1-month difference is not significant. On CSR, a ridge
+months, but the 1-month difference is not significant. On CSR, a ridge
 regression on 12 months of filtered storage and ERA5-Land variables lowers
 standardized error by a further
 % source: results/paper_baseline_contrasts.csv, ridge_own_era5_flat12 vs kalman_ar1 h1 (0.0765);
-% pooled h1 RMSE in cm (Table C1): KF 5.128, KF-R12E 5.231
-7.6\,\% at 1 month, although its pooled error in centimeters is higher
-than the filter's. No nonlinear model tested has lower error than this
-ridge at 1--3 months. Both the filter and damped persistence have lower
+% results/centimeter_contrasts.csv, ridge_own_era5_flat12 vs kalman_ar1, dm_p 0.25..0.98 at h1-h6
+7.6\,\% at 1 month, although its pooled error in centimeters does not
+differ significantly from the filter's. None of the nonlinear models
+tested on the same inputs has lower error than this ridge at 1 to 3
+months. Both the filter and damped persistence have lower
 % source: results/phase6_li_comparison_headline.csv and results/jpl/phase6_li_comparison_headline.csv,
 % joint_full_cells: at h1 KF vs li_lstm_full +16.4 (CSR, p 2.2e-3) and +43.7 (JPL, p < 1e-3), damped vs
 % li_lstm_full +11.9 (CSR, p 0.029) and +43.2 (JPL); GRACE-FCast has significantly lower error than KF
 % from h3 (CSR full), h4 (CSR non-seasonal, JPL full) and h5 (JPL non-seasonal)
-standardized error than the GRACE-FCast member built on the same mascon
-product, on the fully covered basins, at 1 month. GRACE-FCast
-has significantly lower error than the filter from 3 to 5 months onward,
-depending on product and variant.
-Storage forecasts should be scored against a filtered reference and in
-physical units.
+standardized error at 1 month than GRACE-FCast, a published deep-learning
+hindcast, when each is scored on the same mascon product and on the fully
+covered basins. GRACE-FCast has significantly lower error than the filter
+from 3 to 5 months onward, depending on product and variant. We therefore
+recommend scoring storage forecasts against a filtered reference and
+reporting their errors in physical as well as standardized units.
 \end{abstract}
 
 \introduction
@@ -103,9 +105,10 @@ soil moisture, surface water, snow and ice \citep{tapley2004grace, landerer2020g
 Anomalies of this quantity (TWSA) have a memory of several months, which
 makes them both a forecast target and a source of predictability. TWSA
 forecasts support drought early warning and water management
-\citep{li2026fldas, arsenault2020nhyfas}, flood-potential assessment
-\citep{reager2014flood}, and the bridging of the two- to three-month
-latency of GRACE-FO data releases \citep{mo2025nrt}.
+\citep{li2026fldas, arsenault2020nhyfas} and can bridge the 2- to 3-month
+latency of GRACE-FO data releases \citep{mo2025nrt, li2026fcast}, and
+observed storage has been used to assess flood potential months ahead
+\citep{reager2014flood}.
 
 A growing number of studies forecast TWSA directly from data. Neural
 networks have been trained on GRACE and hydrometeorological series at basin
@@ -120,20 +123,21 @@ Evaluation differs among these studies. Correlation measures agreement with
 observations without specifying a reference forecast, whereas
 Nash--Sutcliffe efficiency uses the observed mean as its reference.
 \citet{li2024grl} evaluate forecasts against GRACE observations, and
-\citet{li2026fcast} compare with SEAS5. Such comparisons do not establish
+\citet{li2026fcast} compare with the SEAS5 seasonal forecasts of the
+European Centre for Medium-Range Weather Forecasts. Such comparisons do not establish
 how much a model improves on the recent storage history. Damped
-persistence provides a direct test of that improvement, and of the ten
-data-driven TWSA forecasting studies we examined, none reports it.
+persistence provides a direct test of that improvement, and none of the
+ten TWSA forecasting studies we examined reports it.
 % source: baseline survey 2026-08-17 (results log entry): li2026fcast full text (SEAS5/GLDAS/WGHM only);
 % li2026fldas full text (no reference forecast; lag-autocorrelation diagnostic only); zhu2019 full text
 % (elasticity IHC+DCF benchmark); nie2025 full text (AR info excluded by design); steidl2025 (climatology
 % + ConvLSTM); li2024grl main text Sect. 4.2 (validation against observations); mo2025nrt, ahmed2019narx (metrics vs observations;
 % full texts paywalled); ahi2021 abstract-level.
-At sub-seasonal to seasonal leads, the FEWS NET land data
-assimilation hindcast of \citet{li2026fldas} concludes that initial
-conditions dominate sub-seasonal to seasonal TWS skill, but measures that
-dominance with a lag-autocorrelation diagnostic rather than with a
-benchmark forecast.
+At sub-seasonal to seasonal leads, the Famine Early Warning Systems
+Network (FEWS NET) land data assimilation hindcast of \citet{li2026fldas}
+attributes the higher skill of its better model to more accurate initial
+conditions and stronger storage persistence, but measures that persistence
+with lag autocorrelation rather than with a benchmark forecast.
 
 We test whether filtering the storage record gives a stronger benchmark.
 Basin-average TWSA is subject to observation noise
@@ -144,30 +148,29 @@ month's value, unchanged for raw persistence and attenuated for damped
 persistence. The benchmark we propose is a per-basin Kalman filter
 \citep{kalman1960} with a first-order autoregressive (AR(1)) state and an
 additive noise term in the observation equation, which we call model
-noise. Section~\ref{sec:methods-kalman} defines this term. It is a
-statistical component of the residual that may mix fast hydrological
-variability, errors in the trend and seasonal fit, and instrument and
-processing errors; nothing in the method separates these contributions or
-measures the accuracy of the satellite data. The filter estimates a persistent state
-from the residual before extrapolation, has three parameters per basin,
-and needs no data beyond the storage series itself. Because it
-propagates its state through months without an observation, it also
-remains defined across the eleven-month gap between GRACE and GRACE-FO
-without interpolation. Its treatment of missing observations follows from
-the state-space model; forecasts issued within that gap are not evaluated here.
+noise (Sect.~\ref{sec:methods-kalman}). This term may mix fast
+hydrological variability, errors in the trend and seasonal fit, and
+instrument and processing errors. The method does not separate these
+contributions, and it does not measure the accuracy of the satellite data.
+The filter estimates a persistent state from the residual before
+extrapolation, has three parameters per basin, and needs no data beyond
+the storage series itself. Because it propagates its state through months
+without an observation, it also remains defined across the 11-month gap
+between GRACE and GRACE-FO without interpolation, although no forecast
+issued within that gap is scored here.
 
 The same argument has been made in sea-ice forecasting, where
-\citet{niraula2021seaice} showed that damped-persistence references
-that ``do not exploit observations optimally'' overstate the skill of
-dynamical forecast systems, and built a stronger reference from spatial
-damping. Here we follow the same reasoning for satellite-observed TWSA, and strengthen the reference by filtering the storage record. Kalman methods are well established in the GRACE literature, although they have been used for other purposes. For example, ensemble Kalman filters
+\citet{niraula2021seaice} showed that persistence and climatology
+references, which ``do not exploit the observations optimally'', overstate
+the skill of dynamical forecast systems, and built a stronger reference
+from spatially damped anomaly persistence. Here we follow the same reasoning for satellite-observed TWSA, and strengthen the reference by filtering the storage record. Kalman methods are well established in the GRACE literature, although they have been used for other purposes. For example, ensemble Kalman filters
 assimilate TWSA into land-surface models \citep{springer2026review},
 forward Kalman filters predict gravity-field coefficients
-\citep{kankanige2026persistence}, and integrated postprocessing separates
-the non-seasonal signal from noise in the monthly solutions
+\citep{kankanige2026persistence}. A related postprocessing approach
+separates the non-seasonal signal from noise in the monthly solutions
 \citep{zhang2025ipa}. None of these uses a univariate filter on the
 finished basin series as a benchmark forecast. A benchmark for TWS prediction has been proposed before by \citet{zhu2019elasticity}, who quantified decadal TWS predictability with an elasticity framework, whereas our benchmark addresses monthly lead times. Most closely related to our work, \citet{nie2025linear} showed on 515 basins that
-deep architectures do not beat linear regression for TWS prediction when
+deep architectures do not outperform linear regression for TWS prediction when
 autoregressive information is excluded from the feature set by design.
 Their design has no lagged storage, so it has neither a persistence nor a
 filter benchmark. Our results complement theirs: when lagged storage is included, the
@@ -191,18 +194,19 @@ scope and limits.
 \subsection{GRACE and GRACE-FO mascon solutions}
 \label{sec:data-grace}
 
-The primary storage data set is the Center for Space Research (CSR) RL0603M mascon solution
-\citep{save2016mascons, save2020rl06} on a $0.25^{\circ}$ grid, April 2002 through May
-2026, in centimeters of equivalent water height; the product version is
-RL06.2.
+The primary storage data set is the Center for Space Research (CSR) mass
+concentration (mascon) solution RL0603M \citep{save2016mascons,
+save2020rl06}, whose file metadata give the product version as RL06.2. It
+is distributed on a $0.25^{\circ}$ grid, and we use April 2002 through May
+2026, in centimeters of equivalent water height.
 % source: raw NetCDF global attrs (title "CSR GRACE and GRACE-FO MASCON RL0603M"; product_version RL06.2), verified 2026-08-13
 Each monthly solution is assigned to its official calendar month using the
 product's documented list of missing months rather than by the midpoint of
-its data span, which would mislabel two solutions.
+its data span.
 % source: src/gracefc/basins.py assign_solution_months; results/post_rerun_audit.md sect. 6
 The second storage data set is the Jet Propulsion Laboratory (JPL) RL06.3Mv04 mascon solution
-\citep{wiese2023jpl} with the
-coastline resolution improvement filter applied, sampled at $0.5^{\circ}$,
+\citep{watkins2015mascons, wiese2023jpl} with the Coastal Resolution
+Improvement (CRI) filter \citep{wiese2016cri} applied, sampled at $0.5^{\circ}$,
 April 2002 through June 2026, with the product's scale factors applied and
 its official missing-month metadata used.
 % source: results/jpl/RUN_PROVENANCE.md (product title, version v3.0, DOI 10.5067/TEMSC-3JC634, 0.5-degree sampling, scale_factors_applied=True)
@@ -221,8 +225,10 @@ choices rather than providing independent observational replication.
 \subsection{Basins}
 \label{sec:data-basins}
 
-Basins follow a HydroSHEDS-based Level-3 basin and mascon partition
-\citep{lehner2013hydrosheds}. Each basin series is the cosine-latitude
+Basins follow a Level-3 partition on a $0.25^{\circ}$ grid that combines
+HydroSHEDS basins \citep{lehner2013hydrosheds} with mascon boundaries.
+The partition is included in our data deposit (see the code and data
+availability statement). Each basin series is the cosine-latitude
 area-weighted mean of the grid cells in its mask. Of the 284 basins in the
 partition we exclude 46 ice-sheet basins in Antarctica and Greenland and
 4 water bodies, leaving 234 basins on the CSR product.
@@ -244,9 +250,9 @@ usable GRACE-FCast cell. (b)~The JPL product: the 67 basins that pass the
 coverage rule there, fewer than on CSR because JPL's coarser native
 mascons (Sect.~\ref{sec:data-grace}) are fully contained by fewer basins. The remaining basins of the CSR sample are shaded
 neutral; the three-way split of (a) was not evaluated on JPL. Land outside
-the basin sample is pale grey in both panels. Basin partition based on
+the basin sample is pale gray in both panels. Basin partition based on
 HydroSHEDS \citep{lehner2013hydrosheds}; base map made with Natural Earth
-(public domain). Colour palettes use scientific colour maps
+(public domain). Color palettes use the scientific colour maps
 \citep{crameri2020colour}.}
 % source: data/processed/li2026_basin_coverage.csv (227 with coverage > 0, 209 with >=1 full Li cell and >=1 full native mascon);
 % results/phase6_li_comparison_summary.csv (n_basins 209 on joint_full_cells); results/jpl/phase6_li_comparison_summary.csv (67)
@@ -256,10 +262,11 @@ HydroSHEDS \citep{lehner2013hydrosheds}; base map made with Natural Earth
 \subsection{ERA5-Land forcing and climate indices}
 \label{sec:data-era5}
 
-We use 11 ERA5-Land variables \citep{munozsabater2021era5land} at
-$0.5^{\circ}$, regridded server-side from $0.1^{\circ}$, for January 2001
+We use 11 monthly ERA5-Land variables \citep{munozsabater2021era5land,
+c3s2019era5land} at $0.5^{\circ}$, regridded from $0.1^{\circ}$ by the
+Climate Data Store before download, for January 2001
 through May 2026: total precipitation, total evaporation, runoff
-(total, surface and subsurface), volumetric soil water in four layers, 2-m temperature,
+(total, surface and subsurface), volumetric soil water in four layers, 2 m temperature,
 and snow depth water equivalent.
 % source: src/gracefc/era5.py variable list; results log era5 ingestion entry (11 variables, unit conversions)
 Accumulated fluxes are converted from mean daily rates to calendar-month
@@ -268,15 +275,21 @@ totals, the same months to which the storage solutions are assigned
 values mean moisture loss, temperature is converted to degrees Celsius, and
 snow depth to centimeters of water equivalent. Basin aggregation uses the same cosine-latitude
 weighted means as the storage aggregation, mapping each $0.25^{\circ}$
-mask cell to its nearest $0.5^{\circ}$ ERA5 cell. Because ERA5-Land is
+mask cell to its nearest $0.5^{\circ}$ ERA5-Land cell. Because ERA5-Land is
 defined over land only, coastal and island basins aggregate their forcing
 from the land fraction of their mask. Of the 234 basins, 79 draw less than
-90\,\% of their mask weight from valid ERA5 land cells and 13 less than
+90\,\% of their mask weight from valid ERA5-Land cells and 13 less than
 50\,\% (minimum 24.5\,\%). No basin is excluded on this ground.
 % source: data/processed/era5_basin_coverage.csv over the 234 keep basins (13 < 0.5, 79 < 0.9, min 0.245; verified 2026-08-17)
-Twelve monthly climate indices from NOAA PSL enter one benchmark model
-only (Sect.~\ref{sec:methods-benchmarks}). Two of them, AMM and PDO, end
-before the test window and are dropped from it.
+Twelve monthly climate indices from the NOAA Physical Sciences
+Laboratory (PSL) enter one benchmark model only
+(Sect.~\ref{sec:methods-benchmarks}): the Ni\~no 3.4 anomaly, the Oceanic
+Ni\~no Index, the Southern Oscillation Index, the Multivariate ENSO Index,
+the Dipole Mode Index, the Tropical North and Tropical South Atlantic
+indices, the Atlantic Meridional Mode, the North Atlantic Oscillation, the
+Pacific--North American pattern, the Arctic Oscillation and the Pacific
+Decadal Oscillation. The Atlantic Meridional Mode and Pacific Decadal
+Oscillation series end before the test window and are dropped from it.
 % source: scripts/run_phase2_baselines.py (amm/pdo drop)
 
 \subsection{GRACE-FCast}
@@ -284,7 +297,8 @@ before the test window and are dropped from it.
 
 For the external comparison we use the public GRACE-FCast hindcast of
 \citet{li2026fcast}, downloaded from PANGAEA \citep{li2025pangaea}. It is
-released as three members built on the JPL, CSR and GSFC mascons. We use
+released as three members built on the JPL, CSR and NASA Goddard Space
+Flight Center (GSFC) mascons. We use
 the CSR member against our CSR target and the JPL member against our JPL
 target, so that each comparison shares a gravity solution. The CSR member
 holds monthly $1^{\circ}$ global forecasts at lead times of 1 to 12 months,
@@ -292,16 +306,16 @@ initialized December 2009 through May 2024 (174 initializations), and the JPL me
 % source: results log, Li ingestion entry (174 init files, 2009-12..2024-05, 1 deg); results/jpl/RUN_PROVENANCE.md (173 files, 2009-12..2024-04)
 GRACE-FCast forecasts the interannual and sub-seasonal components of TWSA
 with separate long short-term memory networks. Their inputs are antecedent
-hydrometeorological and oceanographic predictors, each selected by
-correlation from a range of lags and neighboring locations; lagged storage
-is not among them. The full forecast adds seasonal and trend components
-extrapolated from the previous year of GRACE observations
+hydrometeorological and oceanographic predictors, each shifted by the
+forecast lead and selected by correlation from neighboring locations.
+Lagged storage is not among them. The full forecast adds seasonal and
+trend components extrapolated from preceding years of GRACE observations
 \citep{li2026fcast}. We evaluate both the full product and its
 non-seasonal component (Sect.~\ref{sec:methods-li}).
 
 \citet{li2026fcast} validate the average of the three forecast members
-against the average of the three mascon solutions; our results apply to
-the individual members scored here.
+against the average of the three mascon solutions, whereas our results
+apply to the individual members scored here.
 Their JPL member was trained against JPL RL06.1, whereas our JPL target is
 RL06.3Mv04, so the JPL comparison involves two different releases.
 % source: results/jpl/RUN_PROVENANCE.md (Li trained on RL06.1_v03; verification target RL06.3Mv04 CRI)
@@ -325,11 +339,20 @@ test data, and the residual is divided by its training-window standard
 deviation. The forecast target is this deseasonalized, per-basin
 standardized residual. It retains the interannual and shorter-term
 variations relevant to drought and flood applications. Standardization expresses each
-basin's error relative to its own training variability; it does not impose
+basin's error relative to its own training variability. It does not impose
 equal realized error contributions. Section~\ref{sec:results-weighting} and
 Appendix~\ref{app:conventional} report the same forecasts in centimeters,
 where basins with larger storage variability contribute more to pooled error.
 % source: src/gracefc/evaluate.py deseasonalize_fold (trend + annual + semiannual, train-only fit; train std)
+% source: results/climatology_offset.csv (scripts/climatology_offset.py): h1 rmse 1.616, offset_share 0.573, within_fold_variance 1.117
+Test-period residuals drift away from the frozen trend and seasonal fit.
+The zero forecast of climatology therefore has a pooled standardized RMSE
+of 1.62 at a 1-month lead (Appendix~\ref{app:ladder}), and 57\,\% of its
+mean squared error comes from the mean residual of each basin and fold.
+Around that mean, the test-period variance is close to the training
+variance. Every forecast is scored against the same target, so this drift
+lowers the skill of climatology without changing the comparisons among
+the other forecasts.
 
 \subsection{Evaluation design}
 \label{sec:methods-folds}
@@ -378,13 +401,13 @@ ridge with the lagged climate indices of Sect.~\ref{sec:data-era5} added;
 \end{itemize}
 % source: results/paper_baseline_ladder.csv (model list); src/gracefc/features.py DEFAULT_LAGS = (0,1,2,5,11); src/gracefc/models.py alpha = 1.0
 For the comparison reference, we select the damped-persistence variant
-with the lower pooled test RMSE at each
+with the lower pooled test root-mean-square error (RMSE) at each
 lead time: on CSR the $\rho^{h}$ variant at 1 month and the regression
 variant at 2 to 6 months, on JPL the $\rho^{h}$ variant at 1 and 2 months
 and the regression variant at 3 to 6 months (Appendix~\ref{app:ladder}).
 % source: results/paper_baseline_ladder.csv and results/jpl/paper_baseline_ladder.csv, damped_ref column; weaker variant trails by 1.3 % (CSR h1) up to 12.0 % (CSR h5) and 15.0 % (JPL h4)
 This retrospective choice provides the more demanding of the two
-references; it is not a selection rule available at forecast issue time.
+references. It is not a selection rule available at forecast issue time.
 The weaker variant has up to 15\,\% higher mean squared error. Each table
 and figure states the reference used.
 
@@ -402,13 +425,14 @@ We call $\eta_{t}$ the model noise; $r$ is its variance and $q$ the
 process-noise variance. The latent state $x_{t}$ is a statistical
 estimate of the persistent part of the residual.
 The three parameters $(\rho, q, r)$ are estimated per basin and fold by
-maximum likelihood on training months only, using L-BFGS-B from several
-starting points.
+maximum likelihood on training months only, using the bounded
+limited-memory quasi-Newton algorithm L-BFGS-B \citep{byrd1995lbfgsb}
+from several starting points.
 % source: src/gracefc/kalman.py fit_kalman_ar1 (MLE, multiple starts, L-BFGS-B)
 The filter runs forward through the training and test months and updates
 its state estimate $x_{t|t}$ at each observed month with the Kalman gain,
 which depends on $\rho$ and on the ratio $q/r$. At a month with no
-observation, including the eleven months of the mission gap, the filter
+observation, including the 11 months of the mission gap, the filter
 skips the update and propagates its state and state uncertainty forward, so that no interpolation or gap filling is required. The forecast for lead time $h$ issued
 at month $t$ is
 \begin{equation}
@@ -436,14 +460,14 @@ The likelihood determines the allocation of residual variability between
 the evolving state and the additive model-noise term. The model-noise
 term is presumed to be a mixture of fast hydrological variability, errors
 in the fitted trend and seasonal cycle, and instrument or processing
-errors; their shares are not estimated. Unpredictable changes can also
+errors. Their shares are not estimated. Unpredictable changes can also
 enter the state through the process-noise term, so $r$ does not represent
 all variation that cannot be forecast.
 % source: results/kalman_mission_summary.csv, diagnostic rows n_fits 1170 and n_r_one_at_boundary 259; src/gracefc/kalman.py r_at_boundary = r < 1e-6
 In 259 of the 1170 basin-fold fits the likelihood drives $r$ to
 effectively zero (below $10^{-6}$ in standardized units). The fitted $r$
-is a model parameter, not a measure of observation error in the mascon
-solutions.
+is therefore a model parameter and does not measure observation error in
+the mascon solutions.
 
 \subsection{Forecast models built on the filter}
 \label{sec:methods-corrections}
@@ -456,8 +480,8 @@ abbreviations used for them throughout. In the abbreviations, R denotes a
 ridge correction, the number the months of filtered-state history it
 uses, and E the ERA5-Land forcing. Four models are linear. KF-R1
 regresses the error on the current filtered state alone. KF-R12 regresses
-it on the last twelve months of the filtered state. KF-R12E adds the
-twelve months of all 11 ERA5-Land anomaly series, giving 12 by 12 features.
+it on the last 12 months of the filtered state. KF-R12E adds the
+12 months of all 11 ERA5-Land anomaly series, giving 12 by 12 features.
 KF-R1E instead adds the ERA5-Land anomalies at lags of 0, 1 and 2 months to
 the current filtered state. Each ERA5-Land basin series is deseasonalized
 with the same train-window trend and harmonic fit as the storage series
@@ -469,7 +493,7 @@ on train-standardized features.
 % source: src/gracefc/experiment_flat12.py (LOOKBACK 12; emit ridge_own_flat12, ridge_own_era5_flat12, kalman_own_ridge); src/gracefc/experiment_nonlinear.py _fit_head (Ridge alpha=1.0); era5_lags (0,1,2)
 Three models are nonlinear and use the same information. The LSTM is a
 shared-encoder long short-term memory network \citep{hochreiter1997lstm}
-over the same twelve-month window of filtered state and the 11 ERA5-Land
+over the same 12-month window of filtered state and the 11 ERA5-Land
 channels. It is trained with a time-ordered split that holds out the last
 15\,\% of training months for early stopping, and its two seeds are
 reported as a seed ensemble. The MLP is a multilayer perceptron (hidden layers of 64 and
@@ -525,12 +549,12 @@ The GRACE-FCast hindcast \citep{li2025pangaea} is aggregated to our basin
 geometry with exact $0.25^{\circ}$ to $1^{\circ}$ cell-containment
 weights. Its forecasts are moved into each fold's standardized residual
 space as follows. The full product has our train-window climatology
-subtracted; the non-seasonal component, their interannual plus
+subtracted, whereas the non-seasonal component, their interannual plus
 sub-seasonal forecast, does not. Both then receive a per-fold, per-basin,
 per-lead mean offset estimated on pre-test data only, which requires at
 least 24 such months, and are divided by our training-window residual
-standard deviation. This aligns their mean levels with our target; the
-two decomposition conventions otherwise differ. Scoring both variants
+standard deviation. This aligns their mean levels with our target,
+although the two decomposition conventions otherwise differ. Scoring both variants
 shows how their extrapolated seasonal and trend terms affect error
 against our target. Every model is scored on the identical set of basin-months at every lead
 time. On CSR it spans 60 test months: folds
@@ -547,8 +571,8 @@ of 228 on JPL.
 % source: results/phase6_li_comparison_summary.csv (all_matched n_basins 227); results/jpl/phase6_li_comparison_summary.csv (all_matched n_basins 227)
 The fully covered set applies one rule to both products: a basin enters
 only if it fully contains every $0.25^{\circ}$ mask cell of at least one
-native mascon of the product being scored, and all sixteen cells of at
-least one finite $1^{\circ}$ GRACE-FCast cell. This rule tests cell containment directly and does not rely on an area or coverage threshold. On CSR, 229 basins
+native mascon of the product being scored, and all 16 cells of at
+least one finite $1^{\circ}$ GRACE-FCast cell. On CSR, 229 basins
 contain a full native mascon, 211 contain a full forecast cell, and 209 satisfy both. On JPL, whose native mascons are coarser on the sampled grid,
 67 do. The rule screens grid geometry only: a single native mascon is not
 an independently resolved gravity signal, because the effective resolution
@@ -566,9 +590,9 @@ covers. Values on the matched set are therefore dominated by grid mismatch, and 
 \subsection{Verification statistics}
 \label{sec:methods-stats}
 
-The primary metric is the pooled root-mean-square error (RMSE) in
-standardized units. We report it as the mean-squared-error skill score of
-a forecast $A$ against a stated benchmark $B$,
+The primary metric is the pooled RMSE in standardized units. We report it
+as the skill score based on the mean squared error (MSE) of a forecast $A$
+against a stated benchmark $B$,
 \begin{equation}
 S_{A|B} = 1 - \frac{\mathrm{MSE}_{A}}{\mathrm{MSE}_{B}},
 \end{equation}
@@ -584,8 +608,8 @@ with block length $\max(3, h)$ and 2000 draws, so that the block covers
 the lag-$(h-1)$ dependence of overlapping $h$-step forecasts.
 % source: src/gracefc/stats.py diebold_mariano (HAC max_lag = max(h-1,1)) and block_bootstrap_skill_ci (block = max(3, horizon), n_boot 2000)
 Per-basin significance uses per-basin Diebold--Mariano statistics on the
-scored test months with Benjamini--Hochberg false-discovery-rate control at
-$q = 0.10$ \citep{benjamini1995fdr}, following the field-significance
+scored test months with Benjamini--Hochberg false-discovery-rate (BH-FDR)
+control at a level of 0.10 \citep{benjamini1995fdr}, following the field-significance
 reasoning of \citet{wilks2016stippling}. Basins that are helped and basins
 that are hurt are always counted separately. In the text we state whether a
 difference is significant at $p < 0.05$. Tables report two-sided $p$
@@ -699,18 +723,19 @@ where the residual has the least month-to-month persistence, and in small
 and dry basins (Fig.~\ref{fig:mechanism}c). Across the 234 basins the
 per-basin skill has a Spearman rank correlation of
 % source: results/kalman_gain_correlates.csv (scripts/kalman_gain_correlates.py): resid_ac1 -0.337 (p 1.2e-7),
-% area_km2 -0.274 (p 2.2e-5), precip_cm_yr -0.300 (p 2.9e-6); median skill driest quartile 0.060 (n 59), other 0.009 (n 175)
-$-0.34$ with the lag-1 autocorrelation of the residual, $-0.27$ with
-basin area and $-0.30$ with mean annual ERA5-Land precipitation ($p <
-0.001$ for each). In the driest quarter of the basins the median gain is
-6.0\,\%, against 0.9\,\% elsewhere. The two largest gains are in the
+% area_km2 -0.274 (p 2.2e-5), precip_cm_yr -0.300 (p 3.0e-6, full years 2001-2025); median skill driest quartile 0.050 (n 59), other 0.009 (n 175)
+$-0.34$ with the lag-1 autocorrelation of the residual over the test
+window, $-0.27$ with basin area and $-0.30$ with mean annual ERA5-Land
+precipitation over 2001--2025 ($p < 0.001$ for each). In the driest
+quarter of the basins the median gain is 5.0\,\%, against 0.9\,\%
+elsewhere. The two largest gains are in the
 Egyptian Western Desert and the Saharan and Algerian Atlas
 (Fig.~\ref{fig:examples}a).
 % source: results/conventional_metrics_perbasin.csv, horizon 1, skill from rmse_cm: E_Egyptian_Western_Desert 0.410, E_Saharan_and_Algerian_Atlas 0.333
 
 \begin{figure*}[!htbp]
 \includegraphics[width=\textwidth]{fig03_example_series.pdf}
-\caption{Observed deseasonalized storage residual (grey) and the 1-month
+\caption{Observed deseasonalized storage residual (gray) and the 1-month
 forecasts of damped persistence ($\rho^{h}$ variant, dashed) and KF
 (solid) in four basins, in centimeters of equivalent water
 height, over the full test window. The panels span the range of per-basin
@@ -752,20 +777,20 @@ lead. Which processing choices produce this is not tested
 \label{sec:results-mechanism}
 
 We use two ablation experiments to identify the source of the margin (Fig.~\ref{fig:mechanism}). The
-zero-$r$ variant, the same model refit with $r = 0$, loses to the full
-filter at every lead time, by
+zero-$r$ variant, the same model refit with $r = 0$, has higher error than
+the full filter at every lead time, by
 % source: results/r0_ablation_summary.csv, noise_filtering_term rows, skill_pct (5.35, 9.63, 11.67, 12.48, 12.65, 12.27) and dm_p (max 7.2e-14 at h1)
 $5.35\,\%$ at 1 month, rising to $12.65\,\%$ at 5 months ($p < 0.001$
 at every lead time). Scored against the regression variant at every lead
 time, the zero-$r$ variant is
 % source: results/r0_ablation_summary.csv, rho_estimation_term rows, skill_pct (0.90, -0.93, -6.84, -10.75, -11.57, -9.85) and dm_p (1.6e-5, 0.0022, ...)
 $+0.90\,\%$ ahead at 1 month and $0.93$ to $11.57\,\%$ behind at 2 to 6
-months; against the $\rho^{h}$ variant, the stronger one at 1 month, it is
+months. Against the $\rho^{h}$ variant, the stronger one at 1 month, it is
 % source: results/r0_ablation_summary.csv, rho_estimation_term h1 rmse_a 1.078260 (kalman_r0); results/paper_baseline_ladder.csv, damped_persistence_rho h1 rmse_std 1.076129; 1 - (1.078260/1.076129)^2 = -0.0040
 $0.40\,\%$ behind. At a 1-month lead time the AR(1) structure without the
 model-noise term is therefore within 1\,\% of damped persistence in either
 direction. The corresponding mean-squared-error ratios multiply:
-$0.9465 \times 1.0040 \simeq 0.9502$, recovering the $4.98\,\%$
+$0.94646 \times 1.00396 = 0.95021$, recovering the $4.98\,\%$
 improvement in Table~\ref{tab:ladder}. Allowing a nonzero model-noise
 variance accounts for the improvement within this model family.
 % source: (1 - 0.05354) x (1.078260/1.076129)^2 = 0.94646 x 1.00397 = 0.95021 = 1 - 0.0498; results/r0_ablation_summary.csv and results/paper_baseline_ladder.csv as above
@@ -813,7 +838,7 @@ the split hurts. (c)~Per-basin 1-month skill of KF over the $\rho^{h}$
 damped-persistence variant on the 234 basins, computed from RMSE in
 centimeters; KF is better in 158 basins and damped persistence in 76. The
 color scale is clipped at $\pm 20\,\%$, and land outside the basin sample
-is pale grey. Basin partition based on HydroSHEDS
+is pale gray. Basin partition based on HydroSHEDS
 \citep{lehner2013hydrosheds}; base map made with Natural Earth
 (public domain).}
 % source: results/r0_ablation_summary.csv (full_margin, rho_estimation_term and noise_filtering_term rows, skill_pct); results/kalman_mission_summary.csv (mission_split_term rows, skill_pct, ci_lo_pct, ci_hi_pct);
@@ -832,10 +857,10 @@ $-0.17$ and $-1.01\,\%$, and stronger at 3 to 6 months, by
 % source: results/flat12_ridge_summary.csv, kalman_own_ridge rows, skill_vs_kalman x100 (h3 0.44, h4 2.36, h5 2.66, h6 1.59) and dm_p_vs_kalman (1.1e-14, 1.6e-13, 5.9e-14, 2.3e-17)
 $+0.44$ to $+2.66\,\%$ ($p < 0.001$). Both use the same current filtered
 state and require only the storage record.
-KF-R12, which uses twelve months of the filtered state instead
+KF-R12, which uses 12 months of the filtered state instead
 of one, improves on KF at every lead time, by
 % source: results/paper_baseline_contrasts.csv, ridge_own_flat12 vs kalman_ar1 (skill x100: 0.81, 1.48, 1.76, 1.81, 1.49, 0.63; dm_p 0.0035, 4.9e-6, 2.9e-10, 7.5e-10, 3.4e-7, 0.015158)
-$+0.63$ to $+1.81\,\%$ ($p < 0.02$). KF-R12E adds the twelve-month forcing
+$+0.63$ to $+1.81\,\%$ ($p < 0.02$). KF-R12E adds the 12-month forcing
 window and gains
 % source: results/paper_baseline_contrasts.csv, ridge_own_era5_flat12 vs kalman_ar1 (skill x100: 7.65, 5.39, 4.22, 3.19, 2.09, 0.87; ci h1 4.7..10.1; dm_p 1.1e-8, 1.1e-8, 3.0e-8, 5.2e-6, 9.0e-4, 0.12)
 $+7.65\,\%$ over KF at 1 month (95\,\% interval $+4.7$ to $+10.1\,\%$),
@@ -882,7 +907,7 @@ Figure~\ref{fig:era5where} maps the per-basin 1-month skill of KF-R12E
 over KF and plots it against each basin's median training-window storage
 standard deviation across folds. The relation is weak across the sample
 % source: scripts/make_figures.py fig05_era5_where (Spearman rho -0.1436, p 0.028, n 234; BH q = 0.10: 45 significant, 44 helped, 1 hurt; std range of the significant basins in figures/BUILD_NOTES.md)
-(Spearman $\rho = -0.14$). The 45 basins that are significant under
+(Spearman rank correlation $-0.14$). The 45 basins that are significant under
 false-discovery-rate control, 44 helped and 1 hurt, all have
 training-window standard deviations below 9\,cm, and none of the
 highest-variance basins gains significantly. One standardized unit
@@ -896,10 +921,10 @@ models sensitive to how basins are weighted
 \includegraphics[width=\textwidth]{fig05_era5_where.pdf}
 \caption{Where the forcing window helps. (a)~Per-basin 1-month skill (\%)
 of KF-R12E over KF on the 234 basins; basins significant under
-Benjamini--Hochberg false-discovery-rate control at $q = 0.10$ are hatched,
-and land outside the basin sample is pale grey. (b)~The same skill
+BH-FDR control at the 0.10 level are hatched, and land outside the basin
+sample is pale gray. (b)~The same skill
 against each basin's median training-window storage standard deviation across folds, in
-centimeters of equivalent water height; filled markers are the 45
+centimeters of equivalent water height on a logarithmic axis; filled markers are the 45
 significant basins (44 helped, 1 hurt). Three basins fall below the
 lower axis limit of $-42\,\%$ and are marked by downward triangles at their
 actual storage standard deviations. The Spearman
@@ -911,7 +936,7 @@ made with Natural Earth (public domain).}
 \label{fig:era5where}
 \end{figure*}
 
-None of the nonlinear models improves on KF-R12E given the same twelve
+None of the nonlinear models improves on KF-R12E given the same 12
 months of history (Table~\ref{tab:sequence} and Fig.~\ref{fig:sequence}).
 At 1 to 3 months KF-R12E has the lowest standardized RMSE of every model
 and seed. The MLP, which sees the identical feature vector, is
@@ -987,7 +1012,7 @@ months
 lower error than the full product at a 1-month lead time, by
 % source: results/phase6_li_comparison_headline.csv, joint_full_cells, kalman_ar1 vs li_lstm_full (skill x100: 16.4, -6.0, -16.3, -23.2, -28.9, -35.4; ci h1 4.9..26.6; dm_p 2.2e-3, 0.23, 1.4391e-3, 3.9e-5, 1.7e-6, 1.7e-8)
 $16.4\,\%$ (95\,\% interval $+4.9$ to $+26.6\,\%$). The difference is
-not significant at 2 months; KF has higher error from 3 months on, by $16.3$ to $35.4\,\%$
+not significant at 2 months, and KF has higher error from 3 months on, by $16.3$ to $35.4\,\%$
 ($p < 0.002$). Against the non-seasonal component, which removes the
 seasonal and trend re-extrapolation, KF has lower error at 1 and 2 months
 % source: results/phase6_li_comparison_headline.csv, joint_full_cells, kalman_ar1 vs li_lstm_nonseas (skill x100: 28.4, 7.5, -4.0, -13.4, -20.3, -27.1; dm_p 2.7e-10, 0.018, 0.13, 4.3e-6, 7.8e-9, 5.9e-10)
@@ -1044,7 +1069,9 @@ KF-R12E vs. non-seasonal & $+32.8$ & $+11.2$ & $-0.2$ & $-10.1$ & $-18.0$ & $-26
 % source: headline, damped_persistence_rho vs li_lstm_full
 Damped persistence vs. full & $+11.9$ & $-16.9$ & $-30.9$ & $-42.2$ & $-47.9$ & $-54.3$ \\
  & $0.029$ & $0.0011$ & $<0.001$ & $<0.001$ & $<0.001$ & $<0.001$ \\
-\middlehline
+% source: headline, damped_persistence_rho vs li_lstm_nonseas (skill x100 24.6, -2.0, -17.0, -30.9, -38.1, -44.9; dm_p 2.0e-8, 0.50, 4.7e-9, ...)
+Damped persistence vs. non-seasonal & $+24.6$ & $-2.0$ & $-17.0$ & $-30.9$ & $-38.1$ & $-44.9$ \\
+ & $<0.001$ & $0.50$ & $<0.001$ & $<0.001$ & $<0.001$ & $<0.001$ \\[4pt]
 \multicolumn{7}{l}{\textit{JPL}} \\
 % source: jpl headline, li_lstm_full vs kalman_ar1, stored s (-0.7768, -0.1091, 0.0580, 0.1604, 0.2431, 0.2952) -> (0.4372, 0.0984, -0.0616, -0.1911, -0.3212, -0.4187); dm_p (7.1e-14, 0.087, 0.31, 1.7e-3, 1.2e-6, 1.5e-8)
 KF vs. full & $+43.7$ & $+9.8$ & $-6.2$ & $-19.1$ & $-32.1$ & $-41.9$ \\
@@ -1055,7 +1082,9 @@ KF vs. non-seasonal & $+52.9$ & $+22.2$ & $+7.0$ & $-6.2$ & $-18.0$ & $-27.9$ \\
 % source: jpl headline, li_lstm_full vs damped_persistence_rho, stored s (-0.7609, -0.0424, 0.1597, 0.2817, 0.3467, 0.3951) -> (0.432, 0.041, -0.190, -0.392, -0.531, -0.653); dm_p (1.2e-13, 0.49, 0.0047, 2.7e-7, 1.1e-9, 8.9e-12)
 Damped persistence vs. full & $+43.2$ & $+4.1$ & $-19.0$ & $-39.2$ & $-53.1$ & $-65.3$ \\
  & $<0.001$ & $0.49$ & $0.0047$ & $<0.001$ & $<0.001$ & $<0.001$ \\
-\middlehline
+% source: jpl headline, li_lstm_nonseas vs damped_persistence_rho, stored s (-1.1049, -0.2083, 0.0411, 0.1942, 0.2684, 0.3288) -> (0.525, 0.172, -0.043, -0.241, -0.367, -0.490); dm_p (2.9e-13, 3.1e-4, 0.35, 9.5e-7, 4.2e-10, 2.4e-11)
+Damped persistence vs. non-seasonal & $+52.5$ & $+17.2$ & $-4.3$ & $-24.1$ & $-36.7$ & $-49.0$ \\
+ & $<0.001$ & $<0.001$ & $0.35$ & $<0.001$ & $<0.001$ & $<0.001$ \\[4pt]
 \multicolumn{7}{l}{\textit{CSR basin counts (of 209)}} \\
 Basins, full product has lower error than KF & 98 & & & & & 157 \\
 Basins, full product has lower error than KF-R12E & 87 & & & & & 162 \\
@@ -1075,7 +1104,7 @@ error in
 98 of the 209 basins against KF at 1 month and in 157 at 6 months, and in
 % source: results/phase6_li_comparison_perbasin.csv, li_lstm_full vs ridge_own_era5_flat12, a_better by horizon (87, 133, 147, 151, 159, 162 of 209)
 87 against KF-R12E at 1 month and 162 at 6 months. The pooled 1-month
-margin therefore reflects large gains in a subset of basins and not a consistent advantage across basins.
+margin therefore reflects large gains in a subset of basins rather than a consistent advantage across basins.
 
 The short-lead comparison is sensitive to the available inputs.
 GRACE-FCast's non-seasonal networks use forcing predictors without lagged
@@ -1086,8 +1115,10 @@ has lower error than the full product at 1 month, by
 % source: results/phase6_li_comparison_headline.csv, joint_full_cells, damped_persistence_rho vs li_lstm_full (skill x100: 11.9, -16.9, -30.9, -42.2, -47.9, -54.3; dm_p 0.029, 1.1e-3, ...)
 $+11.9\,\%$ on CSR and
 % source: results/jpl/phase6_li_comparison_headline.csv, joint_full_cells, li_lstm_full vs damped_persistence_rho, stored s -0.7609 (h1), -0.0424 (h2, dm_p 0.49), +0.1597 (h3, dm_p 0.0047)
-$+43.2\,\%$ on JPL, and loses to it from 2 months on CSR and from 3 months
-on JPL (Table~\ref{tab:li}). The comparison with damped persistence more
+$+43.2\,\%$ on JPL, and than the non-seasonal component by
+% source: Table 5 damped vs non-seasonal rows (CSR 24.6, JPL 52.5 at h1, both p < 0.001)
+$+24.6$ and $+52.5\,\%$. It has higher error than the full product from
+2 months on CSR and from 3 months on JPL (Table~\ref{tab:li}). The comparison with damped persistence more
 directly assesses the contribution of filtering. On the full benchmark
 sample, the 1-month improvement is $+5.0\,\%$ on CSR
 (Table~\ref{tab:ladder}), with no significant difference on JPL
@@ -1096,7 +1127,9 @@ sample, the 1-month improvement is $+5.0\,\%$ on CSR
 margin over the product is much larger on JPL than on CSR. The fully
 covered JPL set contains 67 basins selected by native-cell containment, and the
 JPL member of GRACE-FCast was trained on an earlier release than the one
-we score it against (Sect.~\ref{sec:data-li}). We cannot separate these two effects.
+we score it against (Sect.~\ref{sec:data-li}). Our JPL target also has the
+product's gain scale factors applied, and \citet{li2026fcast} do not state
+whether their JPL training target did. We cannot separate these effects.
 
 \begin{figure*}[!htbp]
 \includegraphics[width=\textwidth]{fig07_crossing.pdf}
@@ -1107,9 +1140,9 @@ confidence intervals; positive means our forecast has the lower error.
 (b)~JPL, 67 basins and 59 months, KF only. Filled markers are significant
 at $p < 0.05$, open markers are not, and the triangles on the zero line
 mark the interpolated lead time at which each curve crosses zero. Damped
-persistence, not drawn, also has lower error than the full product at a
-1-month lead time on both products (Table~\ref{tab:li}); the 1-month
-advantage is therefore also present without Kalman filtering.}
+persistence, not drawn, also has lower error than both GRACE-FCast
+variants at a 1-month lead time on both products (Table~\ref{tab:li}), so
+the 1-month advantage is also present without Kalman filtering.}
 % source: results/phase6_li_comparison_headline.csv (joint_full_cells rows, ours first); results/jpl/phase6_li_comparison_headline.csv (joint_full_cells rows, product first, converted as 1 - 1/(1 - s))
 \label{fig:crossing}
 \end{figure*}
@@ -1120,7 +1153,12 @@ advantage is therefore also present without Kalman filtering.}
 The comparisons above use basin-standardized errors. In pooled
 centimeter errors, high-variance basins contribute more to squared error. The
 five forecasts reported in that unit differ by about half a centimeter at
-most, and the differences among the filter-based models are untested (Fig.~\ref{fig:ladder}b; Appendix~\ref{app:conventional}).
+most (Fig.~\ref{fig:ladder}b; Appendix~\ref{app:conventional}). Tested on
+squared errors in centimeters,
+% source: results/centimeter_contrasts.csv (scripts/centimeter_contrasts.py): kalman_ar1 vs damped_persistence skill 0.0713 at h1, dm_p < 1e-3 at h1-h6; ridge_own_era5_flat12 vs kalman_ar1 skill -0.0408 at h1, dm_p 0.25..0.98 at h1-h6
+KF still has lower error than damped persistence at every lead time
+($+7.1\,\%$ at 1 month, $p < 0.001$), whereas KF-R12E does not differ
+significantly from KF at any lead time ($p \ge 0.25$).
 KF-R12 has the lowest value at 1 to 3 months and KF-R1 at 4 to 6 months,
 and KF-R12E, the best model in standardized units, is
 % source: results/conventional_metrics_summary.csv, pooled_rmse_cm h1: ridge_own_era5_flat12 5.231, kalman_ar1 5.128, ridge_own_flat12 5.118; kalman_own_ridge lowest at h4-h6 (6.064, 6.288, 6.603)
@@ -1136,18 +1174,22 @@ standardized error.
 
 Spatial and graph-based TWSA methods use information from other locations:
 \citet{li2026fcast} shift forcing predictors across
-space, \citet{arzoumanidis2026stgnn} build a proximity and correlation
-basin graph for reconstruction, and \citet{steidl2025hignn} forecast with
-a hierarchical basin graph. We tested a storage-based version of this
+space, \citet{arzoumanidis2026stgnn} build a proximity- and
+correlation-based graph for reconstruction, and \citet{steidl2026hignn}
+forecast with a hierarchical graph that spans two spatial scales. We tested a storage-based version of this
 idea: whether one other basin's filtered state, propagated to the
 target month and added as a feature to KF-R1, improves the forecast. On
-CSR a correlation-selected neighbor was worth
+CSR a correlation-selected neighbor improved on KF-R1 by
 % source: results/phase3b_summary.csv, kalman_corr_top1 h1, skill_vs_own_ridge 0.0031, placebo_beaten 50 of 50; results/phase4_surrogate_summary.csv h1 beats_n_of 99/99
-$+0.31\,\%$ over KF-R1 at 1 month, ahead of all 50 seed-matched random
-neighbor graphs and all 99 amplitude-adjusted Fourier-transform surrogates
-\citep{schreiber1996surrogate}, and nothing at 2 to 6 months. None of this is reproduced on JPL. There, every neighbor variant is worse than KF-R1 at every lead time. The correlation-selected neighbor beats none of the 50 random
-graphs at any lead time, the distance-selected neighbor beats at most 26
-of 50, and the real graph beats none of the 99 surrogates.
+$+0.31\,\%$ at 1 month. It had lower error than each of 50 randomly
+assigned neighbors and than each of 99 iterative amplitude-adjusted
+Fourier-transform surrogates of the neighbor series
+\citep{schreiber1996surrogate}, and it added nothing at 2 to 6 months.
+None of this is reproduced on JPL, where every neighbor variant has higher
+error than KF-R1 at every lead time. There, the correlation-selected
+neighbor improves on none of the 50 random neighbors at any lead time,
+the distance-selected neighbor on at most 26 of 50, and the
+correlation-selected neighbor on none of the 99 surrogates.
 % source: results/jpl/phase3b_summary.csv, kalman_corr_top1 rows, skill_vs_own_ridge x100 (-0.52 .. -1.28), placebo_beaten 0 of 50 at every lead; kalman_geo_top1 placebo_beaten (0, 0, 0, 8, 26, 9 of 50); results/jpl/phase4_surrogate_summary.csv, beats_n_of 0/99 at every lead
 The reversal across processing centers provides no support for adopting
 this neighboring-basin correction as a general improvement.
@@ -1180,21 +1222,21 @@ signal: bias and leakage errors grow as basin size decreases
 \citep{longuevergne2010smallbasins, vishwakarma2018resolution}, and
 \citet{li2026fcast} report their lowest relative forecast skill in arid
 regions, where storage variability is small. The filter's gains follow
-the same pattern; whether the variation it removes there is observation
+the same pattern. Whether the variation it removes there is observation
 error or fast hydrology is not resolved by the model
 (Sect.~\ref{sec:methods-kalman}). In large humid basins such as the
 Amazon, the filter and damped persistence are nearly the same forecast
-(Fig.~\ref{fig:examples}d). The benchmark
-therefore changes the accounting of learned skill more than it changes the
-error of the basins that dominate centimeter metrics.
+(Fig.~\ref{fig:examples}d). The benchmark therefore mainly changes how much
+skill is attributed to a learned model, and it changes the centimeter
+error of the high-variance basins very little.
 
 GRACE-FCast has lower error at longer lead times in the external
 comparison. On the fully covered CSR sample, KF and KF-R12E have
 % source: results/phase6_li_comparison_headline.csv, joint_full_cells, the four pairs of Table 5 at h4-h6, ours first (-10.1 to -35.4)
 10 to 35\,\% higher mean squared error than the full or non-seasonal
 GRACE-FCast forecast at 4 to 6 months. At 1 month, KF, KF-R12E and damped
-persistence have lower error than the full product; at 2 months, KF also
-has lower error than its non-seasonal component. These comparisons require
+persistence have lower error than both product variants, and at 2 months
+KF also has lower error than the non-seasonal component. These comparisons require
 an explicit reference forecast and cannot be inferred from full-signal
 correlation alone. \citet{li2026fcast} report a related sensitivity to
 the verification target: they find
@@ -1217,8 +1259,8 @@ this advantage over the LSTM at 2 and 3 months, but the 1-month difference
 is not significant. This supports retaining linear models as controls in
 architecture comparisons. It does not establish their superiority under
 other training budgets or on other targets. In particular, simulated,
-reconstructed and gap-filled targets, including HydroGlobe
-\citep{nie2025linear} and the products of \citet{humphrey2019gracerec},
+reconstructed and gap-filled targets, including the HydroGlobe
+land-surface reanalysis used by \citet{nie2025linear} and the products of \citet{humphrey2019gracerec},
 \citet{yin2023gtws} and \citet{mo2022gap}, have error structures that differ
 from direct mascon observations. The benefit of filtering those targets
 would need to be evaluated separately.
@@ -1230,14 +1272,16 @@ Seasonal hydrological forecasting experiments distinguish predictability
 from initial conditions and meteorological forcing. Initial conditions
 often contribute most at short leads, with forcing becoming more
 important as lead time increases \citep{wood2008esp,
-shukla2011seasonal, koster2010glace2, yossef2013skill,
-pechlivanidis2020drivers}. Those results were established for streamflow
-and soil moisture in ensemble streamflow prediction experiments. The
+shukla2011seasonal, yossef2013skill}. Those results were established for
+streamflow and soil moisture in ensemble streamflow prediction
+experiments. Land-surface initialization has also been shown to add skill
+to subseasonal precipitation and temperature forecasts in coupled models
+\citep{koster2010glace2}. The
 comparison in Sect.~\ref{sec:results-li} is consistent with this pattern:
 KF has lower error at short leads, whereas GRACE-FCast has significantly
 lower error from 3 to 5 months onward, depending on the product and
 component (Table~\ref{tab:li}). The 1-month advantage also occurs for
-damped persistence. The crossover describes these forecast systems; it
+damped persistence. The crossover describes these forecast systems and
 does not decompose skill into contributions from storage and forcing.
 Architecture, training data, gap treatment, predictor sets and target
 decomposition differ together in this comparison.
@@ -1259,25 +1303,26 @@ antecedent observations and reanalysis. They do not assess the benefit of
 adding meteorological forecasts.
 
 Observation latency changes the operational meaning of these lead times. GRACE-FO
-solutions are released two to three months after the observation month
-\citep{mo2025nrt}. Predicting next month's storage from an observation
-released two to three months late requires an observation-relative lead
+solutions are released 2 to 3 months after the observation month
+\citep{mo2025nrt, li2026fcast}. Predicting next month's storage from an
+observation released 2 to 3 months late requires an observation-relative lead
 of approximately 3 to 4 months. On CSR, those leads are at or beyond the
 crossover with GRACE-FCast. The common issue-date convention used here
-supports retrospective comparison; it does not reproduce the availability
-of all inputs in an operational forecast.
+supports retrospective comparison, but it does not reproduce the
+availability of all inputs in an operational forecast.
 
 The cross-product evidence reported here concerns the benchmark forecasts
 and their comparison with GRACE-FCast. The detailed correction-model
 ranking in Sect.~\ref{sec:results-flat12} is for CSR and should not be
 generalized to JPL. The fully covered JPL set contains 67 basins selected
 by native-cell containment, and the JPL member
-of GRACE-FCast was trained on an earlier release than we score it against.
+of GRACE-FCast was trained on an earlier release than we score it against,
+possibly without the gain scale factors applied to our target.
 For that reason the size of the 1-month margin there should not be
 compared with CSR's.
 In addition, the filter's 1-month margin over damped persistence does not
-replicate on JPL: no significant difference is detected at 1 month, while
-KF improves on damped persistence at 2 to 6 months
+replicate on JPL. No significant difference is detected at 1 month,
+while KF improves on damped persistence at 2 to 6 months
 (Sect.~\ref{sec:results-ladder}). The smaller JPL persistence error is
 consistent with less unpredictable month-to-month variation, but the
 contribution of individual processing choices was not isolated.
@@ -1288,18 +1333,12 @@ aggregation changes both the signal and its error structure, so the
 filter's performance at grid scale remains to be tested, with
 $(\rho, q, r)$ estimated for each cell.
 
-The filter's definition across the 2017--2018 gap follows from its
-prediction step, which runs whenever an update is skipped. However, no scored forecast is issued across the gap (Sect.~\ref{sec:methods-folds}), so this
-property is not tested here.
-
-The model-noise term is not an estimate of instrument noise: in 259 of
-1170 basin-fold fits the likelihood sets $r$ to effectively zero
-(Sect.~\ref{sec:methods-kalman}). The ablation attributes the filter's
-margin to filtering within this model class. What is filtered out is
-presumed to be a mixture of physical variability and the errors listed in
-Sect.~\ref{sec:methods-kalman}, and we do not estimate their shares. The
-results concern forecast error against the
-observed residual, not the accuracy of the satellite data.
+The model-noise term is not an estimate of instrument noise
+(Sect.~\ref{sec:methods-kalman}). What the filter removes is presumed to
+be a mixture of physical variability and the errors listed there, and we
+do not estimate their shares. The results therefore concern forecast
+error against the observed residual rather than the accuracy of the
+satellite data.
 
 The ranking of models above the filter depends on basin weighting. The
 forcing window's gain is concentrated in low-variance basins that contribute
@@ -1314,17 +1353,19 @@ excludes fold 5 and basins without adequate forecast-grid coverage.
 Finally, the evidence rests on two mascon products of one set of
 observations, five test folds all in the post-2019 climate, and per-basin
 % source: src/gracefc/evaluate.py DEFAULT_FOLDS (17 + 17 + 17 + 17 + 15 issue months at lead 1)
-estimates based on 83 months at a 1-month lead time. The LSTM, MLP and
+estimates based on 83 issue months on CSR and 84 on JPL at a 1-month
+lead time. The LSTM, MLP and
 residual MLP were trained with the fixed architectures of
 Sect.~\ref{sec:methods-corrections}, early stopping and no hyperparameter
 search, with two seeds each for the first two and three for the third.
+The ridge penalty was likewise fixed at 1 without tuning.
 Table~\ref{tab:sequence} reports individual seeds, and the training-matched
 comparison uses the LSTM seed ensemble. Under this budget, none has lower
-CSR error than KF-R12E; whether further tuning changes this ordering
+CSR error than KF-R12E, and whether further tuning changes this ordering
 remains untested. The short record also limits inference about small
 differences. Our uncertainty estimates account for overlapping forecasts,
-but sensitivity to longer HAC bandwidths and bootstrap blocks has not been
-evaluated.
+but sensitivity to longer Newey--West bandwidths and bootstrap blocks has
+not been evaluated.
 
 \conclusions
 \label{sec:conclusions}
@@ -1336,10 +1377,11 @@ model-noise term removes the CSR 1-month advantage, supporting the
 use of temporal filtering within this model family. We recommend reporting
 skill against this benchmark alongside persistence and physical-unit errors.
 
-A linear correction using twelve months of filtered storage and
+A linear correction using 12 months of filtered storage and
 ERA5-Land history has the lowest standardized CSR error at short leads
 among the correction models tested. Its improvement is concentrated in
-low-variance basins and does not extend to pooled error in centimeters.
+low-variance basins and does not significantly reduce pooled error in
+centimeters.
 In the comparisons with individual GRACE-FCast members on the fully
 covered basins, GRACE-FCast has lower standardized error at longer leads,
 whereas both KF and damped persistence have lower error at 1 month. Any evaluation of storage
@@ -1388,7 +1430,6 @@ Fully covered basin set & \texttt{joint\_full\_cells}; matched set \texttt{all\_
 \end{tabular}
 \end{table*}
 
-\clearpage
 \section{The full benchmark tables}
 \label{app:ladder}
 
@@ -1396,13 +1437,13 @@ Table~\ref{tab:ladderfull} gives, for every forecast in
 Table~\ref{tab:ladder}, the pooled standardized RMSE and the
 Diebold--Mariano (DM) $p$ value against the stronger damped-persistence
 variant at all six lead times on the CSR product. The adjacent rows are
-labelled explicitly as RMSE and two-sided DM $p$ so that each pair is read as
+labeled explicitly as RMSE and two-sided DM $p$ so that each pair is read as
 one forecast result. Table~\ref{tab:ladderjpl} gives the corresponding skills
 and $p$ values for the JPL benchmark set: the benchmark forecasts, KF-R1
-and the lag ridges. The twelve-month correction models are reported for
+and the lag ridges. The 12-month correction models are reported for
 CSR only. A small $p$ value indicates a difference from the
 reference in either direction; it does not by itself indicate improvement.
-The pooled tests are unadjusted across models and horizons; Benjamini--Hochberg
+The pooled tests are unadjusted across models and horizons, and BH-FDR
 adjustment is used only for per-basin comparisons.
 
 \begin{table*}[!htbp]
@@ -1504,7 +1545,6 @@ KF-R1 & Skill (\%) & $+0.3$ & $+5.2$ & $+5.1$ & $+3.3$ & $+3.5$ & $+4.2$ \\
 \end{tabular}
 \end{table*}
 
-\clearpage
 \section{Conventional metrics in centimeters}
 \label{app:conventional}
 
@@ -1540,32 +1580,28 @@ Damped persistence & 1 & 5.321 & 2.74 & 0.62 & 0.86 & 0.33 & 0.72 \\
  & 3 & 6.383 & 3.57 & 0.39 & 0.79 & 0.02 & 0.54 \\
  & 4 & 6.447 & 3.65 & 0.34 & 0.78 & $-0.01$ & 0.51 \\
  & 5 & 6.689 & 3.78 & 0.30 & 0.77 & $-0.04$ & 0.48 \\
- & 6 & 6.935 & 3.96 & 0.23 & 0.75 & $-0.08$ & 0.43 \\
-\middlehline
+ & 6 & 6.935 & 3.96 & 0.23 & 0.75 & $-0.08$ & 0.43 \\[4pt]
 % source: kalman_ar1 rows
 KF & 1 & 5.128 & 2.66 & 0.64 & 0.86 & 0.36 & 0.74 \\
  & 2 & 5.650 & 3.23 & 0.50 & 0.82 & 0.18 & 0.63 \\
  & 3 & 5.949 & 3.46 & 0.43 & 0.80 & 0.06 & 0.56 \\
  & 4 & 6.161 & 3.57 & 0.37 & 0.78 & 0.00 & 0.52 \\
  & 5 & 6.413 & 3.72 & 0.30 & 0.76 & $-0.02$ & 0.48 \\
- & 6 & 6.690 & 3.84 & 0.24 & 0.74 & $-0.05$ & 0.44 \\
-\middlehline
+ & 6 & 6.690 & 3.84 & 0.24 & 0.74 & $-0.05$ & 0.44 \\[4pt]
 % source: kalman_own_ridge rows
 KF-R1 & 1 & 5.133 & 2.66 & 0.64 & 0.86 & 0.36 & 0.74 \\
  & 2 & 5.691 & 3.26 & 0.50 & 0.82 & 0.17 & 0.63 \\
  & 3 & 5.931 & 3.46 & 0.43 & 0.80 & 0.06 & 0.56 \\
  & 4 & 6.064 & 3.55 & 0.37 & 0.78 & 0.01 & 0.53 \\
  & 5 & 6.288 & 3.68 & 0.31 & 0.76 & $-0.01$ & 0.49 \\
- & 6 & 6.603 & 3.82 & 0.25 & 0.74 & $-0.05$ & 0.45 \\
-\middlehline
+ & 6 & 6.603 & 3.82 & 0.25 & 0.74 & $-0.05$ & 0.45 \\[4pt]
 % source: ridge_own_flat12 rows
 KF-R12 & 1 & 5.118 & 2.66 & 0.64 & 0.86 & 0.36 & 0.74 \\
  & 2 & 5.634 & 3.19 & 0.51 & 0.82 & 0.18 & 0.63 \\
  & 3 & 5.915 & 3.39 & 0.45 & 0.81 & 0.08 & 0.57 \\
  & 4 & 6.107 & 3.52 & 0.37 & 0.78 & 0.03 & 0.53 \\
  & 5 & 6.366 & 3.72 & 0.30 & 0.76 & $-0.02$ & 0.49 \\
- & 6 & 6.678 & 3.85 & 0.26 & 0.74 & $-0.05$ & 0.44 \\
-\middlehline
+ & 6 & 6.678 & 3.85 & 0.26 & 0.74 & $-0.05$ & 0.44 \\[4pt]
 % source: ridge_own_era5_flat12 rows
 KF-R12E & 1 & 5.231 & 2.56 & 0.69 & 0.88 & 0.42 & 0.76 \\
  & 2 & 5.741 & 3.12 & 0.55 & 0.83 & 0.22 & 0.65 \\
@@ -1580,12 +1616,11 @@ KF-R12E & 1 & 5.231 & 2.56 & 0.69 & 0.88 & 0.42 & 0.76 \\
 \clearpage
 \noappendix
 
-\codedataavailability{CSR GRACE and GRACE-FO mascon solutions are available from the Center for
-Space Research (\url{https://www2.csr.utexas.edu/grace/}) and JPL mascon
-solutions from NASA PO.DAAC (\url{https://podaac.jpl.nasa.gov/}).
-ERA5-Land data are available from the Copernicus Climate Data Store
-(\url{https://cds.climate.copernicus.eu/}) \citep{munozsabater2021era5land}.
-Climate indices are available from NOAA PSL
+\codedataavailability{The CSR GRACE and GRACE-FO mascon solutions are available from the Texas Data Repository \citep{save2020rl06}, and the JPL mascon
+solutions from the NASA Physical Oceanography Distributed Active Archive
+Center \citep{wiese2023jpl}. ERA5-Land monthly data are available from the
+Copernicus Climate Data Store \citep{c3s2019era5land}. Climate indices are
+available from the NOAA Physical Sciences Laboratory
 (\url{https://psl.noaa.gov/data/climateindices/}). The GRACE-FCast hindcast
 is available from PANGAEA \citep{li2025pangaea}. The analysis code is at
 \url{https://github.com/ishaankejriwal/graceseespaper}. The benchmark
@@ -1595,20 +1630,31 @@ source file, are being prepared for archival deposit before submission.
 % Before submission: create and verify the archive, then add its real DOI.
 }
 
-\authorcontribution{I.K. designed the study, wrote the analysis code,
-performed the experiments, and wrote the manuscript. I.W. validated the
-study, wrote the manuscript, adapted the experiment to fit JPL mascons,
-and replicated the experiments using JPL mascons. I.K. and I.W. share
-first authorship.}
+\authorcontribution{IK designed the study, wrote the analysis code,
+performed the experiments and wrote the manuscript. IW validated the
+study, adapted the experiments to the JPL mascons, replicated them on the
+JPL product and wrote the manuscript. IK and IW share first authorship.}
 
 \competinginterests{The authors declare that they have no conflict of interest.}
 
 \begin{acknowledgements}
-The authors thank the Center for Space Research (University of Texas at
+We thank the Center for Space Research (University of Texas at
 Austin) and the Jet Propulsion Laboratory for the open mascon solutions
 and ancillary files, the Copernicus Climate Change Service for ERA5-Land,
-NOAA PSL for the climate indices, and Li and Kusche for publishing their
-gridded hindcast, which made the head-to-head comparison possible.
+the NOAA Physical Sciences Laboratory for the climate indices, and Li and Kusche for publishing their
+gridded hindcast, which made the head-to-head comparison possible. We are
+grateful to Benjamin Krichman for his mentorship throughout this project
+and for his careful reading of the manuscript. We also thank Teresa Howard
+for the combined HydroSHEDS and mascon basin partition, which Benjamin
+Krichman prepared as the basin mask used here.
+
+This study began during the SEES High School Summer Intern Program. The
+SEES High School Summer Intern Program is funded through NASA Cooperative
+Agreement Notice NNH15ZDA004C and is a part of NASA's Science Activation
+program. For more information, go to:
+\url{https://science.nasa.gov/learners}. The program had no role in the
+research idea, the study design, the analysis, the findings or the writing
+of this paper. All of these are the work of the authors alone.
 \end{acknowledgements}
 
 \financialsupport{This research received no external funding.}

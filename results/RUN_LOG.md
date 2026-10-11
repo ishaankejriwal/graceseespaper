@@ -1944,3 +1944,33 @@ and `scripts/build_deposit.py` for the Zenodo deposit. Open before submission: t
 DOI (the checker fails until the availability statement cites it), the JPL row-level
 prediction files (held by the second author, not in this checkout), and the authors'
 AI-policy statement.
+
+## 2026-10-11 (later) - Audit fixes on the HESS branch (no change to any existing result)
+
+Five independent audits (numbers, cold referee, HESS compliance, citations,
+reproducibility) ran on the merged branch. The number audit found no wrong value in
+about 800 numerals. Fixes applied:
+
+- New tests, saved outputs only: `scripts/centimeter_contrasts.py` (DM in cm: KF beats
+  damped persistence at every lead, p < 0.001; KF-R12E vs KF not significant at any
+  lead, p >= 0.25, so the abstract now says "does not differ significantly" instead of
+  "higher") and `scripts/climatology_offset.py` (57 % of climatology's 1-month MSE is
+  the basin-fold mean residual, which explains its RMSE of 1.62).
+- `scripts/kalman_gain_correlates.py` now uses full calendar years 2001-2025 for mean
+  annual precipitation; the driest-quarter median gain is 5.0 % (was 6.0 %, which
+  depended on the partial 2026 year). Spearman values unchanged.
+- Table 5 gains damped persistence vs the non-seasonal GRACE-FCast component (CSR
+  +24.6 %, JPL +52.5 % at 1 month, both p < 0.001), so the 1-month claim holds
+  against both variants.
+- Citation fixes: Niraula and Goessling quote, Li et al. FLDAS conclusion,
+  Koster/Pechlivanidis no longer cited for the ESP crossover, GRACE-FCast predictors
+  shifted by lead (not lag-selected), IAAFT surrogates, Steidl et al. now the 2026
+  EGUsphere preprint. Added Byrd et al. 1995, Watkins et al. 2015, Wiese et al. 2016
+  and the C3S ERA5-Land data set DOI. Journal names abbreviated.
+- HESS conventions: numerals for 10 and above, US spelling throughout, abbreviations
+  defined at first use, extra table rules removed, forced page breaks removed, data
+  sets cited by DOI in the availability statement, SEES affiliation and
+  acknowledgement, mentor and basin-mask credit.
+- Repository: basin mask added to the deposit, archives share one root folder,
+  manifest regenerated (25 large files), generated packet untracked, checker hardened
+  (font families, DOI, encoding).

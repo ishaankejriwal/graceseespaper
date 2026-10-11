@@ -18,6 +18,8 @@ skill = 1 - (rmse["kalman_ar1"] / rmse["damped_persistence"]) ** 2
 
 meta = pd.read_csv(ROOT / "data/processed/basin_meta.csv").set_index("name")
 era5 = pd.read_csv(ROOT / "data/processed/era5_basin_month.csv")
+# Full calendar years only, so a partial final year cannot bias the annual mean seasonally.
+era5 = era5[era5["date"].str[:4].astype(int) <= 2025]
 precip = era5.groupby("name")["precip_cm"].mean() * 12  # mean annual total, cm
 
 pred = pd.read_csv(ROOT / "results/phase2_baseline_predictions.csv",

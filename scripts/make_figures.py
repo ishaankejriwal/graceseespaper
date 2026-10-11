@@ -827,7 +827,7 @@ def fig07_crossing():
     handles, labels = axa.get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.005),
                ncol=2, handlelength=2.4, columnspacing=2.0, fontsize=7.5)
-    fig.text(0.5, 0.115, "Filled: Diebold-Mariano $p<0.05$; open: $p\\geq0.05$; "
+    fig.text(0.5, 0.115, "Filled: Diebold–Mariano $p$ < 0.05; open: $p$ ≥ 0.05; "
                          "triangles: interpolated zero crossings",
              ha="center", va="bottom", fontsize=7, color="0.30")
 
@@ -951,7 +951,7 @@ def fig04_filter_mechanism():
                f"{n_pos} of 234 basins, worse in {n_neg}", y=1.02)
     import matplotlib.patches as mpatches
     axc.legend(handles=[mpatches.Patch(fc=LANDGRAY, ec="none",
-                                       label="land outside the basin sample")],
+                                       label="land outside\nthe basin sample")],
                loc="lower left", bbox_to_anchor=(0.0, 0.0), fontsize=7,
                handlelength=1.0, handleheight=1.0, borderaxespad=0.3)
 
@@ -1052,13 +1052,13 @@ def fig05_era5_where():
     hatch_basins(axa, sig_names)
     hcolorbar(fig, axa, norm, cm.vik,
               "1-month skill of KF-R12E over KF (%)\n"
-              f"hatched: {n_sig} of 234 basins pass BH-FDR at $q$ = 0.10 "
+              f"hatched: {n_sig} of 234 basins pass BH-FDR at the 0.10 level "
               f"({n_sig_better} for, {n_sig_worse} against)",
               shrink=0.88, pad=0.045)
     panel_head(axa, "(a)", "1-month skill of KF-R12E over KF", y=1.02)
     import matplotlib.patches as mpatches
     axa.legend(handles=[mpatches.Patch(fc=LANDGRAY, ec="none",
-                                       label="land outside the basin sample")],
+                                       label="land outside\nthe basin sample")],
                loc="lower left", bbox_to_anchor=(0.0, 0.0), fontsize=7,
                handlelength=1.0, handleheight=1.0, borderaxespad=0.3)
 
@@ -1069,7 +1069,7 @@ def fig05_era5_where():
     axb.scatter(x[~is_sig], y[~is_sig], s=9, facecolor="none", edgecolor="0.60",
                 linewidth=0.55, zorder=4, label="not significant")
     axb.scatter(x[is_sig], y[is_sig], s=11, color=BATLOW["navy"], edgecolor="none",
-                zorder=5, label=f"BH-FDR significant ($q$ = 0.10)")
+                zorder=5, label="BH-FDR significant (0.10 level)")
     # the median is printed in the build notes; no guide line is drawn
     med = float(np.median(x))
     axb.set_xscale("log")
@@ -1093,12 +1093,12 @@ def fig05_era5_where():
                     facecolors=[BATLOW["navy"] if s else "white" for s in is_sig[off]],
                     edgecolors=[BATLOW["navy"] if s else "0.45" for s in is_sig[off]],
                     linewidth=0.6, zorder=6, clip_on=False)
-    tail = f"\n{n_off} triangles: skill below {YLO:.0f} %" if n_off else ""
+    tail = f"\n{n_off} triangles: skill below −{abs(YLO):.0f} %" if n_off else ""
     # One non-significant basin falls under this label. The scatter has zorder
     # 4-5, so the box is raised above it and left slightly transparent: the
     # text stays legible and the marker underneath is still visible. The top
     # right corner was tried instead and collides with the legend.
-    axb.annotate(f"Spearman $\\rho$ = {rho:+.2f} ($p$ = {p_rho:.3f}, $n$ = 234)"
+    axb.annotate(f"Spearman $r_s$ = {rho:+.2f}".replace("-", "−") + f" ($p$ = {p_rho:.3f}, $n$ = 234)"
                  f"{tail}", xy=(0.97, 0.035), xycoords="axes fraction",
                  ha="right", va="bottom", fontsize=7.5, color="0.15", zorder=6,
                  bbox=dict(facecolor=(1.0, 1.0, 1.0, 0.85), edgecolor="none",
@@ -1258,7 +1258,7 @@ def fig06_sequence_models():
     axb.set_ylim(0, 4.4)
     axb.set_xlabel("forecast lead $h$ (months)")
     axb.set_ylabel("skill of KF-R12E\nover the LSTM ensemble (%)")
-    panel_head(axb, "(b)", "matched training rows")
+    panel_head(axb, "(b)", "matched training months")
 
     handles, labels = axa.get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.015),

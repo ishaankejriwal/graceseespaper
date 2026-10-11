@@ -235,7 +235,7 @@ The data files are big, so they aren't in git. You download them once:
 |---|---|---|
 | GRACE satellite measurements | repo root, `CSR_..._Mascons_....nc` | [CSR mascon page](http://www2.csr.utexas.edu/grace/RL0603_mascons.html) |
 | CSR ancillary files (mascon mapping + land mask) | `data/raw/csr_ancillary/` | same [CSR mascon page](http://www2.csr.utexas.edu/grace/RL0603_mascons.html), "ancillary files" section |
-| River basin boundaries | repo root, `HydroShed+Mascon_Basins_L3.nc` | ships with the project |
+| River basin boundaries | repo root, `HydroShed+Mascon_Basins_L3.nc` | in the data archive of the Zenodo deposit (`docs/DEPOSIT_README.md`); not in git |
 | ERA5 weather data | `data/raw/era5/` | run `scripts/download_era5.py` (needs a free [CDS account](https://cds.climate.copernicus.eu/)) |
 | Climate indices | `data/processed/indices.csv` | run `scripts/download_indices.py` (NOAA PSL, no account needed) |
 | GRACE-FCast hindcast (Li & Kusche 2026) | `data/raw/li2026/CSR-FCast/global_gridded/` | [PANGAEA 973113](https://doi.pangaea.de/10.1594/PANGAEA.973113) |

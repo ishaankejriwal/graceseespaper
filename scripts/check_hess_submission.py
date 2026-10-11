@@ -23,6 +23,15 @@ PAPER = ROOT / "paper"
 OUT = PAPER / "submission"
 
 
+
+def bib_dois_cited(source):
+    """DOIs of the bibliography entries cited in the availability statement."""
+    bib = (PAPER / "references.bib").read_text(encoding="utf-8")
+    block = source.split(r"\codedataavailability", 1)[1].split(r"\authorcontribution", 1)[0]
+    keys = {k.strip() for g in re.findall(r"\\cite\w*\{([^}]+)\}", block) for k in g.split(",")}
+    entries = {re.match(r"\w+\{([^,]+)", e).group(1): e for e in re.split(r"(?m)^@", bib)[1:]}
+    return " ".join(entries.get(k, "") for k in keys)
+
 def font_info(resources, seen=None):
     """Inspect embedded fonts, including fonts inside nested PDF forms."""
     if seen is None:
@@ -148,23 +157,24 @@ def main():
     refs = re.findall(r"\\(?:ref|eqref)\{([^}]+)\}", source)
     check(len(labels) == len(set(labels)) and all(not re.search(r"\s", x) for x in labels)
           and set(refs) <= set(labels), "Unique labels without spaces; all internal references defined")
-    check(source.index(r"\noappendix") < source.index(r"\codedataavailability")
-          < source.index(r"\authorcontribution") < source.index(r"\competinginterests")
-          < source.index(r"\begin{acknowledgements}") < source.index(r"\financialsupport"),
-          "End-matter order follows HESS submission instructions")
+    order = [source.find(m) for m in (r"\noappendix", r"\codedataavailability", r"\authorcontribution",
+                                      r"\competinginterests", r"\begin{acknowledgements}", r"\financialsupport")]
+    check(min(order) >= 0 and order == sorted(order), "End-matter order follows HESS submission instructions")
     availability = source.split(r"\codedataavailability", 1)[1].split(r"\authorcontribution", 1)[0]
-    check("being prepared" not in availability and "zenodo" in availability.lower(),
-          "Availability statement cites the deposited archive, not a future deposit")
+    # A deposit counts only once a Zenodo DOI is cited, not when one is promised.
+    check("being prepared" not in availability and bool(re.search(r"10\.5281/zenodo\.\d+", availability + bib_dois_cited(source))),
+          "Availability statement cites the deposited archive by DOI")
     for name in ("copernicus.cls", "copernicus.cfg", "copernicus.bst"):
         # Normalize checkout line endings, without tolerating content changes.
-        check((PAPER / name).read_text() == (PAPER / "template" / name).read_text(),
+        check((PAPER / name).read_text(encoding="utf-8", errors="replace")
+              == (PAPER / "template" / name).read_text(encoding="utf-8", errors="replace"),
               f"{name} matches the official downloaded package")
 
     summary_block = tex.split("%% HESS SHORT SUMMARY", 1)[1].split(r"\begin{abstract}", 1)[0]
     summary = " ".join(line[3:].strip() for line in summary_block.splitlines()
                        if line.startswith("%% ") and not line.startswith("%% --"))
     check(0 < len(summary) <= 500, f"Non-technical summary: {len(summary)} characters including spaces")
-    check(not re.search(r"\b[A-Z]{2,}\b", summary), "Short summary contains no uppercase abbreviations")
+    check(not re.search(r"\b[A-Z][A-Za-z]*[A-Z]\w*", summary), "Short summary contains no uppercase abbreviations")
     abstract = plain_tex(source.split(r"\begin{abstract}", 1)[1].split(r"\end{abstract}", 1)[0])
     check(not re.search(r"\\cite\w*", source.split(r"\begin{abstract}", 1)[1].split(r"\end{abstract}", 1)[0]),
           "Abstract contains no reference citations")
@@ -196,8 +206,8 @@ def main():
         check(path.stat().st_size <= 2_000_000, f"{name}: PDF below 2 MB")
         check(all(embedded for _, embedded in font_info(page["/Resources"])), f"{name}: all fonts embedded")
         fonts = sorted({f.split("+")[-1] for f, _ in font_info(page["/Resources"])})
-        if any("DejaVu" in f for f in fonts) and any("Arial" in f for f in fonts):
-            warnings.append(f"{name}: original Arial text with DejaVu math; restore missing inputs and rebuild for one font family.")
+        families = {re.split(r"[-,]", f.lstrip("/"))[0].removesuffix("MT") for f in fonts}
+        check(len(families) == 1, f"{name}: one font family ({', '.join(sorted(families))})")
         dpi = image_dpi(page.get_contents(), page["/Resources"], pdf)
         check(all(min(pair) >= 299.5 for pair in dpi), f"{name}: embedded raster layers at least 300 dpi (rounding tolerance 0.5)")
         image = Image.open(path.with_suffix(".png"))
@@ -207,8 +217,7 @@ def main():
         check(path.with_suffix(".png").stat().st_size <= 5_000_000, f"{name}: PNG below 5 MB")
         check("/OCProperties" not in pdf.trailer["/Root"], f"{name}: no optional hidden layers")
         text = page.extract_text()
-        if re.search(r"\d%", text):
-            warnings.append(f"{name}: percentage annotations need a space before %; source fix awaits missing inputs.")
+        check(not re.search(r"\d%", text), f"{name}: space between numbers and %")
         rows.append(f"| {name} | {width:.1f} | {path.stat().st_size/1e6:.3f} | {image.width} × {image.height} | {'; '.join(fonts)} |")
         total += path.stat().st_size
 
@@ -234,6 +243,9 @@ def main():
     report.extend(f"- {'PASS' if ok else 'FAIL'}: {description}" for ok, description in checks)
     report.extend(["", "## Items requiring review", ""] + [f"- {w}" for w in warnings])
     (OUT / "technical_report.md").write_text("\n".join(report) + "\n", encoding="utf-8")
+    # The two paste-in texts track the manuscript on every run; the packet waits for a clean pass.
+    (OUT / "abstract.txt").write_text(abstract + "\n", encoding="utf-8")
+    (OUT / "short_summary.txt").write_text(summary + "\n", encoding="utf-8")
     failed = [description for ok, description in checks if not ok]
     print(f"{len(checks)-len(failed)}/{len(checks)} technical checks passed; {len(warnings)} review items.")
     for description in failed:
@@ -243,8 +255,6 @@ def main():
     if args.bundle:
         colour_previews(figure_names)
         shutil.copy2(PAPER / "main.pdf", OUT / "manuscript.pdf")
-        (OUT / "abstract.txt").write_text(abstract + "\n", encoding="utf-8")
-        (OUT / "short_summary.txt").write_text(summary + "\n", encoding="utf-8")
         with zipfile.ZipFile(OUT / "figures.zip", "w", zipfile.ZIP_DEFLATED) as archive:
             for name in figure_names:
                 archive.write(ROOT / "figures" / name, name)
