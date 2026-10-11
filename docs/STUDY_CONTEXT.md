@@ -1,6 +1,6 @@
 # Project Context — Global TWSA Forecasting Study
 
-Last updated: 2026-09-11.
+Last updated: 2026-10-11 (HESS submission branch `hess-submission`).
 
 What a new collaborator needs today: what the study is, what it claims, where each number comes
 from, how to run it, and what is still open. Per-run history lives in `results/RUN_LOG.md`; code
@@ -23,10 +23,14 @@ same pipeline runs on the JPL RL06.3Mv04 mascons with `--source jpl`.
 
 ### 1. The reference forecast for this problem should be a filter, not persistence
 
-A per-basin Kalman AR(1) plus observation-noise filter is proposed as the reference forecast for
-deseasonalized basin TWSA. It handles two things damped persistence cannot: observation noise,
-which persistence carries forward intact, and the 2017 to 2018 mission gap, across which the
-filter simply propagates its state.
+A per-basin Kalman filter with an AR(1) state plus an additive model-noise term is proposed as
+the reference forecast for the deseasonalized basin residual. It handles two things damped
+persistence cannot: the transient part of each month's residual, which persistence carries
+forward intact, and the 2017 to 2018 mission gap, across which the filter simply propagates its
+state. Terminology since the 2026-09-29 mentor follow-up: the fitted additive term is "model
+noise" (variance r), not observation or instrument noise. The study does not separate physical
+variability from instrument or processing error, and makes no claim about mascon accuracy. The
+r = 0 refit is the "zero-r variant" (formerly "noise-free variant").
 
 Against the stronger damped variant at each lead, on matched rows (19,422 at lead 1 down to
 18,252 at lead 6), from `results/paper_baseline_ladder.csv`:
@@ -129,7 +133,7 @@ inflates 8x on JPL and not at all on CSR". The remedy is the sample restriction,
   interpretation: JPL's 3-degree mascons with the CRI filter already perform the spatial
   denoising that a CSR neighbour supplied. The experiments are retained as extended chain steps,
   not deleted.
-- **A separate GRACE-FO observation-noise variance.** It hurts at every lead, -1.84% at lead 1
+- **A separate GRACE-FO model-noise variance.** It hurts at every lead, -1.84% at lead 1
   (p 1.7e-7) through -0.38% at lead 6 (p 6.0e-3), and fold 1 cannot fit it at all, so 234 of
   1170 basin-folds fall back to one variance (`results/kalman_mission_summary.csv`). Per-basin
   at lead 1, BH-corrected: 0 helped, 0 hurt, 234 tested. The one-variance filter is kept.

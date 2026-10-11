@@ -1,4 +1,4 @@
-%% HESS manuscript, Copernicus LaTeX package (copernicus.cls v7.14).
+%% HESS manuscript, official Copernicus LaTeX package 7.16 (3 September 2026).
 %% Compile: latexmk -pdf -interaction=nonstopmode main.tex   (or pdflatex, bibtex, pdflatex x2).
 %% Number discipline: every quantitative claim carries a "% source:" comment on the
 %% preceding line, pointing at a results CSV (file and column). The comments never render.
@@ -14,11 +14,14 @@
 of GRACE terrestrial water storage}
 
 \Author[1][ishaankejriwal1@gmail.com]{Ishaan}{Kejriwal}
+\Author[2][ianwa09@gmail.com]{Ian}{Wang}
 
-\affil[1]{Independent researcher}
+\affil[1]{Johns Creek High School, 5575 State Bridge Road, Johns Creek, GA 30022, USA}
+\affil[2]{Illinois Mathematics and Science Academy, 1500 Sullivan Road, Aurora, IL 60506, USA}
+\equalcontrib{1,2}
 
 \runningtitle{A Kalman filter benchmark for GRACE water storage forecasts}
-\runningauthor{Kejriwal}
+\runningauthor{Kejriwal and Wang}
 
 \received{}
 \pubdiscuss{}
@@ -33,7 +36,7 @@ of GRACE terrestrial water storage}
 %% ------------------------------------------------------------------
 %% HESS SHORT SUMMARY (entered in the online submission form; <= 500 characters)
 %% ------------------------------------------------------------------
-%% GRACE satellites measure changes in water stored on land. We evaluate
+%% Satellites measure changes in water stored on land. We evaluate
 %% a simple forecast that filters each basin's storage record before
 %% projecting it forward. It improves on damped persistence at most tested
 %% lead times in two mascon products. Adding weather history improves
@@ -49,7 +52,8 @@ rarely against the storage record they start from. How much skill that
 record alone supplies is unclear. Persistence, the simplest
 such reference, carries forward the latest deseasonalized residual,
 including whatever transient part it contains. We test whether filtering the
-GRACE and GRACE-FO record
+Gravity Recovery and Climate Experiment (GRACE) and GRACE Follow-On
+(GRACE-FO) record
 before extrapolation gives a stronger reference. For each basin we fit a
 Kalman filter with a first-order autoregressive state and additive
 model noise, and forecast from the filtered state. The split between
@@ -58,7 +62,7 @@ from observation error. Forecasts are evaluated on deseasonalized residuals over
 % source: Sect. 2.2 basin selection (284 mask basins - 46 ice-sheet - 4 water-body = 234, CSR); Sect. 3.2
 % folds (issue starts 2019-06, 2020-11, 2022-04, 2023-09, 2025-02; CSR targets to 2026-05)
 234 basins and five expanding-window test periods in 2019--2026. On
-the CSR mascon product the filter reduces mean squared error by
+the Center for Space Research (CSR) mascon product the filter reduces mean squared error by
 % source: results/paper_baseline_ladder.csv, kalman_ar1 rows, skill_vs_damped (0.0498, 0.0879); the
 % reference is the stronger of the two damped variants at each lead (scripts/build_paper_ladder.py)
 5.0\,\% at a 1-month lead and 8.8\,\% at 2 months, against the stronger
@@ -68,7 +72,7 @@ of two damped-persistence references.
 Refitting with zero model-noise variance removes that 1-month gain.
 % source: results/jpl/paper_baseline_ladder.csv, kalman_ar1 rows, skill_vs_damped h2..h6 (0.0635, 0.0464,
 % 0.0155, 0.0236, 0.0474), all dm_p < 0.02; h1 skill 0.0056, dm_p 0.60
-On the JPL product the filter improves on damped persistence at 2--6
+On the Jet Propulsion Laboratory (JPL) product the filter improves on damped persistence at 2--6
 months; the 1-month difference is not significant. On CSR, a ridge
 regression on 12 months of filtered storage and ERA5-Land variables lowers
 standardized error by a further
@@ -92,7 +96,8 @@ physical units.
 \introduction
 \label{sec:intro}
 
-The GRACE and GRACE-FO missions have measured monthly changes in
+The Gravity Recovery and Climate Experiment (GRACE) and GRACE Follow-On
+(GRACE-FO) missions have measured monthly changes in
 terrestrial water storage (TWS) since 2002, integrating changes in groundwater,
 soil moisture, surface water, snow and ice \citep{tapley2004grace, landerer2020gracefo}.
 Anomalies of this quantity (TWSA) have a memory of several months, which
@@ -186,7 +191,7 @@ scope and limits.
 \subsection{GRACE and GRACE-FO mascon solutions}
 \label{sec:data-grace}
 
-The primary storage data set is the CSR RL0603M mascon solution
+The primary storage data set is the Center for Space Research (CSR) RL0603M mascon solution
 \citep{save2016mascons, save2020rl06} on a $0.25^{\circ}$ grid, April 2002 through May
 2026, in centimeters of equivalent water height; the product version is
 RL06.2.
@@ -195,7 +200,7 @@ Each monthly solution is assigned to its official calendar month using the
 product's documented list of missing months rather than by the midpoint of
 its data span, which would mislabel two solutions.
 % source: src/gracefc/basins.py assign_solution_months; results/post_rerun_audit.md sect. 6
-The second storage data set is the JPL RL06.3Mv04 mascon solution
+The second storage data set is the Jet Propulsion Laboratory (JPL) RL06.3Mv04 mascon solution
 \citep{wiese2023jpl} with the
 coastline resolution improvement filter applied, sampled at $0.5^{\circ}$,
 April 2002 through June 2026, with the product's scale factors applied and
@@ -239,7 +244,10 @@ usable GRACE-FCast cell. (b)~The JPL product: the 67 basins that pass the
 coverage rule there, fewer than on CSR because JPL's coarser native
 mascons (Sect.~\ref{sec:data-grace}) are fully contained by fewer basins. The remaining basins of the CSR sample are shaded
 neutral; the three-way split of (a) was not evaluated on JPL. Land outside
-the basin sample is pale grey in both panels.}
+the basin sample is pale grey in both panels. Basin partition based on
+HydroSHEDS \citep{lehner2013hydrosheds}; base map made with Natural Earth
+(public domain). Colour palettes use scientific colour maps
+\citep{crameri2020colour}.}
 % source: data/processed/li2026_basin_coverage.csv (227 with coverage > 0, 209 with >=1 full Li cell and >=1 full native mascon);
 % results/phase6_li_comparison_summary.csv (n_basins 209 on joint_full_cells); results/jpl/phase6_li_comparison_summary.csv (67)
 \label{fig:basins}
@@ -805,7 +813,9 @@ the split hurts. (c)~Per-basin 1-month skill of KF over the $\rho^{h}$
 damped-persistence variant on the 234 basins, computed from RMSE in
 centimeters; KF is better in 158 basins and damped persistence in 76. The
 color scale is clipped at $\pm 20\,\%$, and land outside the basin sample
-is pale grey.}
+is pale grey. Basin partition based on HydroSHEDS
+\citep{lehner2013hydrosheds}; base map made with Natural Earth
+(public domain).}
 % source: results/r0_ablation_summary.csv (full_margin, rho_estimation_term and noise_filtering_term rows, skill_pct); results/kalman_mission_summary.csv (mission_split_term rows, skill_pct, ci_lo_pct, ci_hi_pct);
 % results/conventional_metrics_perbasin.csv (rmse_cm of kalman_ar1 and damped_persistence at horizon 1; damped_persistence is the rho variant at h1 per scripts/compute_conventional_metrics.py DAMPED_BY_H)
 \label{fig:mechanism}
@@ -893,7 +903,9 @@ centimeters of equivalent water height; filled markers are the 45
 significant basins (44 helped, 1 hurt). Three basins fall below the
 lower axis limit of $-42\,\%$ and are marked by downward triangles at their
 actual storage standard deviations. The Spearman
-correlation is $-0.14$. The color scale in (a) is clipped at $\pm 35\,\%$.}
+correlation is $-0.14$. The color scale in (a) is clipped at $\pm 35\,\%$.
+Basin partition based on HydroSHEDS \citep{lehner2013hydrosheds}; base map
+made with Natural Earth (public domain).}
 % source: scripts/make_figures.py fig05_era5_where (VLIM = 35.0, YLO = -42.0)
 % source: results/flat12_ridge_predictions.csv (per-basin lead-1 MSE of ridge_own_era5_flat12 and kalman_ar1; per-basin DM with BH q=0.10); median across folds of train-window residual std per basin; scripts/make_figures.py fig05_era5_where (YLO = -42)
 \label{fig:era5where}
@@ -1335,21 +1347,6 @@ forecasts, including any future combination of storage-based and
 forcing-based predictions, has to account for this dependence on lead
 time, error scaling and input availability.
 
-\codedataavailability{CSR GRACE and GRACE-FO mascon solutions are available from the Center for
-Space Research (\url{https://www2.csr.utexas.edu/grace/}) and JPL mascon
-solutions from NASA PO.DAAC (\url{https://podaac.jpl.nasa.gov/}).
-ERA5-Land data are available from the Copernicus Climate Data Store
-(\url{https://cds.climate.copernicus.eu/}) \citep{munozsabater2021era5land}.
-Climate indices are available from NOAA PSL
-(\url{https://psl.noaa.gov/data/climateindices/}). The GRACE-FCast hindcast
-is available from PANGAEA \citep{li2025pangaea}. The analysis code is at
-\url{https://github.com/ishaankejriwal/graceseespaper}. The benchmark
-forecasts, the per-prediction files and every result table used in this
-paper, together with a manifest mapping each table and figure to its
-source file, are being prepared for archival deposit before submission.
-% Before submission: create and verify the archive, then add its real DOI.
-}
-
 \appendix
 
 \section{Model names and repository identifiers}
@@ -1533,7 +1530,6 @@ over 234 basins, at lead times $h$ of 1 to 6 months. The damped-persistence
 rows use the stronger variant at each lead time.}
 \label{tab:conventional}
 % source: results/conventional_metrics_summary.csv (pooled_rmse_cm three decimals; rmse_cm_med, cc_anom_med, cc_full_med, nse_anom_med, nse_full_med two decimals)
-\renewcommand{\baselinestretch}{1}\selectfont
 \begin{tabular}{lccccccc}
 \tophline
 Forecast & $h$ & Pooled RMSE (cm) & Median RMSE (cm) & CC anom. & CC full & NSE anom. & NSE full \\
@@ -1584,19 +1580,38 @@ KF-R12E & 1 & 5.231 & 2.56 & 0.69 & 0.88 & 0.42 & 0.76 \\
 \clearpage
 \noappendix
 
-\authorcontribution{I.K. designed the study, wrote the analysis code,
-performed the experiments, and wrote the manuscript.}
+\codedataavailability{CSR GRACE and GRACE-FO mascon solutions are available from the Center for
+Space Research (\url{https://www2.csr.utexas.edu/grace/}) and JPL mascon
+solutions from NASA PO.DAAC (\url{https://podaac.jpl.nasa.gov/}).
+ERA5-Land data are available from the Copernicus Climate Data Store
+(\url{https://cds.climate.copernicus.eu/}) \citep{munozsabater2021era5land}.
+Climate indices are available from NOAA PSL
+(\url{https://psl.noaa.gov/data/climateindices/}). The GRACE-FCast hindcast
+is available from PANGAEA \citep{li2025pangaea}. The analysis code is at
+\url{https://github.com/ishaankejriwal/graceseespaper}. The benchmark
+forecasts, the per-prediction files and every result table used in this
+paper, together with a manifest mapping each table and figure to its
+source file, are being prepared for archival deposit before submission.
+% Before submission: create and verify the archive, then add its real DOI.
+}
 
-\competinginterests{The author declares no conflict of interest.}
+\authorcontribution{I.K. designed the study, wrote the analysis code,
+performed the experiments, and wrote the manuscript. I.W. validated the
+study, wrote the manuscript, adapted the experiment to fit JPL mascons,
+and replicated the experiments using JPL mascons. I.K. and I.W. share
+first authorship.}
+
+\competinginterests{The authors declare that they have no conflict of interest.}
 
 \begin{acknowledgements}
-The author thanks the Center for Space Research (University of Texas at
+The authors thank the Center for Space Research (University of Texas at
 Austin) and the Jet Propulsion Laboratory for the open mascon solutions
 and ancillary files, the Copernicus Climate Change Service for ERA5-Land,
 NOAA PSL for the climate indices, and Li and Kusche for publishing their
-gridded hindcast, which made the head-to-head comparison possible. This
-research received no external funding.
+gridded hindcast, which made the head-to-head comparison possible.
 \end{acknowledgements}
+
+\financialsupport{This research received no external funding.}
 
 \bibliographystyle{copernicus}
 \bibliography{references}

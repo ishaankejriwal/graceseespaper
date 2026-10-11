@@ -171,7 +171,7 @@ Three things were run properly and are not claims.
   that a CSR neighbour was supplying. A controlled effect that reverses on a second mascon
   solution of the same observations is not one we are willing to publish. The experiments are
   kept as extended chain steps.
-- **A separate observation-noise variance for GRACE-FO.** It hurts at every lead, from -1.84% at
+- **A separate model-noise variance for GRACE-FO.** It hurts at every lead, from -1.84% at
   lead 1 (p = 1.7e-7) to -0.38% at lead 6 (`results/kalman_mission_summary.csv`), and fold 1
   cannot fit it at all (234 of 1170 basin-folds fall back to one variance). The single-variance
   filter is what we keep.
@@ -514,6 +514,11 @@ figure. (The transcriptions live in the script itself, so when a result legitima
 you update the ledger *and* the script's assert next to it.)
 
 ---
+
+HESS submission formatting and unresolved author/data items are documented in
+[`paper/HESS_SUBMISSION_CHECKLIST.md`](paper/HESS_SUBMISSION_CHECKLIST.md).
+After compiling `paper/main.tex`, run `python scripts/check_hess_submission.py --bundle`
+to check the PDF and figures and create the local draft submission packet.
 
 ## 8. Rules for working here
 

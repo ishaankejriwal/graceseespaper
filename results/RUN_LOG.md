@@ -1925,3 +1925,22 @@ input to the archived phase-2/conditioned runs is needed; those runs were not re
 
 Checks: `pytest tests -q` 28 passed; `run_chain.py --list` and `--source jpl --list` OK;
 every script compiles and its `--help` runs.
+
+## 2026-10-11 - HESS submission branch (no result changes)
+
+Branch `hess-submission`: the 2026-09-29 mentor follow-up edits (model-noise and residual
+terminology, zero-r variant, narrowed GRACE-FCast and basin-error claims, per-basin gain
+correlates from `scripts/kalman_gain_correlates.py`) merged with `origin/hess-guidelines`
+(Copernicus package 7.16, second author, affiliations, end-matter order, map credits,
+colour-map citation, article identifiers, `scripts/check_hess_submission.py`).
+
+All seven figures rebuilt from the full CSR inputs with one Arial family for text and
+mathematics and 300 dpi PNGs; every source assert passed, so no plotted value changed. The
+hess-guidelines branch could rebuild only Figures 2, 4 and 7 because its checkout lacked
+the git-ignored CSR files. `make_manifest.py --check` passed (25 files).
+
+Added full school addresses, a separate Financial support section, `docs/DEPOSIT_README.md`
+and `scripts/build_deposit.py` for the Zenodo deposit. Open before submission: the deposit
+DOI (the checker fails until the availability statement cites it), the JPL row-level
+prediction files (held by the second author, not in this checkout), and the authors'
+AI-policy statement.

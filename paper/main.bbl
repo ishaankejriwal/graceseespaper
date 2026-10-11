@@ -1,4 +1,4 @@
-\begin{thebibliography}{47}
+\begin{thebibliography}{48}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \providecommand{\urlprefix}{}
@@ -51,6 +51,11 @@ Benjamini, Y. and Hochberg, Y.: Controlling the False Discovery Rate: A
   \urlprefix\url{https://www2.csr.utexas.edu/grace/RL06_mascons.html}, accessed
   18 September 2026, 2026.
 
+\bibitem[{Crameri et~al.(2020)Crameri, Shephard, and Heron}]{crameri2020colour}
+Crameri, F., Shephard, G.~E., and Heron, P.~J.: The misuse of colour in science
+  communication, Nature Communications, 11, 5444,
+  \doi{10.1038/s41467-020-19160-7}, 2020.
+
 \bibitem[{Diebold and Mariano(1995)}]{diebold1995comparing}
 Diebold, F.~X. and Mariano, R.~S.: Comparing Predictive Accuracy, Journal of
   Business \& Economic Statistics, 13, 253--263,
@@ -99,7 +104,7 @@ Koster, R.~D., Mahanama, S. P.~P., Yamada, T.~J., Balsamo, G., Berg, A.~A.,
   Malyshev, S., Merryfield, W.~J., Seneviratne, S.~I., Stanelle, T., van~den
   Hurk, B. J. J.~M., Vitart, F., and Wood, E.~F.: Contribution of land surface
   initialization to subseasonal forecast skill: First results from a
-  multi-model experiment, Geophysical Research Letters, 37,
+  multi-model experiment, Geophysical Research Letters, 37, L02\,402,
   \doi{10.1029/2009GL041677}, 2010.
 
 \bibitem[{K{\"u}nsch(1989)}]{kunsch1989blockboot}
@@ -119,7 +124,7 @@ Landerer, F.~W., Flechtner, F.~M., Save, H., Webb, F.~H., Bandikova, T.,
   Strekalov, D., Tamisiea, M.~E., Wang, F., Watkins, M.~M., Wen, H.-Y., Wiese,
   D.~N., and Yuan, D.-N.: Extending the Global Mass Change Data Record: {GRACE
   Follow-On} Instrument and Science Data Performance, Geophysical Research
-  Letters, 47, \doi{10.1029/2020GL088306}, 2020.
+  Letters, 47, e2020GL088\,306, \doi{10.1029/2020GL088306}, 2020.
 
 \bibitem[{Lehner and Grill(2013)}]{lehner2013hydrosheds}
 Lehner, B. and Grill, G.: Global river hydrography and network routing:
@@ -148,7 +153,7 @@ Li, F., Kusche, J., Rietbroek, R., Wang, Z., Forootan, E., Schulze, K., and
   L{\"u}ck, C.: Comparison of Data-Driven Techniques to Reconstruct
   (1992--2002) and Predict (2017--2018) {GRACE}-Like Gridded Total Water
   Storage Changes Using Climate Inputs, Water Resources Research, 56,
-  \doi{10.1029/2019WR026551}, 2020.
+  e2019WR026\,551, \doi{10.1029/2019WR026551}, 2020.
 
 \bibitem[{Li et~al.(2024)Li, Kusche, Sneeuw, Siebert, Gerdener, Wang, Chao,
   Chen, and Tian}]{li2024grl}
@@ -162,7 +167,8 @@ Li, F., Kusche, J., Sneeuw, N., Siebert, S., Gerdener, H., Wang, Z., Chao, N.,
 Li, F., Springer, A., Kusche, J., Gutknecht, B.~D., and Ewerdwalbesloh, Y.:
   Reanalysis and Forecasting of Total Water Storage and Hydrological States by
   Combining Machine Learning With {CLM} Model Simulations and {GRACE} Data
-  Assimilation, Water Resources Research, 61, \doi{10.1029/2024WR037926}, 2025.
+  Assimilation, Water Resources Research, 61, e2024WR037\,926,
+  \doi{10.1029/2024WR037926}, 2025.
 
 \bibitem[{Longuevergne et~al.(2010)Longuevergne, Scanlon, and
   Wilson}]{longuevergne2010smallbasins}
@@ -183,7 +189,7 @@ Mo, S., Zhong, Y., Forootan, E., Mehrnegar, N., Yin, X., Wu, J., Feng, W., and
   Forootan}]{mo2025nrt}
 Mo, S., Schumacher, M., van Dijk, A. I. J.~M., Shi, X., Wu, J., and Forootan,
   E.: Near-Real-Time Monitoring of Global Terrestrial Water Storage Anomalies
-  and Hydrological Droughts, Geophysical Research Letters, 52,
+  and Hydrological Droughts, Geophysical Research Letters, 52, e2024GL112\,677,
   \doi{10.1029/2024GL112677}, 2025.
 
 \bibitem[{Mu{\~n}oz-Sabater et~al.(2021)Mu{\~n}oz-Sabater, Dutra,
@@ -212,13 +218,15 @@ Nie, W., Kumar, S.~V., Chen, J., Zhao, L., Skulovich, O., Yoo, J., Pflug, J.,
 \bibitem[{Niraula and Goessling(2021)}]{niraula2021seaice}
 Niraula, B. and Goessling, H.~F.: Spatial Damped Anomaly Persistence of the Sea
   Ice Edge as a Benchmark for Dynamical Forecast Systems, Journal of
-  Geophysical Research: Oceans, 126, \doi{10.1029/2021JC017784}, 2021.
+  Geophysical Research: Oceans, 126, e2021JC017\,784,
+  \doi{10.1029/2021JC017784}, 2021.
 
 \bibitem[{Pechlivanidis et~al.(2020)Pechlivanidis, Crochemore, Rosberg, and
   Bosshard}]{pechlivanidis2020drivers}
 Pechlivanidis, I.~G., Crochemore, L., Rosberg, J., and Bosshard, T.: What Are
   the Key Drivers Controlling the Quality of Seasonal Streamflow Forecasts?,
-  Water Resources Research, 56, \doi{10.1029/2019WR026987}, 2020.
+  Water Resources Research, 56, e2019WR026\,987, \doi{10.1029/2019WR026987},
+  2020.
 
 \bibitem[{Reager et~al.(2014)Reager, Thomas, and Famiglietti}]{reager2014flood}
 Reager, J.~T., Thomas, B.~F., and Famiglietti, J.~S.: River basin flood
@@ -265,7 +273,7 @@ Steidl, V. and Zhu, X.~X.: Hierarchical Graph Networks for Forecasting
   Reigber}]{tapley2004grace}
 Tapley, B.~D., Bettadpur, S., Watkins, M., and Reigber, C.: The gravity
   recovery and climate experiment: Mission overview and early results,
-  Geophysical Research Letters, 31, \doi{10.1029/2004GL019920}, 2004.
+  Geophysical Research Letters, 31, L09\,607, \doi{10.1029/2004GL019920}, 2004.
 
 \bibitem[{Vishwakarma et~al.(2018)Vishwakarma, Devaraju, and
   Sneeuw}]{vishwakarma2018resolution}
@@ -288,7 +296,7 @@ Wilks, D.~S.: ``The Stippling Shows Statistically Significant Grid Points'':
 \bibitem[{Wood and Lettenmaier(2008)}]{wood2008esp}
 Wood, A.~W. and Lettenmaier, D.~P.: An ensemble approach for attribution of
   hydrologic prediction uncertainty, Geophysical Research Letters, 35,
-  \doi{10.1029/2008GL034648}, 2008.
+  L14\,403, \doi{10.1029/2008GL034648}, 2008.
 
 \bibitem[{Yin et~al.(2023)Yin, Slater, Khouakhi, Yu, Liu, Li, Pokhrel, and
   Gentine}]{yin2023gtws}

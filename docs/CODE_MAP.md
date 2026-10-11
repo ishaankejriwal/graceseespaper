@@ -53,7 +53,7 @@ Running anything looks like this:
 | `surrogates.py` | Makes scrambled fake data (IAAFT) that keeps each basin's own statistics but destroys its timing relationship with other basins. The strictest control for a cross-basin claim. Extended steps only. |
 | `cache.py` | Saves fitted Kalman parameters so we don't refit constantly. Keyed by a hash of the data *and* the protocol, so changing the method can never silently reuse old fits. |
 | `era5.py` | Loads ERA5 weather data (rain, temperature, soil moisture, and 8 more) and averages it per basin. |
-| `kalman_mission.py` | The mission-split variant of the filter: a separate observation-noise variance for GRACE-FO. Tested and rejected, kept as a sensitivity. |
+| `kalman_mission.py` | The mission-split variant of the filter: a separate model-noise variance for GRACE-FO. Tested and rejected, kept as a sensitivity. |
 | `graphs.py` | Decides which basins count as a basin's "neighbours", by correlation, by distance, or **randomly** (the placebo version used as a control). Extended steps only. |
 
 ### The experiment engines
@@ -117,6 +117,12 @@ compare fairly.
 `make_manifest.py` checksums the big result files that git doesn't store.
 `make_figures.py` builds the paper's charts — and crashes on purpose if a plotted number
 disagrees with the recorded value in `paper/notes/REWRITE_LEDGER.md`.
+`kalman_gain_correlates.py` ranks where the filter's 1-month gain is largest (area, precipitation,
+residual autocorrelation) for the Sect. 4.1 paragraph.
+`check_hess_submission.py --bundle` checks the compiled manuscript and figures against the HESS
+rules and writes the local packet in `paper/submission/`.
+`build_deposit.py` stages the two Zenodo archives (code at HEAD; large CSR files and processed
+inputs) into `deposit/`, uploading nothing.
 
 ### The experiments, in order
 
@@ -127,7 +133,7 @@ The default list first, in the order the chain runs them.
 | `run_phase2_baselines.py` | How good are the simple baselines: climatology, persistence, damped persistence, three ridges? |
 | `run_kalman_baseline.py` | Does the Kalman filter beat them? Against damped persistence and `ridge_own_perbasin`, yes at all six leads. Against `ridge_own_lags` it is ahead at leads 1 and 2 (+3.9%, +4.2%) and behind at leads 4 and 5 (-0.59%, -0.64%, neither significant), `results/paper_baseline_contrasts.csv`. |
 | `run_flat12_ridge.py` | Does a ridge over a flat 12-month window of filtered state and ERA5 improve on the filter? (Yes, most at lead 1.) No torch. |
-| `run_kalman_mission_sensitivity.py` | Does a separate GRACE-FO observation-noise variance help? (No, it hurts at every lead.) |
+| `run_kalman_mission_sensitivity.py` | Does a separate GRACE-FO model-noise variance help? (No, it hurts at every lead.) |
 | `run_r0_ablation.py` | Which half of the Kalman filter earns the win? (The noise removal.) |
 | `build_paper_ladder.py` | Recomputes the paper's main comparison table on exactly matched rows. |
 | `run_phase6_li_comparison.py` | How do we compare to a published forecast product, under one subset rule? (We win lead 1, they win the long leads.) |
