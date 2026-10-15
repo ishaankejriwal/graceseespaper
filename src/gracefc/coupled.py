@@ -1,15 +1,14 @@
-"""Coupled bivariate Kalman filter: two basins, own latent states, correlated process noise.
+"""Coupled bivariate Kalman filter for a basin and its top-1 neighbor.
 
-The single-latent fusion failed because it forced the neighbor to observe the basin's own
-state plus white noise; in truth the neighbor carries persistent local signal. Here each basin
-keeps its own AR(1) latent, and coupling enters only through the process-noise correlation c:
-regional weather shocks hit both states together, everything local stays separate. At c = 0
-this reduces exactly to the independent own filter, so an uninformative neighbor costs nothing.
-All per-basin (rho, q, r) come from the cached own fits; c is the single new parameter, fitted
-on training months only by joint MLE.
+Each basin keeps its own AR(1) latent state, and the two states are linked only through a
+correlation c between their process-noise terms, which represents shocks shared by both
+basins. Unlike the single-state model in fusion.py, the neighbor keeps its own persistent
+state. At c = 0 the filter reduces to the per-basin filter. Each basin's (rho, q, r) are
+taken from the per-basin filter fits; c is the only new parameter and is fitted by maximum
+likelihood on training months.
 
-The filter is hand-coded 2x2 scalar arithmetic: it runs inside a per-evaluation MLE loop for
-thousands of basin pairs, where numpy matrix overhead dominates the actual math.
+The 2x2 filter is written out in scalar arithmetic because it runs inside the likelihood
+optimization for every basin pair, where numpy matrix overhead would dominate.
 """
 import numpy as np
 import pandas as pd
@@ -19,9 +18,13 @@ LOG2PI = float(np.log(2 * np.pi))
 
 
 def _bivar_filter(y_i, y_j, rho_i, rho_j, q_i, q_j, r_i, r_j, c, return_ll=False):
-    """2-state filter; either observation being NaN drops only its row of the update."""
+    """Filtered state of basin i from the two-state filter.
+
+    A NaN in either observation drops only that row of the update. With return_ll=True
+    also returns the joint log-likelihood of both series.
+    """
     cq = c * (q_i * q_j) ** 0.5
-    # Stationary prior for the diagonal-AR pair with cross process noise
+    # Stationary prior covariance of the two AR(1) states with correlated process noise
     x0 = x1 = 0.0
     p00 = q_i / max(1 - rho_i * rho_i, 1e-6)
     p11 = q_j / max(1 - rho_j * rho_j, 1e-6)
@@ -30,15 +33,14 @@ def _bivar_filter(y_i, y_j, rho_i, rho_j, q_i, q_j, r_i, r_j, c, return_ll=False
     out = np.empty(n)
     ll = 0.0
     for t in range(n):
-        # Predict
         x0, x1 = rho_i * x0, rho_j * x1
         p00 = rho_i * rho_i * p00 + q_i
         p11 = rho_j * rho_j * p11 + q_j
         p01 = rho_i * rho_j * p01 + cq
         yi, yj = y_i[t], y_j[t]
-        oi, oj = yi == yi, yj == yj  # NaN-safe availability checks
+        oi, oj = yi == yi, yj == yj  # False only for NaN
         if oi and oj:
-            # Joint 2x2 update via closed-form inverse
+            # Joint update with the closed-form inverse of the 2x2 innovation covariance
             s00, s11, s01 = p00 + r_i, p11 + r_j, p01
             det = s00 * s11 - s01 * s01
             v0, v1 = yi - x0, yj - x1
@@ -83,7 +85,10 @@ def _bivar_filter(y_i, y_j, rho_i, rho_j, q_i, q_j, r_i, r_j, c, return_ll=False
 
 
 def fit_coupling(y_i_train, y_j_train, rho_i, rho_j, q_i, q_j, r_i, r_j) -> float:
-    """MLE of the process-noise correlation c on training months; bounded away from +/-1."""
+    """Maximum-likelihood process-noise correlation c on training months, within [-0.95, 0.95].
+
+    Returns 0 when the optimized likelihood is not finite.
+    """
     def neg_ll(c):
         _, ll = _bivar_filter(y_i_train, y_j_train, rho_i, rho_j, q_i, q_j, r_i, r_j,
                               c, return_ll=True)
@@ -95,7 +100,7 @@ def fit_coupling(y_i_train, y_j_train, rho_i, rho_j, q_i, q_j, r_i, r_j) -> floa
 
 def coupled_state_matrix(resid_wide: pd.DataFrame, params: pd.DataFrame, graph: dict,
                          test_start: pd.Timestamp) -> tuple[pd.DataFrame, pd.Series]:
-    """Coupled filtered state x_i(t|t) per basin with its top-1 neighbor; returns fitted c too."""
+    """Coupled filtered state x_i(t|t) of each basin with its top-1 neighbor, and c per basin."""
     p = params.set_index("name")
     train_mask = np.asarray(resid_wide.index < test_start)
     out, cs = {}, {}
@@ -106,7 +111,8 @@ def coupled_state_matrix(resid_wide: pd.DataFrame, params: pd.DataFrame, graph: 
         nbrs = graph.get(name, [])
         nbr = nbrs[0] if nbrs else None
         if nbr is None or nbr not in p.index or nbr not in resid_wide.columns:
-            # No usable neighbor: c = 0 coupled filter IS the own filter, so run it that way
+            # Without a usable neighbor, run the coupled filter with c = 0 and no neighbor
+            # data, which is the per-basin filter
             y_i = resid_wide[name].values
             out[name] = _bivar_filter(y_i, np.full_like(y_i, np.nan),
                                       rho_i, rho_i, q_i, q_i, r_i, r_i, 0.0)

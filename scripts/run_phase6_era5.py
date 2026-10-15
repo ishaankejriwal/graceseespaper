@@ -1,4 +1,22 @@
-"""Phase 6: do ERA5-Land forcings lift GBM/MLP over ridge, and the neighbor headline?"""
+"""Ridge, gradient-boosting and MLP corrections of the Kalman forecast with ERA5-Land inputs.
+
+Not used in the manuscript. run_phase6_basin_analysis.py, run_phase6_hybrid.py and
+run_phase6_era5_attribution.py read these outputs. Runs
+gracefc.experiment_era5.run_era5_experiment on the kept basins with the cached Kalman
+parameters, for own-basin arms and correlation-selected neighbor arms, with and without
+ERA5-Land features, plus random-neighbor placebo arms.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv,
+era5_basin_month.csv, and results/kalman_fold_params.pkl.
+Outputs (tag phase6_era5 by default): results/<tag>_predictions.csv,
+_placebo_monthly.csv, _summary.csv (standardized RMSE, placebo rank, DM against the ridge
+twin and the twin without ERA5-Land) and _headline.csv (the CONTRASTS below with
+block-bootstrap intervals and DM p-values).
+
+Usage:
+  python scripts/run_phase6_era5.py [--placebo 20] [--tag phase6_era5] [--smoke]
+  GRACEFC_SOURCE=jpl python scripts/run_phase6_era5.py [--placebo 20] [--tag phase6_era5] [--smoke]
+"""
 import argparse
 import sys
 from pathlib import Path
@@ -20,14 +38,14 @@ OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
 PARAMS_CACHE = OUT_DIR / "kalman_fold_params.pkl"
 
-# Headline contrasts: (challenger, reference) — skill, bootstrap CI, and DM p per horizon
+# (challenger, reference) pairs; each gets skill, a bootstrap CI and a DM p per horizon
 CONTRASTS = [
-    ("ridge_own_era5", "ridge_own"),          # does ERA5 add own-basin information at all?
-    ("gbm_own_era5", "ridge_own_era5"),       # nonlinearity question on the enriched features
+    ("ridge_own_era5", "ridge_own"),          # ERA5-Land added to the own-basin ridge
+    ("gbm_own_era5", "ridge_own_era5"),       # nonlinear heads on the same features
     ("mlp_own_era5_s0", "ridge_own_era5"),
-    ("ridge_corr_top1", "ridge_own"),         # Phase 3b headline re-anchored on these rows
-    ("ridge_corr_top1_era5", "ridge_own_era5"),  # neighbor conditioned on shared meteorology
-    ("ridge_corr_top1_era5", "ridge_corr_top1"),  # does ERA5 improve the headline model?
+    ("ridge_corr_top1", "ridge_own"),         # the phase3b neighbor contrast on these rows
+    ("ridge_corr_top1_era5", "ridge_own_era5"),  # neighbor given shared meteorology
+    ("ridge_corr_top1_era5", "ridge_corr_top1"),  # ERA5-Land added to the neighbor ridge
     ("gbm_corr_top1_era5", "ridge_corr_top1_era5"),
 ]
 
@@ -55,7 +73,7 @@ def main() -> None:
     pred_rows.to_csv(OUT_DIR / f"{args.tag}_predictions.csv", index=False)
     plac_monthly.to_csv(OUT_DIR / f"{args.tag}_placebo_monthly.csv", index=False)
 
-    # Per-arm summary with placebo rank, ridge-twin DM, and no-ERA5-twin DM
+    # Per-arm summary: placebo rank, DM against the ridge twin, DM against the no-ERA5 twin
     plac_pooled = (plac_monthly.groupby(["model", "horizon"])[["sum", "count"]].sum()
                    .assign(rmse=lambda d: np.sqrt(d["sum"] / d["count"])))
     models_present = set(pred_rows["model"])
@@ -72,6 +90,7 @@ def main() -> None:
             row["placebo_n"] = len(dist)
             row["placebo_beaten"] = int((row["rmse_std"] < dist).sum())
             row["p_rank"] = float((1 + (dist <= row["rmse_std"]).sum()) / (1 + len(dist)))
+        # Ridge twin: the same features with a ridge head (gbm_own_era5 -> ridge_own_era5)
         ref = "ridge_" + fam.split("_", 1)[1] if "_" in fam and not fam.startswith("ridge") else None
         if ref and ref in models_present:
             stat, p = pooled_monthly_dm(pred_rows, model, ref, h)

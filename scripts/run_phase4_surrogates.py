@@ -1,17 +1,25 @@
-"""Phase 4 IAAFT control: real corr_top1 graph, surrogate neighbor content.
+"""Rank the correlation-selected neighbor against IAAFT surrogates of its series (Sect. 4.6).
 
-Keeps the selected neighbors' identity, distribution, and spectrum but destroys their
-time-alignment with the target. If the h1 increment survives, cross-basin synchrony is real;
-if surrogates match the real arm, neighbor features were only spectrum-shaped regularization.
-Real Kalman params are applied to surrogate series (IAAFT preserves autocorrelation, so
-per-basin (rho, q, r) remain well-matched).
+Each of 99 iterative amplitude-adjusted Fourier-transform (IAAFT) surrogates keeps the
+distribution and spectrum of every basin series and destroys its time alignment with
+the target. The surrogate series is filtered with the real per-basin (rho, q, r), which
+remain appropriate because IAAFT preserves autocorrelation, and its propagated state
+replaces the real neighbor's in the KF-R1-plus-neighbor ridge. The real arm is ranked
+among the surrogates at each lead time.
 
-Null design notes (audits 2026-08-15/17): the surrogate is generated from the full
-record — see src/gracefc/surrogates.py for the rationale and why that makes this a
-transductive sensitivity rather than a fold-pure prospective control — and the REAL
-selected graph is reused for every draw. The tested null is therefore "the selected
-neighbor's time-alignment carries no information", not "selection plus alignment"; the
-degree-matched random-graph placebos in phases 3b-8 cover selection.
+The surrogates are generated from the full record (see src/gracefc/surrogates.py), so
+this is a transductive sensitivity test rather than a fold-pure control. The real
+selected graph is reused for every draw, so the null tested is that the neighbor's
+time alignment carries no information; neighbor selection is tested separately by the
+random-graph placebos of run_phase3b_kalman_neighbors.py.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv,
+results/kalman_fold_params.pkl.
+Outputs: results/phase4_surrogate_summary.csv.
+
+Usage:
+  python scripts/run_phase4_surrogates.py
+  GRACEFC_SOURCE=jpl python scripts/run_phase4_surrogates.py
 """
 import sys
 from pathlib import Path
@@ -39,9 +47,9 @@ HORIZONS = range(1, 7)
 def main() -> None:
     wide, meta, keep = load_sample(DATA)
     cache = load_params_cache(OUT_DIR / "kalman_fold_params.pkl", DATA / "basin_month_twsa_global.csv")
-    assert cache, "params cache missing or stale for current data/protocol - run phase3b first"
+    assert cache, "Kalman parameter cache missing or stale; run flat12_ridge or phase3b first"
 
-    # sse[(model, h)] accumulates pooled squared error across folds
+    # sse[(arm, h)] = (sum of squared errors, count), pooled across folds
     sse: dict = {}
 
     def add(key, loss_sum, n):
@@ -60,7 +68,7 @@ def main() -> None:
         graph = corr_topk(resid_wide[names][resid_wide.index < fold.test_start], k=1)
         nbr_of = np.array([name_pos[graph[n][0]] if graph[n] else -1 for n in names])
 
-        # Surrogate filtered states: one filter pass per draw, real params reused
+        # One filter pass per surrogate draw, with the real fitted parameters
         filt_surr = []
         for s in range(N_SURR):
             sw = surrogate_wide(resid_wide[names], seed=s)
@@ -87,7 +95,7 @@ def main() -> None:
             resid_tr = (tr["target"] - tr["kalman"]).values
 
             def run_arm(label, prop_src):
-            # Feature = selected neighbor's propagated state (zero where no neighbor)
+                # Second feature: the neighbor's propagated state, zero for basins without one
                 j = nbr_of[tr_pos]
                 f_tr = np.where(j >= 0, prop_src[t_idx, np.clip(j, 0, None)], 0.0)
                 j2 = nbr_of[te_pos]
@@ -103,7 +111,7 @@ def main() -> None:
             run_arm("real_nbr", prop_real)
             for s in range(N_SURR):
                 run_arm(f"surr{s}", filt_surr[s] * (rho[None, :] ** h))
-            # Own-only comparator
+            # KF-R1 comparator: own state only
             ok = np.isfinite(tr["own_state"].values)
             m0 = Ridge(alpha=1.0).fit(tr["own_state"].values[ok, None], resid_tr[ok])
             pred0 = te["kalman"].values + m0.predict(te["own_state"].values[:, None])

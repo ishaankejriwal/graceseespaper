@@ -1,11 +1,12 @@
-"""Neighbor-fused Kalman filter: the neighbor series enters the filter as a second observation.
+"""Kalman filter that uses a neighbor basin's series as a second observation of the basin's
+state.
 
-The Phase 4 result says the neighbor acts as a second noisy sensor of the same regional signal.
-This model takes that mechanism literally: basin i keeps its AR(1) latent state x_i, but each
-month the filter updates on BOTH y_i = x_i + e_i and y_j = c * x_i + e_j, with the coupling c
-and neighbor noise r_j fitted on training months only. If the mechanism is right, in-filter
-fusion should beat the post-hoc ridge correction used in Phase 3b; if the neighbor is
-uninformative the MLE drives c toward 0 and the model degrades gracefully to the own filter.
+Basin i keeps its AR(1) latent state x_i. Each month the filter updates on both
+y_i = x_i + e_i and y_j = c * x_i + e_j, where y_j is the top-1 neighbor's residual. The
+loading c and the neighbor noise variance r_j are fitted on training months only, with
+(rho, q, r_i) held at the per-basin filter values. This is an alternative to adding the
+neighbor's state to a ridge correction after filtering (experiment_kalman). With c = 0 the
+neighbor observation has no effect and the filter reduces to the per-basin filter.
 """
 import numpy as np
 import pandas as pd
@@ -16,10 +17,10 @@ from .kalman import kalman_forecast_series
 
 def fused_filter(y_i: np.ndarray, y_j: np.ndarray, rho: float, q: float,
                  r_i: float, c: float, r_j: float, return_ll: bool = False):
-    """Filtered state using both sensors; either observation being NaN skips only its update.
+    """Filtered state using both observations; a NaN in either skips only that update.
 
-    With return_ll=True also returns the joint log-likelihood of both observation streams
-    (the MLE objective for (c, r_j) with (rho, q, r_i) held at their cached values).
+    With return_ll=True also returns the joint log-likelihood of both observation series,
+    the objective for fitting (c, r_j) with (rho, q, r_i) held fixed.
     """
     x, p = 0.0, q / max(1 - rho**2, 1e-6)
     out = np.empty(len(y_i))
@@ -46,10 +47,11 @@ def fit_fusion_obs(y_i_train: np.ndarray, y_j_train: np.ndarray, rho: float, q: 
                    r_i: float, mle_polish: bool = False) -> tuple[float, float]:
     """Fit (c, r_j) on training months only.
 
-    Closed form: regress the neighbor on the own-filter state — cheap enough to repeat for
-    every placebo draw, which keeps real and placebo arms capacity-matched. The optional MLE
-    polish refines the real arm from that start; placebos skip it so the comparison stays paired
-    on the closed-form fit reported as primary.
+    The closed-form fit regresses the neighbor series on the per-basin filtered state. It
+    is cheap enough to repeat for every placebo draw, so real and placebo arms are fitted
+    the same way. With mle_polish=True the closed-form values are refined by maximum
+    likelihood; this is meant for the real arm only, so the paired placebo comparison uses
+    the closed-form fit. Returns (0, 1) when fewer than 24 training months have both values.
     """
     x = kalman_forecast_series(y_i_train, rho, q, r_i)
     m = ~np.isnan(y_j_train) & np.isfinite(x)
@@ -72,7 +74,11 @@ def fit_fusion_obs(y_i_train: np.ndarray, y_j_train: np.ndarray, rho: float, q: 
 
 def fusion_state_matrix(resid_wide: pd.DataFrame, params: pd.DataFrame, graph: dict,
                         test_start: pd.Timestamp, mle_polish: bool = False) -> pd.DataFrame:
-    """Fused filtered state per basin using its top-1 neighbor; (c, r_j) fitted pre-test only."""
+    """Fused filtered state of each basin using its top-1 neighbor, with (c, r_j) fitted
+    pre-test.
+
+    Basins without a neighbor get the per-basin filtered state.
+    """
     p = params.set_index("name")
     out = {}
     for name in resid_wide.columns:

@@ -1,17 +1,15 @@
-"""Phase 7 arch 3: one-layer graph attention over the correlation graph.
+"""One-layer graph attention network correcting the Kalman filter forecast on the correlation graph.
 
-Nodes are basins; directed edges point from each basin's corr_top-k sources into it; node
-features are the Kalman-filtered state (plus the 33 ERA5 lag anomalies in _era5 arms).
-A single attention layer aggregates messages from the k sources, so with k=2 the network
-learns how to weight a second neighbor — the direct test of whether graph structure adds
-anything beyond the top-1 edge. Note the _era5 message also carries the NEIGHBOR's ERA5,
-information the flat ridge twin never sees. The head predicts the residual
-(target - kalman) at every (month, basin); training touches only pre-test months, and
-messages use same-issue-month features only, so causality is untouched. Placebos rewire
-to degree-matched random graphs and retrain with the SAME torch seed as the real arm
-they null (audit 2026-08-15: the old 1000+draw seed changed net init alongside the
-graph); draws are seeded per (fold, horizon) cell. Training is full-batch Adam with
-early stopping on the last 15% of train issue months.
+Nodes are basins, and directed edges run from each basin's correlation top-k sources into
+it. Node features are the filtered state, plus the 33 ERA5-Land lag anomalies (11 series
+at lags 0 to 2) in the _era5 arms. A single attention layer aggregates messages from the k
+sources, so with k = 2 the network weights a second neighbor alongside the first. In the
+_era5 arms the messages also carry the neighbor's ERA5-Land features, which the flat ridge
+models do not see. The network predicts the filter error (target - kalman) at every
+(month, basin); training uses pre-test months only, and messages use features from the
+same issue month. Placebo arms rewire to degree-matched random graphs and retrain with
+the same torch seed as the real arm; draws are seeded per (fold, lead time). Training is
+full-batch Adam with early stopping on the last 15 % of training issue months.
 """
 import copy
 import zlib
@@ -59,7 +57,10 @@ def fit_gat(
     tr_entries: tuple, ytr: np.ndarray, val_mask: np.ndarray, te_entries: tuple, seed: int,
     hidden: int = 16, max_epochs: int = 400, patience: int = 30, lr: float = 5e-3,
 ) -> np.ndarray:
-    """Full-batch training on train (t, node) entries; returns predictions at test entries."""
+    """Train full-batch on the (t, node) training entries, early-stopping on the val_mask entries.
+
+    Returns predictions at the test entries.
+    """
     torch.manual_seed(seed)
     Xt = torch.tensor(X, dtype=torch.float32)
     nbr = torch.tensor(np.clip(nbr_idx, 0, None), dtype=torch.long)
@@ -96,7 +97,7 @@ def fit_gat(
 
 
 def _era5_node_tensor(era5_feats: pd.DataFrame, era5_cols: list[str], filt_index, names) -> np.ndarray:
-    """(T, N, C) ERA5 lag features aligned to the filter grid; NaN -> 0 for message passing."""
+    """(T, N, C) ERA5-Land lag features aligned to the filter grid; NaN -> 0 for message passing."""
     mats = []
     for col in era5_cols:
         m = era5_feats.pivot(index="issue_date", columns="name", values=col)
@@ -114,7 +115,7 @@ def run_gnn_experiment(
     params_cache: dict | None = None,
     era5_lags: tuple[int, ...] = (0, 1, 2),
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
+    """Return (prediction rows for the real arms, monthly summed losses for the placebo arms)."""
     out, placebo_monthly = [], []
     for fold in folds:
         setup = fold_setup(wide, fold, params_cache)
@@ -142,7 +143,7 @@ def run_gnn_experiment(
 
             emit("kalman_ar1", kal_te)
 
-            # Flat ridge twins as linear anchors (own ERA5 only; the GNN also sees neighbor ERA5)
+            # Ridge twins (own ERA5-Land only; the GNN also sees the neighbor's)
             nb_tr = propagated_neighbor_features(frame, idx2, "tr")
             nb_te = propagated_neighbor_features(frame, idx2, "te")
             for arm, (Xtr, Xte) in flat_ridge_arms(tr, te, era5_cols, nb_tr, nb_te).items():
@@ -159,8 +160,8 @@ def run_gnn_experiment(
                     emit(f"gnn_{arm}_s{s}",
                          kal_te + fit_gat(X, nidx, tr_entries, ytr, val_mask, te_entries, s))
 
-            # Placebo nets reuse the real arms' torch seeds so each (arm, s) null varies
-            # only the graph; labels carry _s{s} so the summary matches seed to seed.
+            # Placebo nets reuse the real arms' torch seeds so that each (arm, s) placebo
+            # differs only in the graph; the _s{s} label pairs them seed by seed in the summary.
             cell_base = zlib.crc32(f"phase7_gnn:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
                 g_rand = random_degree_matched(graph, cell_base + seed)

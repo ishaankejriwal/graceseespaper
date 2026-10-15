@@ -1,4 +1,15 @@
-"""Phase 1: build global basin-month TWSA from CSR or JPL mascons."""
+"""Monthly basin-average TWSA (cm) from the CSR or JPL mascon file (Sects. 2.1 and 2.2).
+
+Aggregates the mascon grid to the Level-3 basins of the HydroSHEDS+mascon partition in
+HydroShed+Mascon_Basins_L3.nc with gracefc.basins.build_basin_series and writes
+data/processed/basin_month_twsa_global.csv and basin_meta.csv (data/processed/jpl/
+for --source jpl). JPL scale factors are applied when the file carries them, unless
+--no-scale-factors is given; CSR is used as distributed.
+
+Usage:
+  python scripts/build_basin_series.py
+  python scripts/build_basin_series.py --source jpl [--mascon-file PATH] [--no-scale-factors]
+"""
 import argparse
 import sys
 from pathlib import Path

@@ -1,10 +1,11 @@
-"""Aggregate ERA5-Land monthly forcings to basin level and build fold-safe exogenous features.
+"""Aggregate ERA5-Land monthly fields to basin means and build per-fold anomaly features.
 
-Unit traps handled here (per the download audit): monthly means of accumulated variables
-(tp, e, ro, sro, ssro) come as MEAN DAILY totals in m/day, so monthly totals need a
-days-in-month multiply; evaporation is sign-flipped (negative = water leaving the surface).
-The basin mask grid is 0.25 deg while ERA5 was regridded to 0.5 deg, so each mask cell maps
-to its nearest ERA5 cell and duplicate hits act as area weights.
+Monthly means of the accumulated variables (tp, e, ro, sro, ssro) are mean daily totals in
+m/day, so they are multiplied by the number of days in the month to give monthly totals.
+ERA5-Land reports evaporation as negative; it is sign-flipped so that positive values mean
+moisture loss. The basin mask is on a 0.25-degree grid and the ERA5-Land download on a
+0.5-degree grid, so each mask cell maps to its nearest ERA5-Land cell, and mask cells that
+map to the same ERA5-Land cell add their weights.
 """
 from pathlib import Path
 
@@ -16,8 +17,8 @@ from scipy import sparse
 from .basins import load_basin_masks
 from .decompose import deseasonalize, fit_climatology
 
-# var name in file -> (output column, kind, scale). Kinds: 'accum' means mean daily rate in
-# m/day (needs days-in-month), 'state' means an instantaneous monthly mean kept as-is.
+# Variable in file -> (output column, kind, scale). 'accum' is a mean daily rate in m/day,
+# converted to a monthly total; 'state' is a monthly mean kept as is.
 VAR_SPEC = {
     "tp": ("precip_cm", "accum", 100.0),
     "e": ("evap_cm", "accum", -100.0),  # flip sign so positive = evaporative loss
@@ -28,7 +29,7 @@ VAR_SPEC = {
     "swvl2": ("swvl2", "state", 1.0),
     "swvl3": ("swvl3", "state", 1.0),
     "swvl4": ("swvl4", "state", 1.0),
-    "t2m": ("t2m_c", "state", 1.0),  # Kelvin offset handled separately
+    "t2m": ("t2m_c", "state", 1.0),  # converted from kelvin in build_era5_basin_table
     "sd": ("swe_cm", "state", 100.0),
 }
 
@@ -65,11 +66,11 @@ def _basin_weight_matrix(bm: dict, cell_map: np.ndarray, n_era5_cells: int) -> s
 
 
 def build_era5_basin_table(era5_dir: Path, mask_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Aggregate every ERA5 file to per-basin monthly means. Returns (long_df, coverage).
+    """Aggregate every ERA5-Land file to per-basin monthly means. Returns (long_df, coverage).
 
     long_df: one row per (date, name) with one column per converted variable.
-    coverage: per-basin fraction of mask weight landing on valid (land) ERA5 cells —
-    ocean-heavy basins aggregate from a sliver of coast and should be screened downstream.
+    coverage: per-basin fraction of mask weight on valid (land) ERA5-Land cells. Coastal
+    and island basins aggregate their forcing from the land part of their mask.
     """
     bm = load_basin_masks(mask_path)
     names = bm["meta"]["name"].values
@@ -77,10 +78,9 @@ def build_era5_basin_table(era5_dir: Path, mask_path: Path) -> tuple[pd.DataFram
     files = sorted(era5_dir.glob("era5_land_monthly_*.nc"))
     if not files:
         raise FileNotFoundError(f"no ERA5 files under {era5_dir}")
-    # A missing interior year is caught by the month-continuity guard below, but a
-    # missing FIRST or LAST year silently shrinks the span (the guard builds its
-    # expectation from the surviving data). Contiguous filename years close the
-    # interior hole at file granularity and make the span visible in the log.
+    # The month-continuity check at the end catches a missing interior year, but a
+    # missing first or last year only shortens the span. Check the file years for gaps
+    # here and print the span so it can be compared with the expected period.
     years = sorted(int(f.stem.rsplit("_", 1)[1]) for f in files)
     gaps = [y for y in range(years[0], years[-1] + 1) if y not in years]
     if gaps:
@@ -130,7 +130,7 @@ def build_era5_basin_table(era5_dir: Path, mask_path: Path) -> tuple[pd.DataFram
         print(f"{f.name}: {len(dates)} months", flush=True)
 
     long_df = pd.concat(frames, ignore_index=True).sort_values(["name", "date"]).reset_index(drop=True)
-    # Guard against silent month gaps between yearly files: lag arithmetic assumes continuity
+    # Lag features assume a gapless monthly axis across the yearly files
     months = pd.DatetimeIndex(sorted(long_df["date"].unique()))
     expect = pd.date_range(months.min(), months.max(), freq="MS")
     missing = expect.difference(months)
@@ -160,16 +160,17 @@ def era5_fold_features(
     names: list[str],
     lags: tuple[int, ...] = (0, 1, 2),
 ) -> tuple[pd.DataFrame, list[str]]:
-    """Deseasonalized, standardized ERA5 lag features keyed by (issue_date, name).
+    """Deseasonalized, standardized ERA5-Land lag features keyed by (issue_date, name).
 
-    Mirrors the target treatment exactly: trend+harmonics fit on pre-test months only, then
-    per-basin train-window std scaling, so no test-window statistic ever touches a feature.
-    Near-constant series (snow in the tropics, desert soil moisture) get a zero feature
-    instead of a 0/0 blowup that would silently drop their rows. All standardized values are
-    winsorized at +-CLIP_SIGMA: a desert basin whose train-window subsurface runoff is ~0
-    can hit tens of thousands of "sigmas" in a single flood month (Libya 2023/24 does exactly
-    this), which detonates any linear head; the clip is a constant transform applied
-    identically to train and test, so it stays causal.
+    Each series is treated like the storage target: a trend and harmonic fit on months
+    before test_start, then division by the training-window standard deviation, so no
+    test-window statistic enters a feature. Series with fewer than 36 training months are
+    NaN. Series with near-zero training variance (snow in the tropics, desert soil
+    moisture) get a zero feature, so their rows are not lost to a division by zero.
+    Standardized values are clipped at +-CLIP_SIGMA: a desert basin with near-zero
+    training subsurface runoff can reach tens of thousands of standard deviations in a
+    single flood month (Libya, 2023-2024), which would dominate a linear fit. The clip is
+    a fixed transform applied identically to training and test months.
     """
     pieces = []
     cols = []

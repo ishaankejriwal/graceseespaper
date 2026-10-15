@@ -1,10 +1,10 @@
-"""Phase 7 shared plumbing: fold setup, horizon design frames, and the summary writer.
+"""Shared setup for the correction experiments: fold setup, design frames and the summary writer.
 
-Every Phase 7 architecture (two-stage residual MLP, LSTM, GNN) reuses the exact Phase 5/6
-construction — deseasonalized standardized target, per-fold Kalman params from the shared
-cache, heads learn the residual (target - kalman) — so results stay directly comparable to
-the locked ridge/GBM/MLP numbers. ERA5 rows are dropped up front for EVERY arm, matching
-experiment_era5: all arms within one experiment share identical row sets.
+All experiment modules use the same construction: the deseasonalized, standardized
+target, per-fold Kalman filter parameters (fitted, or taken from a shared cache), and
+heads that predict the filter error (target - kalman). Rows with missing ERA5-Land or
+climate-index features are dropped before the train/test split, so all arms within one
+experiment use the same rows.
 """
 import numpy as np
 import pandas as pd
@@ -16,7 +16,12 @@ from .stats import block_bootstrap_skill_ci, pooled_monthly_dm
 
 
 def fold_setup(wide: pd.DataFrame, fold: Fold, params_cache: dict | None = None) -> dict:
-    """Deseasonalize, standardize, fit/load Kalman params, filter: one bundle per fold."""
+    """Deseasonalize and standardize the fold, fit or load the filter parameters, run the filter.
+
+    Returns a dict with the standardized residuals, the filtered states (DataFrame and
+    array F), per-basin rho, the basin names and positions, and the training-window
+    residuals used to build graphs.
+    """
     resid_raw, train_std = deseasonalize_fold(wide, fold)
     resid_wide = resid_raw / train_std
     if params_cache is not None and fold.name in params_cache:
@@ -42,11 +47,15 @@ def horizon_frame(
     setup: dict, fold: Fold, h: int,
     extra: pd.DataFrame | None = None, extra_cols: list[str] | None = None,
 ) -> dict | None:
-    """tr/te row frames plus row->(time, basin) index arrays; Phase 5/6 construction verbatim.
+    """Training and test rows for lead time h, with row -> (month, basin) index arrays.
 
-    extra: optional feature table (ERA5 lags keyed by issue_date+name, or climate-index
-    lags keyed by issue_date alone). It is left-joined and its NaN rows dropped BEFORE the
-    split, so every arm in the cell sits on the identical row set.
+    Each row holds the filter forecast (kalman), the current filtered state (own_state)
+    and the target h months ahead; ytr is the training filter error. Returns None when
+    there are fewer than 100 training rows or no test rows.
+
+    extra: optional feature table (ERA5-Land lags keyed by issue_date and name, or
+    climate-index lags keyed by issue_date alone). It is left-joined and rows with
+    missing values are dropped before the split, so every arm uses the same rows.
     """
     filt, names = setup["filt"], setup["names"]
     prop = setup["F"] * (setup["rho"][None, :] ** h)
@@ -103,7 +112,7 @@ def emit_rows(out: list, te: pd.DataFrame, fold: Fold, h: int, label: str, pred:
 
 
 def emit_placebo_rows(acc: list, te: pd.DataFrame, fold: Fold, h: int, label: str, pred: np.ndarray) -> None:
-    """Placebo arms keep pooled-by-month squared losses only, never raw prediction rows."""
+    """Append one placebo arm's squared losses summed by target month; no prediction rows."""
     loss = (te["target"].values - pred) ** 2
     ldf = pd.DataFrame({"target_date": te["target_date"].values, "loss": loss})
     monthly = ldf.groupby("target_date")["loss"].agg(["sum", "count"]).reset_index()
@@ -113,8 +122,10 @@ def emit_placebo_rows(acc: list, te: pd.DataFrame, fold: Fold, h: int, label: st
 
 def flat_ridge_arms(tr: pd.DataFrame, te: pd.DataFrame, era5_cols: list[str],
                     nb_tr: np.ndarray, nb_te: np.ndarray) -> dict[str, tuple[np.ndarray, np.ndarray]]:
-    """The one-stage ridge twins every neural arch is anchored against, on the flat
-    Phase 5/6 features: own state, +ERA5 lags, +top-k propagated neighbor states, both."""
+    """Feature sets for the ridge twins of the neural and two-stage models.
+
+    Own state; plus ERA5-Land lags; plus the top-k propagated neighbor states; or both.
+    """
     own_tr, own_te = tr[["own_state"]].values, te[["own_state"]].values
     era_tr, era_te = tr[era5_cols].values, te[era5_cols].values
     arms = {"own": (own_tr, own_te),
@@ -136,7 +147,7 @@ def stack_channels(chans_tr: list, chans_te: list) -> tuple[np.ndarray, np.ndarr
 
 
 def train_val_mask(tr: pd.DataFrame, val_frac: float = 0.15) -> np.ndarray:
-    """Boolean mask marking the LAST val_frac of train issue months — the early-stop holdout."""
+    """Boolean mask of the last val_frac of training issue months, the early-stopping holdout."""
     months = np.sort(tr["issue_date"].unique())
     cutoff = months[int(np.ceil(len(months) * (1 - val_frac))) - 1]
     return (tr["issue_date"] > cutoff).values
@@ -146,7 +157,14 @@ def summarize_and_write(
     pred_rows: pd.DataFrame, plac_monthly: pd.DataFrame,
     contrasts: list[tuple[str, str]], out_dir, tag: str,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Per-arm summary (placebo rank, ridge-twin DM, no-ERA5-twin DM) + headline contrasts."""
+    """Write the per-arm summary and headline contrasts; return both tables.
+
+    Output files are <tag>_summary.csv and <tag>_headline.csv in out_dir. The summary
+    gives each arm's standardized RMSE, its rank among its placebos, and Diebold-Mariano
+    tests against the ridge twin (a ridge on the same features) and against the arm
+    without ERA5-Land. Each headline contrast gives the block-bootstrap skill and its
+    Diebold-Mariano test at every lead time.
+    """
     plac_pooled = (plac_monthly.groupby(["model", "horizon"])[["sum", "count"]].sum()
                    .assign(rmse=lambda d: np.sqrt(d["sum"] / d["count"])))
     models_present = set(pred_rows["model"])

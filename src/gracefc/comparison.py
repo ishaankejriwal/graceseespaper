@@ -1,4 +1,5 @@
-"""Spatial-support rules for cross-product forecast comparisons."""
+"""Basin coverage rules for the GRACE-FCast comparison (Li and Kusche, 2026; code prefix
+li_)."""
 
 import numpy as np
 import pandas as pd
@@ -9,12 +10,14 @@ def fully_contained_group_counts(
     basin_indices: list[np.ndarray],
     valid_groups: np.ndarray | None = None,
 ) -> np.ndarray:
-    """Count complete grid groups contained in each basin.
+    """Number of complete parent cells inside each basin.
 
-    ``group_grid`` labels every cell of the fine basin-mask grid with its parent
-    native cell/tile. A group counts only when *all* of its fine-grid cells occur
-    in one basin. ``valid_groups`` can additionally remove parent cells that the
-    comparison product does not forecast (for example Li ocean cells).
+    group_grid labels every cell of the fine basin-mask grid with its parent cell (a
+    native mascon or a GRACE-FCast cell), and basin_indices holds each basin's flat
+    indices into that grid. A parent cell counts for a basin only when all of its fine
+    cells lie in the basin. valid_groups, ordered like the sorted unique labels, can
+    exclude parent cells the comparison product does not forecast, such as GRACE-FCast
+    ocean cells.
     """
     labels = np.asarray(group_grid).reshape(-1)
     if not np.isfinite(labels).all():
@@ -38,13 +41,13 @@ def fully_contained_group_counts(
 
 
 def li_joint_support_table(meta: pd.DataFrame, coverage: pd.DataFrame) -> pd.DataFrame:
-    """Return per-basin diagnostics for the strict native/Li common-support subset.
+    """Per-basin coverage diagnostics with the fully covered flag, joint_full_cells.
 
-    One rule for both mascon products: a basin qualifies when it fully contains at
-    least one native mascon of whichever product is being scored AND at least one
-    complete, finite Li cell. The native count is the coverage table's product-neutral
-    ``n_full_native_mascons`` column (build_li_basin_series.py writes it for CSR and
-    JPL alike).
+    The same rule applies to both mascon products: a kept basin is fully covered when it
+    fully contains at least one native mascon of the product being scored and at least
+    one complete, finite GRACE-FCast cell. The native count is the coverage table's
+    n_full_native_mascons column, which scripts/build_li_basin_series.py writes for CSR
+    and JPL alike.
     """
     meta_cols = ["name", "exclude_reason"]
     coverage_cols = ["name", "li_coverage", "n_full_li_cells", "n_full_native_mascons"]
@@ -65,6 +68,6 @@ def li_joint_support_table(meta: pd.DataFrame, coverage: pd.DataFrame) -> pd.Dat
 
 
 def li_joint_support_names(meta: pd.DataFrame, coverage: pd.DataFrame) -> pd.Index:
-    """Names containing at least one complete native mascon and valid Li cell."""
+    """Names of the fully covered basins (joint_full_cells)."""
     support = li_joint_support_table(meta, coverage)
     return pd.Index(support.loc[support["joint_full_cells"], "name"], name="name")

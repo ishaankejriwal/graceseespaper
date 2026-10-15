@@ -1,11 +1,25 @@
-"""Phase 7: one neural architecture on the shared Kalman-backbone inputs, head to head.
+"""Neural corrections of the Kalman forecast, one architecture per run.
 
-  --arch resmlp   the Africa-study two-stage ridge + neighbor-only residual MLP
-  --arch lstm     shared-encoder LSTM over Kalman-filtered state sequences
+  --arch resmlp   two-stage model: a ridge correction, then an MLP fitted to the
+                  ridge's training residual (gracefc.experiment_resmlp)
+  --arch lstm     shared-encoder LSTM over 12-month windows of the filtered state,
+                  optionally with the ERA5-Land channels (gracefc.experiment_lstm)
   --arch gnn      one-layer graph attention over the correlation graph
+                  (gracefc.experiment_gnn; not used in the manuscript)
 
-Each arch has its own engine and headline contrasts; everything else (inputs, cache,
-placebo count, outputs, summary) is identical, so they share this one runner.
+The lstm run feeds Table 4 (the KF, KF-R1E, KF-R12, KF-R12E, LSTM and MLP rows) and
+Fig. 6; the resmlp run feeds the residual MLP rows of Table 4. Each architecture has its
+own engine and contrasts (ARCHS); inputs, Kalman parameter cache, placebo count and
+output layout are shared.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv,
+era5_basin_month.csv; results/kalman_fold_params.pkl.
+Outputs (tag phase7_<arch> by default): results/<tag>_predictions.csv,
+_placebo_monthly.csv, _summary.csv and _headline.csv.
+
+Usage:
+  python scripts/run_phase7.py --arch {resmlp,lstm,gnn} [--placebo 20] [--tag TAG] [--smoke]
+  GRACEFC_SOURCE=jpl python scripts/run_phase7.py [same options]
 """
 import argparse
 import sys
@@ -25,8 +39,8 @@ PARAMS_CACHE = OUT_DIR / "kalman_fold_params.pkl"
 
 # arch -> (engine module.function, seed kwarg, headline contrasts)
 ARCHS = {
-    # What the two-stage architecture adds (vs one-stage ridge twins on identical info),
-    # whether a second neighbor helps, and whether the neighbor survives ERA5 conditioning
+    # The two-stage model against one-stage ridge twins on the same information, a
+    # second neighbor against one, and the neighbor with ERA5-Land conditioning
     "resmlp": ("experiment_resmlp.run_resmlp_experiment", "mlp_seeds", [
         ("resmlp_corr_top1_s0", "ridge_corr_top1"),
         ("resmlp_corr_top1_s0", "ridge_own"),
@@ -35,8 +49,8 @@ ARCHS = {
         ("resmlp_corr_top1_era5_s0", "resmlp_own_era5_s0"),
         ("resmlp_corr_top2_era5_s0", "resmlp_corr_top1_era5_s0"),
     ]),
-    # Does sequence memory beat the AR(1) backbone, does the neighbor channel add anything,
-    # and do both survive next to the flat linear twins on the same information?
+    # The LSTM against the ridge on the current state, the neighbor channel against
+    # none, and each against the ridge twin on the same information
     "lstm": ("experiment_lstm.run_lstm_experiment", "lstm_seeds", [
         ("lstm_own_s0", "ridge_own"),
         ("lstm_corr_top1_s0", "lstm_own_s0"),
@@ -45,8 +59,7 @@ ARCHS = {
         ("lstm_corr_top1_era5_s0", "lstm_own_era5_s0"),
         ("lstm_corr_top1_era5_s0", "ridge_corr_top1_era5"),
     ]),
-    # Does learned message passing beat the flat linear twin, and does a second edge
-    # (k=2 with attention) add anything beyond the top-1 neighbor?
+    # Graph attention against the ridge twin, and two attended neighbors (k=2) against one
     "gnn": ("experiment_gnn.run_gnn_experiment", "gnn_seeds", [
         ("gnn_corr_top1_s0", "ridge_corr_top1"),
         ("gnn_corr_top1_s0", "ridge_own"),

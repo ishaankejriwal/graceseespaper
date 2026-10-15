@@ -1,18 +1,18 @@
-"""Phase 7 arch 2: shared-encoder LSTM over Kalman-filtered state sequences.
+"""Shared-encoder LSTM correcting the Kalman filter forecast from 12-month filtered-state windows.
 
-One small LSTM (32 units, 1 layer) is trained across all basins per fold-horizon on
-12-month windows of the filtered state — own basin, optionally the corr_top1 neighbor's
-filtered-state history as a second channel, optionally the 11 ERA5 standardized anomaly
-series as extra channels — and learns the residual (target - kalman), so kalman + LSTM
-is the forecast. Per-basin training is off the table with ~200 train months per basin;
-a shared encoder is the honest capacity for 234 basins. Months before the record start
-pad with zeros, which is the state prior mean, so padding is principled rather than
-arbitrary. Early stopping holds out the LAST 15% of train issue months (time-ordered,
-so the stopping rule never sees the future). Placebos swap the neighbor channel for a
-degree-matched random basin's history and retrain with the SAME torch seed as the real
-arm they null (audit 2026-08-15: the old 1000+draw seed changed net init and batch
-order alongside the graph); ERA5 channels stay aboard in _era5 placebos, mirroring
-experiment_era5. Placebo draws are seeded per (fold, horizon) cell.
+One LSTM (32 units, one layer) is trained across all basins for each fold and lead time.
+Its input is a 12-month window of the basin's filtered state, optionally with the
+correlation top-1 neighbor's filtered state as a second channel and the 11 ERA5-Land
+standardized anomaly series as further channels. It predicts the filter error
+(target - kalman), so the forecast is kalman + LSTM. The encoder is shared across basins
+because each basin has only about 200 training months. Months before the start of the
+series are padded with zero, the prior mean of the state. Early stopping holds out the
+last 15 % of training issue months. Placebo arms replace the neighbor channel with a
+degree-matched random basin's history and retrain with the same torch seed as the real
+arm; the ERA5-Land channels are kept in the _era5 placebos, as in experiment_era5.
+Placebo draws are seeded per (fold, lead time).
+
+The LSTM and MLP of the paper are the lstm_own_era5_s* and mlp_own_era5_flat12_s* arms.
 """
 import copy
 import zlib
@@ -25,8 +25,8 @@ from torch import nn
 
 from .era5 import era5_fold_features
 from .evaluate import DEFAULT_FOLDS, Fold
-# The window construction, the 12-month flattening and the ridge head live in the
-# torch-free module so the ridge arms can be produced without torch and cannot drift.
+# The window construction and the 12-month flattening live in the torch-free module, so
+# the ridge models can be produced without torch from the same design matrix.
 from .experiment_flat12 import _era5_state_tensor, _state_channel, window_design
 from .experiment_nonlinear import _fit_head
 from .graphs import corr_topk, random_degree_matched
@@ -34,9 +34,8 @@ from .phase7 import (emit_placebo_rows, emit_rows, flat_ridge_arms, fold_setup, 
                      neighbor_rank_matrix, propagated_neighbor_features, stack_channels as stack,
                      train_val_mask)
 
-# Torch-free helpers are NOT re-exported from here (audit 2026-09-10): importing them
-# via this module dragged torch in for callers that never needed it. Take them from
-# gracefc.experiment_flat12, which owns them.
+# The torch-free helpers are not re-exported; import them from gracefc.experiment_flat12
+# so that callers do not need torch.
 __all__ = ["run_lstm_experiment", "train_lstm", "lstm_predict", "fit_lstm"]
 
 
@@ -55,7 +54,7 @@ def train_lstm(
     Xtr: np.ndarray, ytr: np.ndarray, val_mask: np.ndarray, seed: int,
     hidden: int = 32, max_epochs: int = 60, patience: int = 6, batch: int = 2048, lr: float = 1e-3,
 ) -> _SeqNet:
-    """Train on ~val rows, early-stop on the val tail, return the best net."""
+    """Train on rows outside val_mask, early-stop on the val_mask rows, return the best net."""
     torch.manual_seed(seed)
     Xa = torch.tensor(Xtr[~val_mask], dtype=torch.float32)
     ya = torch.tensor(ytr[~val_mask], dtype=torch.float32)
@@ -102,7 +101,7 @@ def fit_lstm(
     Xtr: np.ndarray, ytr: np.ndarray, val_mask: np.ndarray, Xte: np.ndarray, seed: int,
     hidden: int = 32, max_epochs: int = 60, patience: int = 6, batch: int = 2048, lr: float = 1e-3,
 ) -> np.ndarray:
-    """Train on ~val rows, early-stop on the val tail, return test predictions."""
+    """Train as in train_lstm and return predictions for Xte."""
     net = train_lstm(Xtr, ytr, val_mask, seed, hidden, max_epochs, patience, batch, lr)
     return lstm_predict(net, Xte)
 
@@ -117,7 +116,7 @@ def run_lstm_experiment(
     params_cache: dict | None = None,
     era5_lags: tuple[int, ...] = (0, 1, 2),
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
+    """Return (prediction rows for the real arms, monthly summed losses for the placebo arms)."""
     out, placebo_monthly = [], []
     for fold in folds:
         setup = fold_setup(wide, fold, params_cache)
@@ -152,16 +151,17 @@ def run_lstm_experiment(
 
             emit("kalman_ar1", kal_te)
 
-            # Ridge twins on the flat Phase 5/6 features: the linear same-question anchors
+            # Ridge twins on the current state, ERA5-Land lags 0-2 and the
+            # neighbor's propagated state
             fn_tr = propagated_neighbor_features(frame, nbr_idx, "tr")
             fn_te = propagated_neighbor_features(frame, nbr_idx, "te")
             for arm, (Xtr, Xte) in flat_ridge_arms(tr, te, era5_cols, fn_tr, fn_te).items():
                 emit(f"ridge_{arm}", kal_te + _fit_head("ridge", Xtr, ytr, Xte, 0))
 
-            # Flattened 12-month twins: the LSTM's exact information window, accessed
-            # linearly (ridge) and nonlinearly-but-unordered (MLP). Deconfounds the
-            # "sequence modeling" gain from "longer input history" — the flat twins
-            # above see only own_state now + ERA5 lags 0-2 (audit 2026-08-15).
+            # Ridge and MLP on the flattened 12-month window, the same information as the
+            # LSTM without sequence structure. They separate the effect of the sequence
+            # model from that of the longer input history, since the flat references
+            # above see only the current state and ERA5-Land lags 0-2.
             X12_tr, X12_te = design["X12_tr"], design["X12_te"]
             emit("ridge_own_flat12", kal_te + _fit_head("ridge", own_tr, ytr, own_te, 0))
             emit("ridge_own_era5_flat12", kal_te + _fit_head("ridge", X12_tr, ytr, X12_te, 0))
@@ -180,8 +180,8 @@ def run_lstm_experiment(
                 for s in lstm_seeds:
                     emit(f"lstm_{arm}_s{s}", kal_te + fit_lstm(Xtr, ytr, val_mask, Xte, s))
 
-            # Placebo nets reuse the real arms' torch seeds so each (arm, s) null varies
-            # only the graph; labels carry _s{s} so the summary matches seed to seed.
+            # Placebo nets reuse the real arms' torch seeds so that each (arm, s) placebo
+            # differs only in the graph; the _s{s} label pairs them seed by seed in the summary.
             cell_base = zlib.crc32(f"phase7_lstm:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
                 g_rand = random_degree_matched(graph, cell_base + seed)

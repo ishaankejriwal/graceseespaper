@@ -1,18 +1,26 @@
-"""r=0 ablation: how much of the Kalman benchmark's margin is the observation-noise term?
+"""Refit the Kalman filter with r fixed at zero (the zero-r variant, kalman_r0).
 
-With r fixed at 0 the update gain is 1 at every observed month, so the "filter" tracks
-the raw observation and the forecast is rho^h times the last observation — damped
-persistence with MLE rho, estimated in the identical model class, on the identical
-protocol. Three pairwise contrasts decompose the benchmark margin:
+With r = 0 the Kalman gain is 1 at every observed month, so the filtered state equals
+the observed residual and the forecast is rho**h times the last residual: damped
+persistence with a maximum-likelihood rho, fitted in the same model class on the same
+folds (Sect. 3.4). Three contrasts, each with a block-bootstrap CI and DM test,
+decompose the margin of KF over damped persistence:
 
-  kalman_ar1 vs kalman_r0            -> the observation-noise (filtering) term
-  kalman_r0  vs damped_persistence   -> rho estimation / gap handling beyond tuned damping
-  kalman_ar1 vs damped_persistence   -> the full published margin (consistency check)
+  kalman_ar1 vs kalman_r0                noise_filtering_term (the model-noise term)
+  kalman_r0  vs damped_persistence_reg   rho_estimation_term (likelihood fit of rho and
+                                         propagation across missing months)
+  kalman_ar1 vs damped_persistence_reg   full_margin
 
-If the first contrast carries the margin, the paper's noise-filtering attribution is
-identified; if not, the title's mechanism claim must stay "state-space filtering"
-(audit 2026-08-15, blocker 2). Rows match kalman_predictions.csv exactly (issue-date
-fold membership, same keep-list).
+Rows match results/kalman_predictions.csv (issue-date fold membership, same basins).
+Feeds Fig. 4a and the 1-month decomposition in Sect. 4.2.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv,
+results/kalman_predictions.csv, results/phase2_baseline_predictions.csv.
+Outputs: results/kalman_r0_predictions.csv, results/r0_ablation_summary.csv.
+
+Usage:
+  python scripts/run_r0_ablation.py
+  GRACEFC_SOURCE=jpl python scripts/run_r0_ablation.py
 """
 import sys
 from pathlib import Path

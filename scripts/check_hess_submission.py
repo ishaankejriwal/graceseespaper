@@ -1,8 +1,14 @@
-"""Check HESS submission files and optionally package them (no upload).
+"""Check the manuscript and figures against the HESS technical rules and package them.
 
-Usage: python scripts/check_hess_submission.py --bundle
-Requires pypdf and Pillow from the existing environment. Journal rules were
-checked on 9 October 2026; see paper/HESS_SUBMISSION_CHECKLIST.md.
+Every run writes paper/submission/technical_report.md, abstract.txt and
+short_summary.txt. With --bundle, and only when every check passes, it also
+writes the manuscript PDF, figures.zip, source.zip, colour-vision preview
+sheets and a SHA-256 manifest to paper/submission/. Nothing is uploaded.
+
+Usage: python scripts/check_hess_submission.py [--bundle]
+
+Requires pypdf and Pillow. The journal rules were last checked on 9 October
+2026; see paper/HESS_SUBMISSION_CHECKLIST.md.
 """
 
 import argparse
@@ -23,17 +29,23 @@ PAPER = ROOT / "paper"
 OUT = PAPER / "submission"
 
 
-
 def bib_dois_cited(source):
-    """DOIs of the bibliography entries cited in the availability statement."""
+    """Return the text of the bibliography entries cited in the availability statement.
+
+    Used to find DOIs that the statement cites by key rather than writing out.
+    """
     bib = (PAPER / "references.bib").read_text(encoding="utf-8")
     block = source.split(r"\codedataavailability", 1)[1].split(r"\authorcontribution", 1)[0]
     keys = {k.strip() for g in re.findall(r"\\cite\w*\{([^}]+)\}", block) for k in g.split(",")}
     entries = {re.match(r"\w+\{([^,]+)", e).group(1): e for e in re.split(r"(?m)^@", bib)[1:]}
     return " ".join(entries.get(k, "") for k in keys)
 
+
 def font_info(resources, seen=None):
-    """Inspect embedded fonts, including fonts inside nested PDF forms."""
+    """Return (font name, embedded) pairs for a PDF resource dictionary.
+
+    Fonts inside nested form XObjects are included.
+    """
     if seen is None:
         seen = set()
     resources = resources.get_object()
@@ -63,7 +75,7 @@ def multiply(a, b):
 
 
 def image_dpi(stream, resources, reader, matrix=(1, 0, 0, 1, 0, 0)):
-    """Measure raster resolution from each image's actual PDF placement."""
+    """Return the effective (x, y) dpi of each raster image as placed on the page."""
     result, stack = [], []
     for args, op in ContentStream(stream, reader).operations:
         if op == b"q":
@@ -85,7 +97,10 @@ def image_dpi(stream, resources, reader, matrix=(1, 0, 0, 1, 0, 0)):
 
 
 def plain_tex(text):
-    """Convert this manuscript's text abstract for the submission form."""
+    """Convert the LaTeX abstract to plain text for the submission form.
+
+    Handles only the markup this abstract uses; raises if a command is left over.
+    """
     text = re.sub(r"(?m)^%.*$", "", text)
     text = text.replace(r"\%", "%").replace(r"\,", " ").replace("--", "–")
     text = text.replace("~", " ")
@@ -95,12 +110,14 @@ def plain_tex(text):
 
 
 def colour_previews(figure_names):
-    """Create inspection copies only; never alter submission figure files.
+    """Write colour-vision simulation sheets to paper/submission/accessibility/.
 
-    Machado et al. (2009), doi:10.1109/TVCG.2009.113, severity 100 matrices.
-    Coefficients verified against the upstream colorspacious data table:
+    The sheets are inspection copies; the submission figure files are not
+    modified. The simulation uses the Machado et al. (2009) severity-100
+    matrices (doi:10.1109/TVCG.2009.113), with coefficients checked against the
+    colorspacious data table:
     https://github.com/njsmith/colorspacious/blob/master/colorspacious/cvd.py
-    Apply to linear RGB, then encode sRGB for display.
+    The matrices act on linear RGB; the result is encoded back to sRGB.
     """
     from PIL import ImageDraw
 
@@ -165,7 +182,8 @@ def main():
     check("being prepared" not in availability and bool(re.search(r"10\.5281/zenodo\.\d+", availability + bib_dois_cited(source))),
           "Availability statement cites the deposited archive by DOI")
     for name in ("copernicus.cls", "copernicus.cfg", "copernicus.bst"):
-        # Normalize checkout line endings, without tolerating content changes.
+        # Text-mode reads absorb line-ending differences from the checkout; any content change still
+        # fails.
         check((PAPER / name).read_text(encoding="utf-8", errors="replace")
               == (PAPER / "template" / name).read_text(encoding="utf-8", errors="replace"),
               f"{name} matches the official downloaded package")
@@ -243,7 +261,8 @@ def main():
     report.extend(f"- {'PASS' if ok else 'FAIL'}: {description}" for ok, description in checks)
     report.extend(["", "## Items requiring review", ""] + [f"- {w}" for w in warnings])
     (OUT / "technical_report.md").write_text("\n".join(report) + "\n", encoding="utf-8")
-    # The two paste-in texts track the manuscript on every run; the packet waits for a clean pass.
+    # The abstract and summary texts are refreshed on every run; the packet is written only after a
+    # clean pass.
     (OUT / "abstract.txt").write_text(abstract + "\n", encoding="utf-8")
     (OUT / "short_summary.txt").write_text(summary + "\n", encoding="utf-8")
     failed = [description for ok, description in checks if not ok]
@@ -259,7 +278,7 @@ def main():
             for name in figure_names:
                 archive.write(ROOT / "figures" / name, name)
         with zipfile.ZipFile(OUT / "source.zip", "w", zipfile.ZIP_DEFLATED) as archive:
-            # Make the source archive compile independently after unpacking.
+            # Point \graphicspath at the archive root so the unpacked source compiles on its own.
             archive.writestr("main.tex", tex.replace(r"\graphicspath{{../figures/}}", r"\graphicspath{{./}}"))
             for name in ("references.bib", "main.bbl", "copernicus.cls", "copernicus.cfg", "copernicus.bst"):
                 archive.write(PAPER / name, name)

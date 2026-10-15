@@ -1,29 +1,32 @@
-"""Build the paper's matched-row baseline ladder (Table 1 / Fig 1 source).
+"""Benchmark table on matched rows: Table 2, Fig. 2a, Table 3 and Appendix B.
 
-Motivation: phase2_baseline_predictions.csv row counts shrink with horizon
-(19,656 at h1 down to 18,486 at h6) while kalman_predictions.csv and
-phase3b_predictions.csv keep 19,656 rows at every horizon, so summary-file
-RMSEs are not directly comparable across the two files at h>=2. This script
-intersects the row sets per horizon and recomputes pooled RMSE, skill vs the
-stronger damped-persistence variant, and pooled-monthly DM tests on exactly
-matched rows.
+Per lead time, the script keeps the (basin, issue month, target month) rows present
+for every model and recomputes on them the pooled standardized RMSE, the skill
+relative to the stronger damped-persistence variant, and DM tests on pooled monthly
+losses. This makes the comparison independent of row-count differences between the
+per-model files; with the archived CSR files the intersection is 19 422 rows at h1
+down to 18 252 at h6, the full row set of each file.
 
-Inputs : results/phase2_baseline_predictions.csv (std-unit columns)
-         results/kalman_predictions.csv (kalman_ar1; std units)
-         results/flat12_ridge_predictions.csv (kalman_own_ridge,
-         ridge_own_flat12, ridge_own_era5_flat12; std units)
+Inputs:  results/phase2_baseline_predictions.csv (standardized-unit columns)
+         results/kalman_predictions.csv (kalman_ar1)
+         results/flat12_ridge_predictions.csv (kalman_own_ridge, ridge_own_flat12,
+         ridge_own_era5_flat12)
+Outputs: results/paper_baseline_ladder.csv (one row per model and lead time)
+         results/paper_baseline_contrasts.csv (pairwise skill with block-bootstrap CI
+         and DM p; every challenger in CONTRAST_CHALLENGERS against both damped
+         variants at every lead)
 
-Outputs: results/paper_baseline_ladder.csv  (one row per model x horizon)
-         results/paper_baseline_contrasts.csv (key pairwise DM/CI contrasts, each
-         headline challenger against BOTH damped variants at every lead)
+kalman_ar1 and kalman_own_ridge here are bit-identical to their copies in
+phase3b_predictions.csv.
 
-The Kalman rows used to come from phase3b_predictions.csv, a neighbor experiment;
-that made the reference forecast a by-product of a claim the paper no longer makes.
-They now come from the Kalman baseline itself and from the flat-12 ridge step.
-phase3b's kalman_ar1 and kalman_own_ridge columns are bit-identical to these
-(verified 2026-09-10, max abs diff 0.0), so the retained ladder numbers are unchanged.
+Usage:
+  python scripts/build_paper_ladder.py
+  GRACEFC_SOURCE=jpl python scripts/build_paper_ladder.py   (results/jpl, Table B2)
 
-Run: .venv/Scripts/python.exe scripts/build_paper_ladder.py
+The archived tables in results/jpl/ were produced at commit 71be5ec of the JPL
+pipeline branch (results/jpl/RUN_PROVENANCE.md; archived as
+graceseespaper-71be5ec-jpl-run-code.zip). With this revision, run the full JPL
+chain (run_chain.py --source jpl) first.
 """
 from __future__ import annotations
 
@@ -58,7 +61,7 @@ KEY = ["name", "issue_date", "target_date", "horizon"]
 
 DAMPED_MODELS = ["damped_persistence_rho", "damped_persistence_reg"]
 # Challengers the paper quotes against damped persistence; each is contrasted with
-# both damped variants at every lead so no headline number is unsourced.
+# both damped variants at every lead time.
 CONTRAST_CHALLENGERS = [
     "kalman_ar1",
     "ridge_own_flat12",
@@ -69,6 +72,8 @@ CONTRAST_CHALLENGERS = [
 
 
 def load() -> pd.DataFrame:
+    """Prediction rows of every model in standardized units, restricted per lead time
+    to the keys present for all models."""
     p2 = pd.read_csv(
         RESULTS / "phase2_baseline_predictions.csv",
         usecols=KEY + ["model", "target_std_units", "pred_std_units"],
@@ -102,6 +107,7 @@ def load() -> pd.DataFrame:
 
 
 def monthly_losses(df: pd.DataFrame, model: str, h: int) -> pd.Series:
+    """Squared error averaged over basins for each target month."""
     sub = df[(df["model"] == model) & (df["horizon"] == h)]
     return (
         sub.assign(loss=(sub["target"] - sub["pred"]) ** 2)
@@ -115,7 +121,7 @@ def main() -> None:
     ladder_rows, contrast_rows = [], []
     for h in range(1, 7):
         sub_h = df[df["horizon"] == h]
-        # stronger damped variant per horizon (lower pooled RMSE)
+        # The stronger damped variant at this lead is the one with lower pooled RMSE
         rmse = {
             m: float(
                 np.sqrt(
@@ -143,8 +149,8 @@ def main() -> None:
                     "dm_p_vs_damped": p,
                 }
             )
-        # Key contrasts. The first block is the original list, kept in its original
-        # order so the archived rows stay byte-for-byte where they were.
+        # Pairwise contrasts. The order of this first block fixes the row order of the
+        # archived contrasts file.
         pairs = [
             ("kalman_ar1", damped),
             ("kalman_ar1", "ridge_own_perbasin"),
@@ -155,11 +161,8 @@ def main() -> None:
             ("ridge_own_era5_flat12", "kalman_ar1"),
             ("ridge_own_era5_flat12", damped),
         ]
-        # Audit 2026-09-10: storing only the stronger damped variant per lead left
-        # half the RUN_LOG headline numbers untraceable to this file (rho is the
-        # stronger variant at h1, reg at h2-6). Every challenger the paper quotes is
-        # now scored against BOTH damped variants at every lead; the pairs the block
-        # above already covers are not duplicated.
+        # Every quoted challenger against both damped variants (rho is the stronger
+        # at h1, reg at h2-6), skipping pairs the block above already holds
         for m in CONTRAST_CHALLENGERS:
             for d in DAMPED_MODELS:
                 if (m, d) not in pairs:

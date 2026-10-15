@@ -1,4 +1,13 @@
-"""Read-only verification of the CSR benchmark ladder against prediction files."""
+"""Recompute the benchmark ladder statistics from the stored predictions and compare.
+
+For each row of results/paper_baseline_ladder.csv, recomputes RMSE, skill against
+the damped-persistence reference and the Diebold-Mariano p-value from the
+prediction files (through build_paper_ladder), then checks the RMSE and p-values
+printed in the appendix ladder table of paper/main.tex. Writes nothing. Run with
+the default source (CSR), which the appendix table reports.
+
+Usage: python scripts/audit_paper_statistics.py
+"""
 from pathlib import Path
 import re
 import sys
@@ -12,7 +21,12 @@ import build_paper_ladder as ladder
 
 
 def check_original_csr_appendix(saved):
-    """Check two-row appendix layout when present; allow subsequent redesign."""
+    """Check the RMSE and p-value pairs printed in the appendix ladder table.
+
+    Each model takes two rows in tab:ladderfull: RMSE by lead time, then the
+    p-value against damped persistence. If the table does not have that layout,
+    the check is skipped with a message.
+    """
     manuscript = (ROOT / "paper" / "main.tex").read_text(encoding="utf-8")
     table = manuscript.split(r"\label{tab:ladderfull}", 1)[1].split(r"\end{tabular}", 1)[0]
     names = {
@@ -38,7 +52,8 @@ def check_original_csr_appendix(saved):
             cells = cells[1:]
             pcells = pcells[1:]
         if len(cells) != 6 or not lines[index + 1].lstrip().startswith("&"):
-            print("Appendix layout redesigned; source-table recomputation still checked.")
+            print("Appendix table layout not recognized; printed values not checked "
+                  "(saved table was verified).")
             return
         rows = saved[saved.model == names[label]].sort_values("horizon")
         for cell, pcell, row in zip(cells, pcells, rows.itertuples()):

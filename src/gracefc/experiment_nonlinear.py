@@ -1,10 +1,13 @@
-"""Phase 5 engine: nonlinear heads (GBM, MLP) on the Kalman backbone, plus a 2-hop arm.
+"""Nonlinear heads (GBM, MLP) correcting the Kalman filter forecast, with a 2-hop neighbor arm.
 
-Same construction as experiment_kalman — heads learn the residual (target - kalman) from
-own_state plus neighbor propagated states — so any head's gain over its ridge twin isolates
-nonlinearity, and any gain over its placebo twin isolates the graph. The 2-hop arm chains
-corr_top1 (neighbor's neighbor); mutual top-1 pairs have no distinct 2-hop node and are
-zero-padded, and placebos zero-pad the exact same basins so capacity stays matched.
+As in experiment_kalman, each head predicts the filter error (target - kalman) from
+own_state plus neighbor propagated states. Comparing a head with the ridge on the same
+features measures the effect of nonlinearity, and comparing it with its placebo measures
+the effect of the graph. The 2-hop arm follows the correlation top-1 chain to the
+neighbor's neighbor. Where two basins are each other's top-1 neighbor there is no distinct
+2-hop basin and the feature is zero-padded; placebos zero-pad the same basins.
+
+_fit_head is shared by the other experiment modules.
 """
 import zlib
 from functools import partial
@@ -51,6 +54,11 @@ def _hop_matrix(node_of: dict, names: list, name_pos: dict) -> np.ndarray:
 
 
 def _fit_head(head: str, Xtr, ytr, Xte, seed: int) -> np.ndarray:
+    """Fit a "ridge", "gbm" or "mlp" head on (Xtr, ytr) and return its predictions for Xte.
+
+    The MLP standardizes features on the training rows. seed sets the GBM and MLP
+    random state and is ignored by the ridge.
+    """
     if head == "ridge":
         m = Ridge(alpha=1.0).fit(Xtr, ytr)
         return m.predict(Xte)
@@ -76,7 +84,7 @@ def run_nonlinear_experiment(
     mlp_seeds: tuple[int, ...] = (0, 1, 2),
     params_cache: dict | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
+    """Return (prediction rows for the real arms, monthly summed losses for the placebo arms)."""
     out, placebo_monthly = [], []
     for fold in folds:
         setup = fold_setup(wide, fold, params_cache)
@@ -112,8 +120,8 @@ def run_nonlinear_experiment(
                     for s in mlp_seeds:
                         emit(f"mlp_{arm}_s{s}", te["kalman"].values + _fit_head("mlp", Xtr, ytr, Xte, s))
 
-            # Placebo heads reuse the real arms' seeds (GBM already did; the MLP now does
-            # too) so each null varies only the graph. Draws seeded per (fold, horizon).
+            # Placebo heads reuse the real arms' seeds so that each placebo differs only in
+            # the graph. Draws are seeded per (fold, lead time).
             cell_base = zlib.crc32(f"nonlinear_corr_top1:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
                 p_idx = neighbor_rank_matrix(random_degree_matched(graph, cell_base + seed), names, name_pos, 1)

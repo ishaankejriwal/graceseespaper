@@ -1,15 +1,26 @@
-"""Phase 5: a neighbor entering the Kalman filter itself, vs the own filter and random-pair placebos.
+"""Feed the correlation-selected neighbor into the Kalman filter itself and score it.
 
-  --model fusion    single latent state, the neighbor as a second noisy sensor of it
-                    (closed-form fit plus an MLE-polished twin; see gracefc.fusion)
-  --model coupled   two latent states with correlated process noise, one coupling
-                    parameter fitted by MLE (see gracefc.coupled); also writes the
-                    fitted coupling per basin and fold
+  --model fusion    one latent state, with the neighbor as a second noisy observation
+                    of it (closed-form fit, plus a variant refined by maximum
+                    likelihood; see gracefc.fusion)
+  --model coupled   two latent states with correlated process noise and one coupling
+                    parameter fitted by maximum likelihood (see gracefc.coupled)
 
-Information set matches Phase 3b exactly — the neighbor's month-t observation was already
-available there through its filtered state, so in-filter use adds no new data, only a
-different way to use it. Placebos refit per random neighbor, keeping capacity matched, and
-keep aggregated losses only.
+The information set is that of run_phase3b_kalman_neighbors.py, where the neighbor's
+month-t observation already enters through its filtered state; these models use the
+same data in a different way. Each arm is compared with kalman_ar1 and with placebos
+that refit the same model on a degree-matched random neighbor, so capacity is matched;
+placebos keep aggregated losses only. Not used in the manuscript.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv,
+results/kalman_fold_params.pkl (folds missing from it are fitted and saved).
+Outputs: results/<tag>_predictions.csv, <tag>_placebo_monthly.csv,
+<tag>_placebo_basin.csv, <tag>_summary.csv and, for coupled, <tag>_coupling.csv with
+the fitted coupling per basin and fold (default tag phase5_<model>).
+
+Usage:
+  python scripts/run_phase5_infilter.py --model fusion|coupled [--seeds 50]
+  GRACEFC_SOURCE=jpl python scripts/run_phase5_infilter.py --model fusion|coupled [--seeds 50]
 """
 import argparse
 import sys
@@ -39,7 +50,8 @@ PARAMS_CACHE = OUT_DIR / "kalman_fold_params.pkl"
 
 def emit_rows(state: pd.DataFrame, rho: pd.Series, resid_wide: pd.DataFrame, label: str,
               fold, horizons: range) -> list[pd.DataFrame]:
-    """Forecast rho^h * state at every issue date; keep rows whose target lands in the fold test."""
+    """Rows of rho**h * state for each lead, kept where the issue date is in the fold's test
+    window."""
     rows = []
     names = list(state.columns)
     for h in horizons:
@@ -60,7 +72,7 @@ def emit_rows(state: pd.DataFrame, rho: pd.Series, resid_wide: pd.DataFrame, lab
 
 
 def real_arms(model: str, fitted, params, graph, test_start) -> tuple[dict, pd.Series | None]:
-    """{label: state matrix} for the real arms, plus the coupled model's fitted c per basin."""
+    """{label: state matrix} for the real arms, and the fitted coupling per basin (coupled only)."""
     if model == "fusion":
         return {
             "fusion_corr_top1": fusion_state_matrix(fitted, params, graph, test_start, mle_polish=False),
@@ -71,6 +83,7 @@ def real_arms(model: str, fitted, params, graph, test_start) -> tuple[dict, pd.S
 
 
 def placebo_state(model: str, fitted, params, graph, test_start) -> pd.DataFrame:
+    """State matrix for one placebo graph; fusion placebos use the closed-form fit."""
     if model == "fusion":
         return fusion_state_matrix(fitted, params, graph, test_start, mle_polish=False)
     return coupled_state_matrix(fitted, params, graph, test_start)[0]
@@ -135,7 +148,7 @@ def main() -> None:
     if coupling_rows:
         pd.concat(coupling_rows, ignore_index=True).to_csv(OUT_DIR / f"{tag}_coupling.csv", index=False)
 
-    # Summary: pooled RMSE, skill vs own filter, placebo rank, DM, bootstrap CI
+    # Summary: pooled RMSE, skill vs kalman_ar1, placebo rank, DM test, bootstrap CI
     plac_pooled = (plac_monthly.groupby(["model", "horizon"])[["sum", "count"]].sum()
                    .assign(rmse=lambda d: np.sqrt(d["sum"] / d["count"])))
     rows = []

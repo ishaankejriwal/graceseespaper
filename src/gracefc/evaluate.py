@@ -1,24 +1,16 @@
-"""Splits data into train/test the honest way, and scores forecasts.
+"""Evaluation folds, the issue-date train/test split, the benchmark forecasts and scoring.
 
-This is where "no peeking at the future" is enforced, so it is worth reading carefully.
+Each row of a lag table has an issue date (when the forecast is made) and a target date
+(the month forecast). For a fold whose test window starts at T:
 
-Every row has TWO dates: the issue date (when the forecast was made) and the target date
-(the month being predicted). A fold freezes the model at some date T, and then:
+    test  = rows issued at or after T, up to the fold's test_end
+    train = rows whose target date is before T
 
-    test  = rows whose ISSUE date is at or after T
-            (a model frozen at T is only honest for forecasts issued from T onward)
-    train = rows whose TARGET was already observed strictly before T
-
-Rows in between — issued before T but predicting a month after T — are dropped from BOTH
-sets. That gap is deliberate, not an oversight.
-
-Why this matters: an earlier version split on target dates instead, which let a six-month
-forecast use transforms fitted on measurements from five months AFTER it was issued. It
-made everything look better than it was. See split_fold below, and the regression test
-tests/test_regressions.py::test_split_fold_membership_invariants that pins the behaviour.
-
-Everything fitted — trend, seasonal cycle, standardization, model weights — is fitted
-inside the training window and reused forward, never refitted on the full record.
+A row issued before T with a target after T belongs to neither set. Splitting on target
+date instead would let a lead-h forecast use transforms fit up to h - 1 months after its
+issue date; tests/test_regressions.py::test_split_fold_membership_invariants checks the
+split. The trend, seasonal cycle, standardization and model coefficients are all fit on
+the training window and held fixed over the test window.
 """
 from dataclasses import dataclass
 
@@ -32,6 +24,7 @@ from .models import fit_ridge, per_basin_ridge_predict, predict_ridge, rmse
 
 @dataclass(frozen=True)
 class Fold:
+    """Evaluation fold whose test issue months run from test_start through test_end."""
     name: str
     test_start: pd.Timestamp
     test_end: pd.Timestamp  # inclusive
@@ -41,8 +34,9 @@ def make_folds(spec: list[tuple[str, str, str]]) -> list[Fold]:
     return [Fold(n, pd.Timestamp(a), pd.Timestamp(b)) for n, a, b in spec]
 
 
-# Test targets 2019-06 onward only: gap-killed lag windows make 2016 to early-2019 nearly
-# empty (first fully usable post-gap issue is 2019-05), so earlier folds would test on ~nothing
+# Test issue months start in June 2019. Lag windows that span the 2017-2018 mission gap are
+# incomplete (the first issue month after the gap with all lags observed is May 2019), so
+# earlier folds would have almost no test rows.
 DEFAULT_FOLDS = make_folds([
     ("f1", "2019-06-01", "2020-10-01"),
     ("f2", "2020-11-01", "2022-03-01"),
@@ -53,7 +47,11 @@ DEFAULT_FOLDS = make_folds([
 
 
 def deseasonalize_fold(wide: pd.DataFrame, fold: Fold) -> tuple[pd.DataFrame, pd.Series]:
-    """Fit trend+seasonal per basin on pre-test data only; return residual matrix and train std."""
+    """Residuals from a per-basin trend and harmonic fit on months before the fold's test_start.
+
+    Returns the residual matrix for the whole record and each basin's training-window
+    residual standard deviation, the standardization constant.
+    """
     train_wide = wide[wide.index < fold.test_start]
     resid = {}
     train_std = {}
@@ -69,8 +67,8 @@ def assert_no_leakage(
     train_rows: pd.DataFrame, fold: Fold, lags: tuple[int, ...],
     test_rows: pd.DataFrame | None = None,
 ) -> None:
-    # Training targets must be observed before the freeze date; test rows must be
-    # issued at or after it, so no fitted transform ever sees post-issue data
+    """Raise AssertionError if a training target falls on or after test_start, or a test
+    row was issued before it, so that no fitted transform uses data after an issue date."""
     if len(train_rows) and train_rows["target_date"].max() >= fold.test_start:
         raise AssertionError(f"leakage: train target {train_rows['target_date'].max()} >= {fold.test_start}")
     if test_rows is not None and len(test_rows) and test_rows["issue_date"].min() < fold.test_start:
@@ -78,21 +76,26 @@ def assert_no_leakage(
 
 
 def split_fold(lag_df: pd.DataFrame, fold: Fold) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Issue-date fold membership: every transform in this codebase is fit on
-    observations strictly before test_start, so a model frozen there is only
-    honest for forecasts ISSUED at or after test_start. Splitting on target
-    date instead let leads 2-6 use transforms fit up to h-1 months after the
-    issue date (audit 2026-08-13, P0-2). Test targets may extend past test_end
-    by up to the horizon, as in any rolling-origin design; each fold's own
-    train/test separation stays honest because training is capped at the
-    freeze date."""
+    """Split a lag table into (train, test) rows for one fold by issue date.
+
+    Training rows have target dates before test_start. Test rows have issue dates from
+    test_start through test_end. Every transform is fit on observations before
+    test_start, so it is valid for forecasts issued at or after that date. Test targets
+    can extend past test_end by up to the lead time.
+    """
     train = lag_df[lag_df["target_date"] < fold.test_start]
     test = lag_df[(lag_df["issue_date"] >= fold.test_start) & (lag_df["issue_date"] <= fold.test_end)]
     return train, test
 
 
 def damped_persistence_pred(train: pd.DataFrame, test: pd.DataFrame, mode: str) -> np.ndarray:
-    """Two AR(1) forms: 'regression' fits target~lag_0 per basin; 'rho_pow' decays lag-1 acf^h."""
+    """Damped-persistence forecasts for the test rows of one fold and lead time.
+
+    mode='regression' (damped_persistence_reg) regresses the lead-h target on lag_0 per
+    basin, without intercept. Any other mode (damped_persistence_rho) multiplies lag_0
+    by rho**h, where rho is the per-basin AR(1) coefficient (least squares of lag_0 on
+    lag_1, no intercept, clipped to +-0.999). Basins absent from train get zero.
+    """
     preds = np.empty(len(test))
     coef = {}
     for name, grp in train.groupby("name"):
@@ -120,15 +123,24 @@ def run_baseline_ladder(
     standardize: bool = False,
     fill_short_gaps: bool = True,
 ) -> pd.DataFrame:
-    """All baselines x folds x horizons on the deseasonalized target. Returns tidy prediction rows."""
+    """Benchmark forecasts for every fold and lead time on the deseasonalized residual.
+
+    Returns tidy prediction rows (name, issue_date, target_date, target, pred, model,
+    fold, horizon). With standardize=True the models are fit in standardized units,
+    target and pred are reported in centimeters, and target_std_units and pred_std_units
+    hold the standardized values. ridge_own_plus_indices is produced only when indices
+    is given and every test row has all its index lags.
+    """
     out = []
     for fold in folds:
         resid_wide, train_std = deseasonalize_fold(wide, fold)
         if standardize:
-            # Per-basin train-window scaling stops high-amplitude basins from owning the pooled loss
+            # Scaling by the training-window std keeps high-variance basins from
+            # dominating the pooled loss
             resid_wide = resid_wide / train_std
-        # Short gaps are filled on the feature side only; every model sees identical fills,
-        # and anchor masking keeps every filled value causal at its issue date
+        # Short gaps are filled in the features only, never the targets. Every model sees
+        # the same fills, and anchor masking hides each filled value from issue dates
+        # before the observation that closes its gap.
         feat_wide, anchors = interpolate_short_gaps(resid_wide) if fill_short_gaps else (None, None)
         for h in horizons:
             lag_df = build_lag_table(resid_wide, horizon=h, feature_wide=feat_wide, anchors=anchors)
@@ -146,11 +158,11 @@ def run_baseline_ladder(
             }
             ridge, scaler = fit_ridge(train, own_cols)
             preds["ridge_own_lags"] = predict_ridge(ridge, scaler, test, own_cols)
-            # Strongest baseline per the Phase 2 audit: dodges the pooling penalty entirely
             preds["ridge_own_perbasin"] = per_basin_ridge_predict(train, test, own_cols)
 
             if indices is not None:
-                # Climate indices join on issue date; only lags at or before issue are legal
+                # Climate indices are joined on issue date at lags of zero or more months,
+                # so every value is known at issue time
                 idx_feats = pd.concat(
                     {f"{c}_lag{k}": indices[c].shift(k) for c in indices.columns for k in index_lags},
                     axis=1,
@@ -171,7 +183,7 @@ def run_baseline_ladder(
                 df["fold"] = fold.name
                 df["horizon"] = h
                 if standardize:
-                    # Report in cm regardless: un-scale so results stay physically interpretable
+                    # target and pred go back to centimeters; *_std_units keep the scaled values
                     scale = df["name"].map(train_std)
                     df["target"] = df["target"] * scale
                     df["pred"] = df["pred"] * scale
@@ -182,7 +194,12 @@ def run_baseline_ladder(
 
 
 def summarize(pred_rows: pd.DataFrame) -> pd.DataFrame:
-    """Pooled and per-model metrics by horizon; skill score vs the stronger damped persistence."""
+    """Pooled RMSE, MAE and correlation per model and lead time, and skill over damped persistence.
+
+    skill_vs_damped is 1 - (RMSE / RMSE_damped)**2 against the damped-persistence
+    variant with the lower RMSE at that lead time, in standardized units when
+    available and in centimeters otherwise.
+    """
     rows = []
     std_units = "target_std_units" in pred_rows.columns
     for (model, h), grp in pred_rows.groupby(["model", "horizon"]):
@@ -197,7 +214,6 @@ def summarize(pred_rows: pd.DataFrame) -> pd.DataFrame:
             row["rmse_std"] = rmse(grp["target_std_units"].values, grp["pred_std_units"].values)
         rows.append(row)
     summary = pd.DataFrame(rows)
-    # Skill relative to the best damped-persistence variant at each horizon, in the fit metric
     key = "rmse_std" if std_units else "rmse_cm"
     damped = summary[summary["model"].str.startswith("damped")].groupby("horizon")[key].min()
     summary["skill_vs_damped"] = 1 - (summary[key] / summary["horizon"].map(damped)) ** 2
@@ -205,7 +221,7 @@ def summarize(pred_rows: pd.DataFrame) -> pd.DataFrame:
 
 
 def per_basin_wins(pred_rows: pd.DataFrame, challenger: str, reference: str) -> pd.DataFrame:
-    """Count basins where challenger beats reference on RMSE, by horizon."""
+    """Number of basins where challenger has a lower RMSE than reference, by lead time."""
     rows = []
     for h, grp in pred_rows.groupby("horizon"):
         piv = {}

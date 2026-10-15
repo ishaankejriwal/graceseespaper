@@ -1,8 +1,16 @@
-"""Where does the filter gain most? Rank correlations of the per-basin 1-month
-KF skill over damped persistence (from RMSE in cm) with basin area, mean annual
-ERA5-Land precipitation and the lag-1 autocorrelation of the residual.
+"""Spearman correlations of the per-basin 1-month skill of KF over damped persistence
+with basin area, mean annual ERA5-Land precipitation and the residual lag-1
+autocorrelation (Sect. 4.1).
 
-Reads saved outputs only; writes results/kalman_gain_correlates.csv.
+Skill is computed from RMSE in cm. The residual autocorrelation is taken over the
+test-window targets of damped_persistence_rho at a 1-month lead. Also reports the median
+skill in the driest quarter of basins and in the rest.
+
+Inputs: results/conventional_metrics_perbasin.csv, phase2_baseline_predictions.csv;
+data/processed/basin_meta.csv, era5_basin_month.csv (full years 2001-2025).
+Output: results/kalman_gain_correlates.csv. CSR only (fixed CSR paths).
+
+Usage: python scripts/kalman_gain_correlates.py
 """
 from pathlib import Path
 

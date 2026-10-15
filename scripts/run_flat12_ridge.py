@@ -1,15 +1,22 @@
-"""Flat 12-month ridge corrections on the Kalman backbone, leads 1-6, without torch.
+"""Fit the pooled ridge corrections to the Kalman filter forecast at leads of 1 to 6 months.
 
-Emits the reference forecast (kalman_ar1), the lag-0 own-state ridge comparator
-(kalman_own_ridge, phase 3b's definition) and the two flat-12 ridge corrections
-(ridge_own_flat12, ridge_own_era5_flat12). These arms used to exist only inside
-run_phase7.py --arch lstm, at leads 1-3, behind a torch import; this runner is their home.
+Writes four forecasts (Sect. 3.5): kalman_ar1 (KF); kalman_own_ridge (KF-R1), a ridge
+on the current filtered state; ridge_own_flat12 (KF-R12), a ridge on the last 12 months
+of filtered state; and ridge_own_era5_flat12 (KF-R12E), which adds the 12-month history
+of the 11 ERA5-Land anomaly series. Each correction predicts the error of KF. The
+summary gives skill against KF and KF-R1 and a DM test against KF. Does not need torch.
+Feeds Table 3 and Fig. 5 directly, and Tables 2, 5, B1 and C1 and Figs. 2 and 7
+through build_paper_ladder.py, run_phase6_li_comparison.py and
+compute_conventional_metrics.py.
 
-Inputs : data/processed/basin_month_twsa_global.csv, data/processed/basin_meta.csv
+Inputs:  data/processed/basin_month_twsa_global.csv, data/processed/basin_meta.csv
          data/processed/era5_basin_month.csv, results/kalman_fold_params.pkl
+         (the cache is fitted and written if missing or stale)
 Outputs: results/flat12_ridge_predictions.csv, results/flat12_ridge_summary.csv
 
-Run: .venv/Scripts/python.exe scripts/run_flat12_ridge.py
+Usage:
+  python scripts/run_flat12_ridge.py [--horizons 1-6] [--summary-only]
+  GRACEFC_SOURCE=jpl python scripts/run_flat12_ridge.py [--horizons 1-6] [--summary-only]
 """
 from __future__ import annotations
 
@@ -39,10 +46,10 @@ OWN_RIDGE_REF = "kalman_own_ridge"
 
 
 def summarize(pred_rows: pd.DataFrame) -> pd.DataFrame:
+    """Pooled RMSE, skill against KF and KF-R1, and DM test against KF, by model and lead."""
     rows = []
     for (model, h), grp in pred_rows.groupby(["model", "horizon"]):
-        # The reference is not a challenger against itself: a self-DM is a
-        # 0/0 by construction and only wrote NaNs into the summary. Left empty.
+        # A DM test of the reference against itself is 0/0, so those cells are left NaN
         if model == KALMAN_REF:
             stat, p = float("nan"), float("nan")
         else:

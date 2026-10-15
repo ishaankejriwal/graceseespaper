@@ -1,20 +1,27 @@
-"""Phase 6 attribution: which ERA5 variables carry the lead-1 gain, and its geography.
+"""Which ERA5-Land variables carry the 1-month skill of ridge_own_era5 over ridge_own.
 
-Fills the last manuscript RERUN todo (main.tex Sect. results_era5). Four questions,
-all on the corrected issue-date pipeline, ridge heads only (the lead-1 ERA5 gain is a
-linear-tier result; no placebos are needed to attribute an already-established effect):
+Not used in the manuscript. Ridge heads only, at
+a 1-month lead, without placebo arms:
 
-1. Leave-one-variable-out: refit ridge_own_era5 with each variable's three lag columns
-   removed. The skill drop (full minus LOVO) is that variable's unique contribution.
-2. Solo arms: own state + one variable only — the variable's standalone contribution.
-3. Fold-level failure mode: per-fold skill of ridge_own_era5 vs ridge_own, from the
-   published phase6_era5_predictions.csv rows.
-4. Per-basin FDR counts and pooled-by-continent skill for the same contrast.
+1. Leave one variable out: refit ridge_own_era5 without that variable's three lag
+   columns. The skill lost (full minus reduced) is the variable's unique contribution.
+2. One variable alone: own state plus that variable's lags.
+3. Per-fold skill of ridge_own_era5 over ridge_own.
+4. Per-basin DM tests with Benjamini-Hochberg control (q = 0.10), and pooled skill
+   by continent.
 
-Outputs: results/phase6_era5_attribution.csv (arms), _folds.csv, _continent.csv,
-_fdr.csv. Questions 3-4 reuse the published predictions file so the numbers quoted in
-the manuscript decompose the exact arm the headline is about; questions 1-2 refit on
-identical rows to that arm's construction (same engine feature path).
+Items 1 and 2 refit the arms with the same feature construction as the experiment
+engine. Items 3 and 4 use the stored results/phase6_era5_predictions.csv rows, so they
+decompose exactly the contrast in that file.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv,
+era5_basin_month.csv; results/kalman_fold_params.pkl, phase6_era5_predictions.csv.
+Outputs: results/phase6_era5_attribution.csv (one row per arm), _folds.csv,
+_continent.csv and _fdr.csv.
+
+Usage:
+  python scripts/run_phase6_era5_attribution.py
+  GRACEFC_SOURCE=jpl python scripts/run_phase6_era5_attribution.py
 """
 import sys
 from pathlib import Path
@@ -36,17 +43,22 @@ from gracefc.runtime import load_era5, load_sample, processed_dir, results_dir  
 
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
-H = 1  # the ERA5 linear gain is significant at lead 1 only
+H = 1  # lead time in months
 
 
 def build_pred_rows() -> tuple[pd.DataFrame, list[str]]:
+    """Test rows of ridge_own, ridge_own_era5 and the per-variable arms over all folds.
+
+    Returns (rows, ERA5-Land variable names). Arms are labelled
+    ridge_own_era5_wo_<var> (variable removed) and ridge_own_era5_only_<var>.
+    """
     wide, meta, keep = load_sample(DATA)
     era5_wide = load_era5(keep)
     variables = list(era5_wide)
 
     cache = load_params_cache(OUT_DIR / "kalman_fold_params.pkl",
                               DATA / "basin_month_twsa_global.csv")
-    assert cache, "params cache missing or stale - run phase3b first"
+    assert cache, "Kalman parameter cache missing or stale; run flat12_ridge or phase3b first"
 
     out = []
     for fold in DEFAULT_FOLDS:
@@ -58,6 +70,7 @@ def build_pred_rows() -> tuple[pd.DataFrame, list[str]]:
         rho = params.set_index("name")["rho"][names].values
         era5_feats, era5_cols = era5_fold_features(era5_wide, fold.test_start, names)
 
+        # KF forecast rho^h x_{t|t}; every ridge head fits its error
         prop = filt.values * (rho[None, :] ** H)
         base = pd.DataFrame({
             "issue_date": np.repeat(filt.index.values, len(names)),
@@ -121,7 +134,7 @@ def main() -> None:
     attribution = pd.DataFrame(rows)
     attribution.to_csv(OUT_DIR / "phase6_era5_attribution.csv", index=False)
 
-    # Fold-level failure mode + geography, from the PUBLISHED arm's predictions
+    # Per-fold and per-continent breakdowns use the stored predictions file
     pub = pd.read_csv(OUT_DIR / "phase6_era5_predictions.csv",
                       parse_dates=["issue_date", "target_date"])
     pub = pub[(pub["horizon"] == H) & (pub["model"].isin(["ridge_own_era5", "ridge_own"]))]

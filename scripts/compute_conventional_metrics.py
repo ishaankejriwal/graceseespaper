@@ -1,29 +1,37 @@
-"""Conventional per-basin metrics (RMSE in cm, correlation, NSE) for the paper's
-comparability section.
+"""Per-basin RMSE in cm, correlation and NSE for the forecasts reported in centimeters.
 
-Other TWSA-forecasting studies report per-basin/grid RMSE in cm EWH, correlation
-against GRACE, and NSE -- mostly on the full signal (seasonal cycle included).
-This script computes those metrics for our retained systems so Sect. 5.4 can
-bridge to published numbers instead of only explaining non-comparability.
+Feeds Fig. 2b, Fig. 4c, the panel checks of Fig. 3, Sects. 4.1 and 4.5, and
+Appendix C (Table C1); kalman_gain_correlates.py and centimeter_contrasts.py build on
+it. Other TWSA forecasting studies mostly report these metrics on the full signal,
+seasonal cycle included, so both the anomaly and the full-signal versions are given.
 
-Construction mirrors run_phase6_li_comparison.py exactly: per (basin, fold) the
-climatology is fit on the train window only (fit_climatology), the train-window
-residual std converts standardized errors to cm, and full-signal series are
-frozen-climatology + anomaly. Because both observation and forecast share the
-frozen climatology, anomaly-space and full-signal errors are identical rows;
-correlation and NSE differ between the two spaces because the observed variance
-does (the seasonal cycle is in the full signal only).
+Per (basin, fold), the climatology is fit on the training window (fit_climatology), as
+in run_phase6_li_comparison.py, and the training-window residual standard deviation
+converts standardized values back to cm. A full-signal series is the frozen
+climatology plus the anomaly. Observation and forecast share that climatology, so RMSE
+is the same in both spaces; correlation and NSE differ because the observed variance
+includes the seasonal cycle only in the full signal.
 
-Models: the five retained systems of the paper spine. Damped persistence (the
-ladder's stronger variant: rho at lead 1, regression at leads 2-6), the Kalman
-forecast, the own-state ridge correction, and the two flat-12 ridge corrections
-(state-only and state-plus-ERA5). The three ridge arms come from
-results/flat12_ridge_predictions.csv, which the chain declares as an input.
-When the extended chain has also produced the stacked-system prediction files,
-its two-seed ensemble is added as an optional extra row. Rows are asserted
-identical across models at each lead.
+Models: damped persistence (rho at lead 1, regression at leads 2-6, the stronger
+variant on CSR; the same mapping is used on JPL), kalman_ar1 (KF), kalman_own_ridge
+(KF-R1), ridge_own_flat12 (KF-R12) and ridge_own_era5_flat12 (KF-R12E). When the
+extended run's stacked-model prediction files are present, their two-seed ensemble
+is added as stacked_ens. Row sets are asserted identical across models at each lead
+time.
 
+Inputs: data/processed/basin_month_twsa_global.csv; results/phase2_baseline_predictions.csv,
+kalman_predictions.csv, flat12_ridge_predictions.csv, and optionally
+phase8_lstm_combined_predictions.csv and phase8b_lstm_h46_predictions.csv.
 Outputs: results/conventional_metrics_perbasin.csv, results/conventional_metrics_summary.csv
+
+Usage:
+  python scripts/compute_conventional_metrics.py
+  GRACEFC_SOURCE=jpl python scripts/compute_conventional_metrics.py
+
+The archived tables in results/jpl/ were produced at commit 71be5ec of the JPL
+pipeline branch (results/jpl/RUN_PROVENANCE.md; archived as
+graceseespaper-71be5ec-jpl-run-code.zip). With this revision, run the full JPL
+chain (run_chain.py --source jpl) first.
 """
 from __future__ import annotations
 
@@ -43,12 +51,13 @@ from gracefc.runtime import processed_dir, results_dir  # noqa: E402
 RES = results_dir(ROOT)
 DATA = processed_dir(ROOT)
 HORIZONS = range(1, 7)
-# Ladder convention (tab:ladder caption): rho-damping is the stronger variant at
-# lead 1, regression damping at leads 2-6.
+# Damped-persistence variant per lead time: the stronger one on CSR (Table 2), rho at
+# lead 1 and regression at leads 2-6
 DAMPED_BY_H = {1: "damped_persistence_rho", **{h: "damped_persistence_reg" for h in range(2, 7)}}
 
 
 def load_wide() -> pd.DataFrame:
+    """Observed TWSA in cm, months by basins."""
     long = pd.read_csv(DATA / "basin_month_twsa_global.csv", parse_dates=["date"])
     return long.pivot(index="date", columns="name", values="twsa_cm")
 
@@ -60,8 +69,8 @@ def load_model_rows() -> pd.DataFrame:
     ph2 = pd.read_csv(RES / "phase2_baseline_predictions.csv", parse_dates=["issue_date", "target_date"])
     for h, m in DAMPED_BY_H.items():
         sub = ph2[(ph2["model"] == m) & (ph2["horizon"] == h)].copy()
-        # phase2 carries both cm and std-unit columns; keep std units plus the cm
-        # columns as an independent cross-check on this script's rescaling.
+        # phase2 stores both cm and standardized columns; the cm columns are kept as an
+        # independent check on this script's rescaling.
         sub = sub.rename(columns={"target": "target_cm_file", "pred": "pred_cm_file",
                                   "target_std_units": "target", "pred_std_units": "pred"})
         sub["model"] = "damped_persistence"
@@ -74,19 +83,16 @@ def load_model_rows() -> pd.DataFrame:
     kal = kal[kal["model"] == "kalman_ar1"]
     frames.append(kal[cols])
 
-    # The three retained correction arms. flat12_ridge_predictions.csv also carries its own
-    # copy of kalman_ar1; the reference forecast is deliberately taken from the kalman step's
-    # file above so this table's Kalman row stays byte-identical to the one it has always had.
+    # KF-R1, KF-R12 and KF-R12E. flat12_ridge_predictions.csv also holds a copy of
+    # kalman_ar1; the KF rows are taken from kalman_predictions.csv above.
     flat = pd.read_csv(RES / "flat12_ridge_predictions.csv", parse_dates=["issue_date", "target_date"])
     ridge_arms = ["kalman_own_ridge", "ridge_own_flat12", "ridge_own_era5_flat12"]
     missing_arms = [m for m in ridge_arms if m not in set(flat["model"])]
     assert not missing_arms, f"flat12_ridge_predictions.csv is missing {missing_arms}"
     frames.append(flat[flat["model"].isin(ridge_arms)][cols])
 
-    # The stacked system is an extended (torch) step and is no longer a retained model;
-    # it is kept here as an optional extra. Its prediction files are absent on a
-    # default-chain machine, so the five retained systems still get their conventional
-    # metrics and the table simply has one fewer model.
+    # The stacked model comes from the extended (torch) run. Without its prediction
+    # files the five forecasts above are still scored and stacked_ens is omitted.
     stack_files = [RES / "phase8_lstm_combined_predictions.csv",
                    RES / "phase8b_lstm_h46_predictions.csv"]
     if all(f.exists() for f in stack_files):
@@ -115,6 +121,8 @@ def load_model_rows() -> pd.DataFrame:
 
 
 def attach_cm_and_full(rows: pd.DataFrame, wide: pd.DataFrame) -> pd.DataFrame:
+    """Add cm columns per (fold, basin): train_std, obs_anom_cm, pred_anom_cm, clim_cm
+    and obs_raw_cm, with assertions that the rescaled target reproduces the raw record."""
     out = []
     fold_start = {f.name: f.test_start for f in DEFAULT_FOLDS}
     for (fold, name), grp in rows.groupby(["fold", "name"]):
@@ -146,6 +154,8 @@ def attach_cm_and_full(rows: pd.DataFrame, wide: pd.DataFrame) -> pd.DataFrame:
 
 
 def per_basin_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    """RMSE (cm), correlation and NSE per model, lead time and basin, on anomalies and
+    on the full signal. Correlation is NaN for a constant observed series."""
     recs = []
     for (model, h, name), g in df.groupby(["model", "horizon", "name"]):
         err = g["pred_anom_cm"] - g["obs_anom_cm"]

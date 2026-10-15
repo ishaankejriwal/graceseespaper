@@ -1,19 +1,23 @@
-"""Stratify the phase-8 stacked neighbor correction by mascon contamination and basin area.
+"""Neighbor-correction skill by mascon contamination and basin area.
 
-The resolution-sensitivity audit (RUN_LOG 2026-08-15) showed the h1 LINEAR neighbor
-effect is confined to high-contamination basins regardless of size — the 90k km2
-"sub-resolution" framing was a proxy for footprint sharing. That analysis covered only
-the linear Kalman arm at h1. This script answers the open question it ranked highest:
-does the phase-8 stacked correction (the paper's headline neighbor result) also
-concentrate in high-contamination basins, or does it survive where the linear effect
-dies? Strata definitions replicate run_resolution_sensitivity exactly: contamination
-terciles over the 234 keep basins, area split at the below_resolution flag, and the
-2x2 cross. Also extends the linear stratification to h1-6 via the phase-8 ridge twins
-(same row set, so directly comparable).
+Not used in the manuscript. Scores the stacked neighbor
+correction of run_phase8_lstm_combined.py (per seed and as a two-seed ensemble), the
+ERA5-Land neighbor ridge at leads 1-6, and the phase7 residual-MLP neighbor arm at leads
+1-3 within basin strata. The strata follow run_resolution_sensitivity.py: terciles of
+mascon contamination over the kept basins, an area split at the below_resolution flag,
+and the 2x2 cross of the two. Stratum-interaction DM tests compare the high and low
+contamination terciles, and the below-resolution and resolved basins.
 
-Horizon is filtered inside pooled_monthly_dm / block_bootstrap_skill_ci BEFORE the
-(name, target_date) pairing merge, so the multi-horizon shared-target-date trap the
-resolution audit hit cannot occur here.
+The scoring functions filter on horizon before pairing rows on (name, target_date), so
+rows from different leads that share a target month are never paired.
+
+Inputs: results/resolution_diagnostics.csv, phase8_lstm_combined_predictions.csv,
+phase8b_lstm_h46_predictions.csv, phase7_resmlp_predictions.csv.
+Outputs: results/phase8_stratification.csv, phase8_stratification_interactions.csv.
+
+Usage:
+  python scripts/run_phase8_stratification.py
+  GRACEFC_SOURCE=jpl python scripts/run_phase8_stratification.py
 """
 import sys
 from pathlib import Path
@@ -45,8 +49,8 @@ def add_seed_ensembles(pred: pd.DataFrame, fams: list[str]) -> pd.DataFrame:
         for i, s in enumerate(seeds[1:], start=1):
             nxt = pred[pred["model"] == s][KEY + ["pred"]]
             base = base.merge(nxt, on=KEY, suffixes=("", f"_{i}"), validate="one_to_one")
-            # inner join: a partial row-set mismatch SHRINKS the frame rather than
-            # producing NaNs, so length against seed-0 is the real guard (audit 2026-08-15)
+            # The inner join shrinks the frame on a row-set mismatch instead of
+            # producing NaNs, so the length check against seed 0 is the guard
             if len(base) != n0:
                 raise AssertionError(f"{fam}: seed row sets differ at {s} ({len(base)} vs {n0})")
         pcols = ["pred"] + [f"pred_{i}" for i in range(1, len(seeds))]
@@ -58,6 +62,7 @@ def add_seed_ensembles(pred: pd.DataFrame, fams: list[str]) -> pd.DataFrame:
 
 
 def build_strata(diag: pd.DataFrame) -> dict[str, set[str]]:
+    """Stratum label -> basin names, over the kept basins only."""
     keep = diag[diag["exclude_reason"] == "keep"].copy()
     keep["cont_tercile"] = pd.qcut(keep["contamination"], 3, labels=["low", "mid", "high"])
     sub = keep["below_resolution"].astype(bool)
@@ -79,6 +84,7 @@ def build_strata(diag: pd.DataFrame) -> dict[str, set[str]]:
 
 def run_contrasts(pred: pd.DataFrame, contrasts: list[tuple[str, str]],
                   strata: dict[str, set[str]], horizons: list[int], source: str) -> list[dict]:
+    """Skill (%), block-bootstrap CI and DM test for each contrast, stratum and horizon."""
     rows = []
     for a, b in contrasts:
         for label, names in strata.items():
@@ -98,7 +104,7 @@ def run_contrasts(pred: pd.DataFrame, contrasts: list[tuple[str, str]],
 
 
 def _stratum_monthly(pred: pd.DataFrame, a: str, b: str, names: set[str], h: int):
-    """Monthly cross-basin mean loss differential (la−lb) and the reference loss series."""
+    """Monthly cross-basin mean loss differential (la - lb) and the reference loss series."""
     sub = pred[(pred["horizon"] == h) & pred["name"].isin(names)]
     j = _paired_losses(sub, a, b)
     la = j.groupby("target_date")["loss_a"].mean().sort_index()
@@ -109,12 +115,12 @@ def _stratum_monthly(pred: pd.DataFrame, a: str, b: str, names: set[str], h: int
 def interaction_tests(pred: pd.DataFrame, strata: dict[str, set[str]],
                       a: str = "lstmres_corr_top1_ens",
                       b: str = "lstm_own_era5_ens") -> pd.DataFrame:
-    """Formal stratum-interaction DM tests (method from the 2026-08-15 batch audit).
+    """DM tests of whether the correction's gain differs between two strata.
 
-    Each stratum's monthly loss differential is normalized by that stratum's time-mean
-    reference MSE (units: fractions of reference MSE), then the DM test runs on the
-    difference of the two normalized series. Sign convention: mean_diff_pp < 0 means the
-    FIRST-listed stratum gains MORE from the correction; > 0 means it gains less.
+    Each stratum's monthly loss differential is divided by that stratum's time-mean
+    reference MSE, and the DM test runs on the difference of the two normalized
+    series. mean_diff_pp < 0 means the first-listed stratum gains more from the
+    correction; > 0 means it gains less.
     """
     axes = [("cont_high_vs_low", "cont_tercile_high", "cont_tercile_low"),
             ("sub_vs_resolved", "area_sub_resolution", "area_resolved")]
@@ -144,10 +150,10 @@ def main() -> None:
                     for t in ("phase8_lstm_combined", "phase8b_lstm_h46")], ignore_index=True)
     p8 = add_seed_ensembles(p8, ["lstmres_corr_top1", "lstm_own_era5"])
     p8_contrasts = [
-        ("lstmres_corr_top1_ens", "lstm_own_era5_ens"),   # the headline stacked correction
+        ("lstmres_corr_top1_ens", "lstm_own_era5_ens"),   # stacked correction, seed ensemble
         ("lstmres_corr_top1_s0", "lstm_own_era5_s0"),
         ("lstmres_corr_top1_s1", "lstm_own_era5_s1"),
-        ("ridge_corr_top1_era5", "ridge_own_era5"),       # linear extension to h1-6
+        ("ridge_corr_top1_era5", "ridge_own_era5"),       # linear neighbor ridge, h1-6
     ]
     rows = run_contrasts(p8, p8_contrasts, strata, list(range(1, 7)), "phase8")
 

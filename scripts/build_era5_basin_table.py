@@ -1,4 +1,13 @@
-"""Phase 6 prep: aggregate ERA5-Land monthly forcings to the basin-month table."""
+"""Monthly basin means of the 11 ERA5-Land variables (Sect. 2.3).
+
+Aggregates the monthly files in data/raw/era5 to the basins of
+HydroShed+Mascon_Basins_L3.nc with gracefc.era5.build_era5_basin_table and writes
+data/processed/era5_basin_month.csv and era5_basin_coverage.csv (the fraction of each
+basin's mask weight on valid ERA5-Land cells). Both products share these tables, so
+there is no --source option.
+
+Usage: python scripts/build_era5_basin_table.py
+"""
 import sys
 from pathlib import Path
 

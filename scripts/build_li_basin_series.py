@@ -1,14 +1,25 @@
-"""Aggregate Li & Kusche (2026) CSR/JPL-FCast forecasts to L3 basin means.
+"""Basin means of the GRACE-FCast hindcast (Li and Kusche, 2026) for the CSR or JPL member.
 
-Spatial matching: each 0.25-degree mask cell is assigned to the 1-degree Li cell that
+Each 0.25-degree basin-mask cell is assigned to the 1-degree GRACE-FCast cell that
 contains it, so basin weights on the coarse grid are exact sums of the fine-grid
-cos-lat weights. NaN-aware renormalization mirrors basins.py; per-basin coverage of
-Li's land mask is reported so poorly covered coastal basins can be screened.
+cosine-latitude weights (Sect. 3.6). Missing cells are handled by renormalizing the
+weights, as in gracefc/basins.py. Only kept basins are aggregated.
 
-The coverage table also carries n_full_native_mascons, the count of complete native
-mascons the basin contains, for BOTH products. With n_full_li_cells it defines the
-strict joint-support subset the cross-product comparison scores on, so CSR and JPL
-are screened by one rule instead of JPL alone.
+The coverage table gives, per basin, the fraction of mask weight on valid GRACE-FCast
+cells (li_coverage), the number of complete valid GRACE-FCast cells (n_full_li_cells)
+and the number of complete native mascons of the product being scored
+(n_full_native_mascons). The last two define the fully covered basin set, with the
+same rule for CSR and JPL.
+
+Inputs: data/raw/li2026/<CSR|JPL>-FCast/global_gridded/*.nc,
+HydroShed+Mascon_Basins_L3.nc, data/processed[/jpl]/basin_meta.csv, and for CSR the
+official mascon mapping file read through run_resolution_sensitivity.py.
+Outputs: data/processed[/jpl]/li2026_<source>_basin_forecasts.csv (full and
+non-seasonal forecasts in cm, per issue month and lead) and li2026_basin_coverage.csv.
+
+Usage:
+  python scripts/build_li_basin_series.py
+  python scripts/build_li_basin_series.py --source jpl
 """
 import argparse
 import importlib.util
@@ -56,10 +67,10 @@ def csr_native_tile_grid() -> np.ndarray:
 def native_mascon_counts(source: str, basin_cells: list, meta: pd.DataFrame) -> np.ndarray:
     """Complete native mascons contained in each kept basin, for either product.
 
-    Definition is the same on both sides and matches basins.py's JPL column: a native
-    tile counts only when every one of its 0.25-degree cells lies inside the basin
-    mask. JPL records this at build time (mascon_ID ships with the product); CSR has
-    no such column, so it is derived here from the official RL06.3 tile mapping.
+    A native tile counts only when every one of its 0.25-degree cells lies inside the
+    basin mask, the same definition as the JPL column written by basins.py. For JPL
+    the count is recorded at build time from the product's mascon_ID; CSR has no such
+    field, so the count is derived here from the official RL06.3 tile mapping.
     """
     if source == "jpl":
         if "n_full_jpl_mascons" not in meta.columns:
@@ -75,21 +86,22 @@ def build_weight_matrix(
     li_lon: np.ndarray,
     valid_li_cells: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, list]:
-    """Weights, count of wholly contained valid Li cells, and flat cell indices per basin.
+    """Weights, count of wholly contained valid GRACE-FCast cells, and flat mask-cell
+    indices per basin.
 
-    Streams the 1 GB mask file one basin at a time to stay within memory.
+    Reads the 1 GB mask file one basin at a time to stay within memory.
     """
     dm = xr.open_dataset(ROOT / "HydroShed+Mascon_Basins_L3.nc", decode_times=False)
     mask_lat = dm["lat"].values  # -89.875..89.875 ascending
     mask_lon = dm["lon"].values  # 0.125..359.875
     coslat = np.cos(np.deg2rad(mask_lat))
-    # Containing 1-degree cell: floor(center) + 0.5; Li lat runs 89.5 -> -89.5 (descending)
+    # Containing 1-degree cell: floor(center) + 0.5; GRACE-FCast lat runs 89.5 -> -89.5
     li_lat_idx = {v: i for i, v in enumerate(li_lat)}
     li_lon_idx = {v: i for i, v in enumerate(li_lon)}
     lat_map = np.array([li_lat_idx[np.floor(v) + 0.5] for v in mask_lat])
     lon_map = np.array([li_lon_idx[np.floor(v) + 0.5] for v in mask_lon])
 
-    n_cells = len(li_lon) * len(li_lat)  # Li variables are (time, lon, lat)
+    n_cells = len(li_lon) * len(li_lat)  # GRACE-FCast variables are (time, lon, lat)
     W = np.zeros((len(basin_idx), n_cells))
     basin_cells = []
     for row, b in enumerate(basin_idx):
@@ -98,8 +110,8 @@ def build_weight_matrix(
         basin_cells.append(np.flatnonzero(sel))
         li_flat = lon_map[lon_i] * len(li_lat) + lat_map[lat_i]
         np.add.at(W[row], li_flat, coslat[lat_i])
-    # Each Li cell is represented by its sixteen 0.25-degree mask cells. Count
-    # it only when all sixteen belong to the basin and the Li forecast is finite.
+    # Each GRACE-FCast cell covers sixteen 0.25-degree mask cells. Count it only when
+    # all sixteen belong to the basin and the forecast is finite.
     li_group_grid = lon_map[None, :] * len(li_lat) + lat_map[:, None]
     full_counts = fully_contained_group_counts(
         li_group_grid, basin_cells, valid_groups=valid_li_cells
@@ -121,7 +133,7 @@ def main() -> None:
     cov_out = data_dir / "li2026_basin_coverage.csv"
     data_dir.mkdir(parents=True, exist_ok=True)
     meta = pd.read_csv(data_dir / "basin_meta.csv")
-    # Only the hydrology sample: excluded basins never enter any comparison
+    # Kept basins only; excluded basins enter no comparison
     keep_meta = meta[meta["exclude_reason"] == "keep"].reset_index(drop=True)
     files = sorted(li_dir.glob(f"{label}_FCast_gridded_initialized_in_*.nc"))
     if not files:
@@ -130,7 +142,7 @@ def main() -> None:
 
     ds0 = xr.open_dataset(files[0])
     li_lat, li_lon = ds0["lat"].values, ds0["lon"].values
-    # Static land coverage from the first file: Li's mask is the same in every file
+    # Land coverage from the first file; the GRACE-FCast land mask is the same in every file
     finite0 = np.isfinite(ds0["TWSC_full"].values[0].reshape(-1))
     W, n_full_li_cells, basin_cells = build_weight_matrix(
         keep_meta["basin_idx"].values, li_lat, li_lon, finite0
@@ -147,11 +159,11 @@ def main() -> None:
                "n_full_native_mascons"]].to_csv(cov_out, index=False)
     print(f"coverage: min={coverage.min():.3f} | <0.9: {(coverage < 0.9).sum()} "
           f"| <0.5: {(coverage < 0.5).sum()}")
-    print(f"basins containing >=1 complete valid Li cell: {(n_full_li_cells >= 1).sum()}")
+    print(f"basins containing >=1 complete valid GRACE-FCast cell: {(n_full_li_cells >= 1).sum()}")
     print(f"basins containing >=1 complete native {label} mascon: "
           f"{(np.asarray(n_full_native) >= 1).sum()}")
     joint = (np.asarray(n_full_native) >= 1) & (np.asarray(n_full_li_cells) >= 1)
-    print(f"strict joint spatial support (both): {int(joint.sum())} basins")
+    print(f"fully covered set (both): {int(joint.sum())} basins")
 
     rows = []
     names = keep_meta["name"].values

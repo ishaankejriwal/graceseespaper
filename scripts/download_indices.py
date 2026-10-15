@@ -1,4 +1,10 @@
-"""Download monthly climate indices from NOAA PSL/CPC and build one tidy CSV."""
+"""Download monthly climate indices from NOAA PSL, CPC and NCEI and combine them into one CSV.
+
+Raw files are saved as data/raw/indices/<name>.txt; the combined table, one column
+per index and one row per month, is written to data/processed/indices.csv.
+
+Usage: python scripts/download_indices.py
+"""
 import urllib.request
 from pathlib import Path
 
@@ -7,9 +13,10 @@ import pandas as pd
 RAW_DIR = Path(__file__).resolve().parents[1] / "data" / "raw" / "indices"
 OUT_CSV = Path(__file__).resolve().parents[1] / "data" / "processed" / "indices.csv"
 
-# Each index maps to candidate URLs tried in order, so one dead link never kills the run
+# Candidate URLs for each index, tried in order until one parses
 INDEX_URLS = {
-    # Anomaly version, not raw SST: raw nina34 carries an annual cycle into deseasonalized models
+    # Anomaly series: raw Nino 3.4 SST keeps an annual cycle that deseasonalized models should not
+    # see
     "nino34": ["https://psl.noaa.gov/data/correlation/nina34.anom.data"],
     "oni": ["https://psl.noaa.gov/data/correlation/oni.data"],
     "soi": ["https://psl.noaa.gov/data/correlation/soi.data"],
@@ -38,7 +45,11 @@ def fetch(url: str) -> str:
 
 
 def parse_psl(text: str) -> pd.Series:
-    # PSL .data layout: header "year1 year2", then one row per year with 12 values, then footer lines
+    """Parse a PSL .data file into a monthly series, with missing values as NaN.
+
+    The layout is a header line "first_year last_year", one row per year with 12
+    monthly values, then footer lines.
+    """
     lines = [ln for ln in text.splitlines() if ln.strip()]
     header = lines[0].split()
     y0, y1 = int(header[0]), int(header[1])
@@ -65,7 +76,7 @@ def parse_psl(text: str) -> pd.Series:
         for m, v in enumerate(vals, start=1):
             ser[pd.Timestamp(year=year, month=m, day=1)] = v
     s = pd.Series(ser).sort_index()
-    # Apply the file's own missing flag, plus common sentinels that show up unflagged
+    # The file's own missing flag, plus sentinels that some files use without declaring them
     sentinels = {missing_flag} if missing_flag is not None else set()
     sentinels |= {-99.0, -99.9, -99.99, -999.0, -999.9, -9999.0}
     s = s.where(~s.isin(list(sentinels)))
@@ -83,7 +94,7 @@ def main() -> None:
                 text = fetch(url)
                 (RAW_DIR / f"{name}.txt").write_text(text, encoding="utf-8")
                 s = parse_psl(text)
-                # Reject parses that clearly failed rather than silently keeping junk
+                # Fewer than 120 valid months means the parse failed
                 if s.dropna().shape[0] < 120:
                     raise ValueError(f"only {s.dropna().shape[0]} valid months")
                 columns[name] = s
@@ -93,7 +104,7 @@ def main() -> None:
             except Exception as e:
                 print(f"WARN {name:8s} failed {url}: {e}")
         if not got:
-            print(f"FAIL {name:8s} all sources failed — continuing without it")
+            print(f"FAIL {name:8s} all sources failed; continuing without it")
     df = pd.DataFrame(columns)
     df.index.name = "date"
     df.to_csv(OUT_CSV)

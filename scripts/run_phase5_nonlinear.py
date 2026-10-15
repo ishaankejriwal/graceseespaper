@@ -1,4 +1,20 @@
-"""Phase 5: do nonlinear heads (GBM, MLP) or a 2-hop chain beat ridge on the Kalman backbone?"""
+"""Compare gradient-boosting and MLP correction heads with ridge, with and without neighbors.
+
+Every head predicts the error of the Kalman filter forecast at leads of 1 to 3 months,
+from the basin's own filtered state (own), plus the correlation-selected neighbor
+(corr_top1), plus that neighbor's own top neighbor (corr_top1_2hop). The gbm neighbor
+arms are ranked against degree-matched random-neighbor placebos, and each nonlinear
+head is tested against its ridge twin. Not used in the manuscript.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv,
+results/kalman_fold_params.pkl.
+Outputs: results/<tag>_predictions.csv, <tag>_placebo_monthly.csv, <tag>_summary.csv
+(default tag phase5_nonlinear).
+
+Usage:
+  python scripts/run_phase5_nonlinear.py [--placebo 20]
+  GRACEFC_SOURCE=jpl python scripts/run_phase5_nonlinear.py [--placebo 20]
+"""
 import argparse
 import sys
 from pathlib import Path
@@ -34,7 +50,8 @@ def main() -> None:
     pred_rows.to_csv(OUT_DIR / f"{args.tag}_predictions.csv", index=False)
     plac_monthly.to_csv(OUT_DIR / f"{args.tag}_placebo_monthly.csv", index=False)
 
-    # Each MLP seed is its own row; p_rank compares each single-seed arm to single-seed placebos
+    # Placebo rank by family prefix. Only the gbm arms get one: ridge has no placebos,
+    # and the MLP placebo labels (mlp_corr_top1_s<k>_rand<seed>) do not match f"{fam}_rand"
     plac_pooled = (plac_monthly.groupby(["model", "horizon"])[["sum", "count"]].sum()
                    .assign(rmse=lambda d: np.sqrt(d["sum"] / d["count"])))
     rows = []
@@ -50,6 +67,7 @@ def main() -> None:
             row["placebo_n"] = len(dist)
             row["placebo_beaten"] = int((row["rmse_std"] < dist).sum())
             row["p_rank"] = float((1 + (dist <= row["rmse_std"]).sum()) / (1 + len(dist)))
+        # Ridge twin: same features, ridge head (gbm_own -> ridge_own)
         ref = "ridge_" + fam.split("_", 1)[1] if "_" in fam and not fam.startswith("ridge") else None
         if ref and ref in set(pred_rows["model"]):
             stat, p = pooled_monthly_dm(pred_rows, model, ref, h)

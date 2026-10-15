@@ -1,17 +1,14 @@
-"""Turns the raw satellite file into the table everything else reads.
+"""Aggregate a gridded mascon product to monthly basin-mean TWSA and build the basin table.
 
-Input: the CSR mascon file (a global grid of monthly water-storage values) and a mask
-saying which grid cells belong to which river basin. Output: one row per basin per month,
-with how much water that basin held, plus each basin's centre, area, continent, and
-whether we keep or exclude it.
+Reads a CSR or JPL mascon NetCDF file and the 0.25-degree basin mask file. Returns one row
+per basin and month (TWSA in cm of equivalent water height) and a metadata table with each
+basin's centroid, area, continent and sample flags. Excluded basins (ice sheets, water
+bodies and, on JPL, masks with no valid scaled cells) stay in the metadata table with their
+reason in the exclude_reason column.
 
-Two subtleties worth knowing about:
-
-- Solutions are assigned to calendar months using the file's own months_missing attribute
-  rather than by binning on the midpoint date. Midpoint binning silently merged the
-  Nov 2011 and May 2015 solutions into the preceding months, losing two real months.
-- Basins are excluded for documented reasons (ice sheets, too small, too little coverage),
-  and every exclusion is recorded in the exclude_reason column so the sample is auditable.
+Solutions are assigned to calendar months from the product's months_missing attribute
+rather than by the midpoint of each solution's data span. Midpoint binning would place the
+CSR November 2011 and May 2015 solutions in the preceding months.
 """
 import re
 from pathlib import Path
@@ -22,12 +19,12 @@ import xarray as xr
 
 from gracefc.comparison import fully_contained_group_counts
 
-# Rough continent boxes on basin centroids, checked in order — first match wins.
-# Arabia carve-out and Europe both precede Africa so Gulf basins and Sicily don't leak in.
-# Maritime Southeast Asia precedes the australia box: the old equator cut dropped the
+# Approximate continent boxes on basin centroids, checked in order; the first match wins.
+# The Arabia box and Europe precede Africa so that Gulf basins and Sicily are not assigned
+# to Africa. Maritime Southeast Asia precedes the "australia" box so that the
 # southern-hemisphere Indonesian islands (Java, Nusa Tenggara, Sulawesi, Timor, Maluku)
-# into "australia" (audit 2026-08-15). Lon 132 keeps all of New Guinea with Oceania.
-# The "australia" group is Oceania-inclusive (Melanesia, New Zealand).
+# stay in Asia; its eastern edge at 132 E keeps all of New Guinea with Oceania.
+# The "australia" group includes Oceania (Melanesia, New Zealand).
 CONTINENT_BOXES = [
     ("antarctica", -90, -60, -180, 180),
     ("greenland", 59, 84, -75, -10),
@@ -43,8 +40,8 @@ CONTINENT_BOXES = [
 ]
 
 
-# Basins whose centroids sit in box-ambiguous strips (Red Sea, Mediterranean rim, Sinai).
-# Greenland ice sheet hides under NASA GIAG drainage-system names, not "Greenland".
+# Basins whose centroids fall in strips the boxes cannot separate (Red Sea, Mediterranean
+# rim, Sinai). Greenland ice-sheet basins carry NASA GIAG drainage-system names.
 NAME_OVERRIDES = {
     "Antarctic": "antarctica",
     "NASA_GIAG": "greenland",
@@ -63,7 +60,7 @@ NAME_OVERRIDES = {
 
 
 def _assign_continent(lat: float, lon: float, name: str) -> str:
-    # Name-based overrides beat boxes: coastline names are unambiguous where centroids are not
+    # Name overrides take precedence: coastline names are unambiguous where centroids are not
     for key, cont in NAME_OVERRIDES.items():
         if key in name:
             return cont
@@ -74,7 +71,7 @@ def _assign_continent(lat: float, lon: float, name: str) -> str:
 
 
 def load_basin_masks(mask_path: Path) -> dict:
-    """Return per-basin flat cell indices, cos-lat weights, and a metadata table."""
+    """Return per-basin flat cell indices and cos-lat weights, the metadata table and mask axes."""
     dm = xr.open_dataset(mask_path, decode_times=False)
     masks = dm["mask"].values  # (basin, lat, lon), binary
     names = dm["Name"].values
@@ -98,7 +95,7 @@ def load_basin_masks(mask_path: Path) -> dict:
         lat_cells = np.broadcast_to(lat[:, None], masks.shape[1:])[sel]
         lon_cells = np.broadcast_to(lon_wrapped[None, :], masks.shape[1:])[sel]
         c_lat = float(np.average(lat_cells, weights=w))
-        # Longitude needs a weighted circular mean or dateline basins land thousands of km off
+        # Weighted circular mean of longitude, so dateline-crossing basins get a correct centroid
         rad = np.deg2rad(lon_cells)
         c_lon = float(np.rad2deg(np.arctan2(
             np.average(np.sin(rad), weights=w), np.average(np.cos(rad), weights=w)
@@ -118,7 +115,7 @@ def load_basin_masks(mask_path: Path) -> dict:
     meta["continent"] = [
         _assign_continent(r.centroid_lat, r.centroid_lon, r.name) for r in meta.itertuples()
     ]
-    # Sample-definition columns: every exclusion is one auditable filter, never an implicit box
+    # Each exclusion is recorded as an explicit reason rather than applied implicitly
     reasons = []
     for r in meta.itertuples():
         if "Antarctic" in r.name or "NASA_GIAG" in r.name:
@@ -126,12 +123,13 @@ def load_basin_masks(mask_path: Path) -> dict:
         elif r.prefix == "W":
             reasons.append("water_body")
         else:
-            # Explicit sentinel: empty strings round-trip through CSV as NaN and break filters
+            # An explicit value, because an empty string is read back from CSV as NaN
             reasons.append("keep")
     meta["exclude_reason"] = reasons
-    # One ~300 km GRACE resolution element is ~90,000 km2; smaller basins are leakage receivers
+    # A GRACE resolution element of about 300 km covers about 90 000 km2; smaller kept basins
+    # are flagged as below the resolution of the observations
     meta["below_resolution"] = (meta["area_km2"] < 90_000) & (meta["exclude_reason"] == "keep")
-    # De facto ice-dominated units inside the hydrology sample: report as a separate stratum
+    # Largely glaciated basins inside the kept sample, flagged so they can be reported separately
     glaciated_keys = (
         "New_Siberian", "Svalbard", "Novaya_Zemlya", "Severnaya_Zemlya", "Iceland",
         "Franz_Josef", "Banks_Island", "Aleutians_South_Alaska", "Patagonia",
@@ -142,14 +140,13 @@ def load_basin_masks(mask_path: Path) -> dict:
 
 
 def assign_solution_months(ds: xr.Dataset, product: str = "csr") -> pd.DatetimeIndex:
-    """Map each raw solution to its official calendar month, one solution per month.
+    """Return the official calendar month of each solution in the file, one solution per month.
 
-    Midpoint binning mislabels irregular-span solutions: the arcs centered
-    2011-10-31 and 2015-04-27 are CSR's November 2011 and May 2015 solutions,
-    and averaging them into the prior month drops two real months. The file's
-    own months_missing attribute enumerates exactly which months lack a
-    solution, so the coverage span minus that list IS the month sequence;
-    every assignment is then asserted against the solution's data span.
+    The month sequence is the file's coverage span minus the months listed in its
+    months_missing attribute. Binning by the midpoint of the data span would mislabel
+    irregular-span solutions: the arcs centered on 2011-10-31 and 2015-04-27 are the CSR
+    November 2011 and May 2015 solutions. When the file has time bounds, each assigned
+    month is checked against its solution's data span.
     """
     units = ds["time"].attrs.get(
         "units", ds["time"].attrs.get("Units", "days since 2002-01-01T00:00:00Z")
@@ -171,8 +168,8 @@ def assign_solution_months(ds: xr.Dataset, product: str = "csr") -> pd.DatetimeI
         )
     bounds_name = ds["time"].attrs.get("bounds", "time_bounds")
     if bounds_name not in ds:
-        # Some JPL releases omit bounds. The official non-missing month sequence is
-        # still unambiguous and preferable to midpoint-to-month rounding.
+        # Some JPL releases omit time bounds; the official month sequence is still
+        # unambiguous without them.
         return pd.DatetimeIndex([m.to_timestamp() for m in months])
     bounds = ds[bounds_name].values.astype("float64")
     t0 = origin + pd.to_timedelta(bounds[:, 0], unit="D")
@@ -214,8 +211,9 @@ def build_basin_series(
 
     The HydroSHEDS mask is on a 0.25-degree grid. CSR is already sampled on that
     grid, while JPL is sampled at 0.5 degrees. Mask-cell centres are mapped to the
-    nearest mascon grid centre before area-weighted aggregation; repeated source
-    cells retain the summed fine-grid basin area they represent.
+    nearest mascon grid centre before area-weighted aggregation; a source cell hit by
+    several mask cells carries their summed weight. Returns (long_df, meta): basin
+    means in cm, one row per basin and month, and the basin metadata table.
     """
     product = product.lower()
     if product not in {"csr", "jpl"}:
@@ -290,9 +288,9 @@ def build_basin_series(
     valid_months = np.isfinite(out).sum(axis=0)
     meta["product_valid_months"] = valid_months
     if product == "jpl":
-        # Small island masks can map entirely to JPL cells where the CRI land
-        # scale factor is unavailable. Keep their rows for auditability, but do
-        # not pass an all-NaN target series into the forecasting experiments.
+        # Small island masks can map entirely to JPL cells without a CRI land
+        # scale factor. Their metadata rows are kept, but they are excluded so
+        # that no all-NaN target series enters the forecasting experiments.
         unavailable = (meta["exclude_reason"] == "keep") & (valid_months == 0)
         meta.loc[unavailable, "exclude_reason"] = "jpl_unavailable"
     ds.close()

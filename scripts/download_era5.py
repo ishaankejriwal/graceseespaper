@@ -1,4 +1,11 @@
-"""Download ERA5-Land monthly means, global at 0.5 deg, one year per request with resume."""
+"""Download global ERA5-Land monthly means at 0.5 deg from the Copernicus Climate Data Store.
+
+Sends one request per year and writes data/raw/era5/era5_land_monthly_<year>.nc.
+Years already on disk are skipped, so rerunning after a failure resumes the
+download. Requires a CDS API key configured for cdsapi.
+
+Usage: python scripts/download_era5.py
+"""
 import sys
 import zipfile
 from pathlib import Path
@@ -22,19 +29,20 @@ VARIABLES = [
 ]
 
 YEARS = list(range(2001, 2027))
-# The current year is incomplete on CDS; requesting missing months fails the whole request
+# The final year is incomplete on CDS, and a request that includes an unavailable month fails
+# as a whole
 FINAL_YEAR_MONTHS = list(range(1, 6))
 
 
 def post_process(target: Path) -> None:
-    """Normalize a CDS response to ONE flat .nc at `target`.
+    """Leave a single flat NetCDF file at `target`.
 
-    Mixed accumulated+instantaneous requests often return a zip despite
-    data_format=netcdf, sometimes with the variables split across two members
-    (data_0.nc / data_1.nc). Ingestion globs era5_land_monthly_*.nc flat in
-    OUT_DIR and never descends into subdirectories, so anything short of a flat
-    single file per year silently drops that year from the basin table
-    (audit 2026-08-15). Extract to a temp dir and merge members back to `target`.
+    Requests that mix accumulated and instantaneous variables can return a zip
+    despite data_format=netcdf, sometimes with the variables split across two
+    members (data_0.nc, data_1.nc). Ingestion reads only era5_land_monthly_*.nc
+    files directly in OUT_DIR, so a zip or a subdirectory would drop that year
+    from the basin table without an error. A zip is extracted to a temporary
+    directory and its members are merged back into `target`.
     """
     if not zipfile.is_zipfile(target):
         return
@@ -59,7 +67,8 @@ def post_process(target: Path) -> None:
 
 
 def year_done(year: int) -> bool:
-    # Only a flat, non-zip .nc counts: extracted directories are invisible to ingestion
+    """True when the year's file is a flat, non-zip .nc larger than 1 MB, the only form
+    ingestion reads."""
     flat = OUT_DIR / f"era5_land_monthly_{year}.nc"
     return flat.exists() and flat.stat().st_size > 1_000_000 and not zipfile.is_zipfile(flat)
 
@@ -73,7 +82,8 @@ def retrieve_year(client: cdsapi.Client, year: int) -> None:
         "year": [str(year)],
         "month": [f"{m:02d}" for m in months],
         "time": ["00:00"],
-        # 0.5 deg server-side regrid: we aggregate to basins, native 0.1 deg is ~80 GB of waste
+        # Regrid to 0.5 deg on the server: the data are aggregated to basins, and the native
+        # 0.1 deg grid is about 80 GB
         "grid": [0.5, 0.5],
         "data_format": "netcdf",
         "download_format": "unarchived",

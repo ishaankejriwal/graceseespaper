@@ -1,22 +1,15 @@
-"""Decides which basins count as a basin's "neighbours".
+"""Neighbor graphs between basins, and degree-matched random graphs used as placebos.
 
-Three ways to pick them: most-correlated (on the training window only), nearest by
-distance, and — most importantly — RANDOM.
+A graph maps each target basin to a ranked list of source basins. Sources are selected by
+training-window correlation, by lagged correlation, by centroid distance, or by correlation
+among sources at least a minimum distance away (graph kinds corr_min<km>).
 
-The random ones are the placebo. To claim "knowing what neighbouring basins do helps",
-it is not enough to show the model improved when neighbours were added; maybe any extra
-input would have helped. So we rerun everything with randomly chosen basins wired up in a
-graph of exactly the same shape (same number of connections per basin) using the same
-model seed. The only thing that differs is WHICH basins are connected. If the real graph
-does not beat the random ones, the effect was never about geography.
-
-"Degree-matched" below just means the fake graph gives each basin the same number of
-neighbours as the real one, so the comparison is not confounded by graph size. For the
-top-1 graphs the stacked system uses, every basin has in-degree 1, so degree matching
-constrains nothing: random_degree_matched is a UNIFORM random other basin. That placebo
-therefore differs from the real neighbour in identity AND in proximity and correlation
-at once, so a mascon-leakage or shared-forcing artefact would beat it just as a real
-teleconnection would; the distance-band graphs (corr_min<km>) are the leakage control.
+The placebo for a graph gives each basin the same number of sources, chosen at random, so a
+real graph and its placebos differ only in which basins are connected. For a top-1 graph
+every basin has one source, and the placebo source is a uniform random other basin. It
+therefore differs from the real neighbor in both proximity and correlation, so a gain over
+the placebo can come from mascon leakage or shared forcing as well as from a hydrological
+connection. The distance-band graphs exclude nearby sources to control for leakage.
 """
 import numpy as np
 import pandas as pd
@@ -69,7 +62,7 @@ def geographic_topk(meta: pd.DataFrame, k: int) -> dict[str, list[str]]:
 def corr_topk_min_distance(
     wide_train: pd.DataFrame, meta: pd.DataFrame, k: int, min_km: float
 ) -> dict[str, list[str]]:
-    """Correlation top-k restricted to sources at least min_km away — the leakage control."""
+    """Correlation top-k restricted to sources at least min_km away (the leakage control)."""
     dist = distance_matrix_km(meta)
     corr = wide_train.corr()
     graph = {}
@@ -84,10 +77,9 @@ def corr_topk_min_distance(
 def random_degree_matched(
     graph: dict[str, list[str]], seed: int
 ) -> dict[str, list[str]]:
-    """Random neighbors with the same in-degree per target — the chance placebo.
+    """Placebo graph: random sources, as many per target as in graph, drawn without replacement.
 
-    For a top-1 graph every target has in-degree 1, so "degree-matched" imposes no
-    constraint at all and this reduces to a UNIFORM random other basin.
+    For a top-1 graph this is a uniform random other basin for each target.
     """
     rng = np.random.default_rng(seed)
     names = list(graph.keys())
@@ -106,7 +98,11 @@ GRAPH_BUILDERS = {
 
 
 def resolve_builder(kind: str):
-    """Also accept distance-band kinds like corr_min300: correlation top-k at >=300 km only."""
+    """Return the builder for a graph kind.
+
+    Besides the kinds in GRAPH_BUILDERS, accepts distance-band kinds such as corr_min300:
+    correlation top-k among sources at least 300 km away.
+    """
     if kind in GRAPH_BUILDERS:
         return GRAPH_BUILDERS[kind]
     if kind.startswith("corr_min"):

@@ -1,15 +1,8 @@
-"""Removes the boring, already-predictable parts of a water-storage series.
+"""Trend and seasonal climatology used to deseasonalize storage and ERA5-Land series.
 
-Raw water storage is dominated by two patterns anyone can predict: a long-term drying or
-wetting trend, and the annual wet/dry cycle. Leaving them in would make any model look
-excellent while predicting nothing of interest. So we fit and subtract both, and forecast
-only the leftover — the genuinely hard part.
-
-The fit is a straight line (the trend) plus two sine/cosine pairs (the yearly cycle and
-its half-year overtone), estimated by least squares.
-
-Crucially the fit uses TRAINING months only and is then applied forward. Fitting it on
-the whole record would leak future information into the test period.
+The climatology is a linear trend plus annual and semiannual harmonics (six coefficients),
+fit by ordinary least squares on the training window only and then subtracted from the
+whole record, test months included.
 """
 from dataclasses import dataclass
 
@@ -19,7 +12,8 @@ import pandas as pd
 
 @dataclass
 class DecompositionFit:
-    # Coefficients: [intercept, slope, cos1, sin1, cos2, sin2] on fractional-year time
+    # coeffs: [intercept, slope, cos1, sin1, cos2, sin2] on time in years since t0,
+    # the first fitted month
     coeffs: np.ndarray
     t0: float
 
@@ -42,10 +36,13 @@ def _design_matrix(t: np.ndarray) -> np.ndarray:
 
 
 def fit_climatology(series: pd.Series) -> DecompositionFit:
-    """Fit trend + annual + semiannual by least squares. Call ONLY on the training window."""
+    """Fit trend plus annual and semiannual harmonics by least squares, ignoring NaN months.
+
+    Call it on the training window only. Raises ValueError with fewer than 36 observed months.
+    """
     s = series.dropna()
     if s.shape[0] < 36:
-        # Under three years of data the harmonic fit is unstable; fail loudly, never silently
+        # The harmonic fit is unstable on less than three years of data
         raise ValueError(f"only {s.shape[0]} months available, need >= 36 to fit climatology")
     t = _frac_year(s.index)
     t0 = float(t[0])
@@ -55,5 +52,6 @@ def fit_climatology(series: pd.Series) -> DecompositionFit:
 
 
 def deseasonalize(series: pd.Series, fit: DecompositionFit) -> pd.Series:
-    """Remove a previously fitted trend+seasonal model. Safe to apply to any window."""
+    """Subtract a fitted climatology from series; valid for any window, test months
+    included."""
     return series - fit.predict(series.index)

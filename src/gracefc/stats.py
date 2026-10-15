@@ -1,22 +1,15 @@
-"""Answers the question "is this improvement real, or luck?"
+"""Significance tests and confidence intervals for paired forecast comparisons.
 
-Three tools, used together throughout the study:
+- diebold_mariano: Diebold-Mariano test with the Harvey et al. (1997) small-sample
+  correction and a Newey-West variance at maximum lag max(h - 1, 1).
+- pooled_monthly_dm: the same test on the monthly cross-basin mean loss differential.
+- block_bootstrap_skill_ci: moving-block bootstrap interval for the MSE skill score,
+  block length max(3, h), 2000 draws.
+- per_basin_dm_fdr: per-basin Diebold-Mariano tests with Benjamini-Hochberg
+  false-discovery-rate control.
 
-- Diebold-Mariano test: the standard test for whether forecast A genuinely beats forecast
-  B. Overlapping multi-month forecasts are correlated with each other, which would
-  otherwise make results look more certain than they are, so the variance is HAC-corrected
-  (Newey-West) and the small-sample Harvey correction is applied.
-
-- Block bootstrap: resample the data many times in contiguous chunks (not single months,
-  which would destroy the autocorrelation) and see how much the answer moves. Gives the
-  confidence intervals.
-
-- Benjamini-Hochberg FDR: when testing 234 basins separately, some will look significant
-  by pure chance. This corrects for that.
-
-All pairing goes through _paired_losses, which asserts the two models are being compared
-on identical rows with identical targets rather than silently intersecting whatever
-happens to overlap.
+Every comparison pairs the two models through _paired_losses, which raises if the models
+have different (basin, target month) rows or different targets.
 """
 import numpy as np
 import pandas as pd
@@ -24,7 +17,7 @@ from scipy import stats as sps
 
 
 def _hac_variance(d: np.ndarray, max_lag: int) -> float:
-    # Newey-West with Bartlett weights; forecast-error loss differentials are autocorrelated
+    """Newey-West variance of the mean of d, with Bartlett weights up to max_lag."""
     n = len(d)
     dc = d - d.mean()
     v = float(np.dot(dc, dc)) / n
@@ -37,7 +30,13 @@ def _hac_variance(d: np.ndarray, max_lag: int) -> float:
 def diebold_mariano(
     loss_a: np.ndarray, loss_b: np.ndarray, horizon: int = 1
 ) -> tuple[float, float]:
-    """DM test with Harvey small-sample correction. Negative stat means A beats B."""
+    """Diebold-Mariano statistic and two-sided p value for loss_a against loss_b.
+
+    The statistic carries the Harvey-Leybourne-Newbold small-sample correction and is
+    referred to a t distribution with n - 1 degrees of freedom. A negative statistic
+    means A has the lower mean loss. Returns (nan, nan) for fewer than 10 values,
+    identical losses or a non-positive variance.
+    """
     d = np.asarray(loss_a, dtype=float) - np.asarray(loss_b, dtype=float)
     n = len(d)
     if n < 10 or np.allclose(d, 0):
@@ -46,7 +45,7 @@ def diebold_mariano(
     if var <= 0:
         return np.nan, np.nan
     dm = d.mean() / np.sqrt(var)
-    # Harvey-Leybourne-Newbold correction against a t distribution
+    # Harvey-Leybourne-Newbold small-sample factor
     k = np.sqrt((n + 1 - 2 * horizon + horizon * (horizon - 1) / n) / n)
     stat = k * dm
     p = 2 * sps.t.sf(np.abs(stat), df=n - 1)
@@ -57,30 +56,29 @@ def _paired_losses(
     sub: pd.DataFrame, model_a: str, model_b: str,
     value_cols: tuple[str, str] = ("target", "pred"),
 ) -> pd.DataFrame:
-    """Row-paired squared losses on the (name, target_date) join of two models.
+    """Squared losses of two models, paired row by row on (name, target_date).
 
-    Aggregating each model separately and intersecting only target dates lets
-    unbalanced basin coverage bias the differential (audit 2026-08-13, P1-5);
-    pairing on rows and asserting both target equality and row-set equality
-    (audit 2026-08-17) closes that hole.
+    Pairing rows, rather than aggregating each model and intersecting target dates,
+    keeps unbalanced basin coverage out of the loss differential. Raises AssertionError
+    if both models have rows but the row sets differ, or if the targets differ on a
+    paired row. Returns an empty frame with the paired columns if either model has no
+    rows in sub.
     """
     tcol, pcol = value_cols
     keys = ["name", "target_date"]
     a = sub[sub["model"] == model_a][keys + [tcol, pcol]]
     b = sub[sub["model"] == model_b][keys + [tcol, pcol]]
     if len(a) == 0 or len(b) == 0:
-        # A model absent from this slice (e.g. not run at this horizon) is not a
-        # pairing defect; callers get an empty frame with the full paired schema
-        # so every downstream path (groupby, dropna on p) degrades to NaN/empty
-        # instead of crashing (audit 2026-08-17, finding 3).
+        # A model missing from this slice (for example, not run at this lead time) is
+        # not a pairing error. The empty frame keeps the paired columns so that the
+        # callers' groupby and dropna calls give NaN or empty results.
         cols = keys + [f"{tcol}_a", f"{pcol}_a", f"{tcol}_b", f"{pcol}_b",
                        "loss_a", "loss_b"]
         return pd.DataFrame(columns=cols)
     j = a.merge(b, on=keys, suffixes=("_a", "_b"), validate="one_to_one")
     if len(j) != len(a) or len(j) != len(b):
-        # Both models have rows but their key sets differ: an inner join here
-        # would silently score each model on a subset it wasn't asked about
-        # (external audit 2026-08-17). Callers must pre-match rows explicitly.
+        # An inner join would score each model on a subset of its rows, so callers
+        # must match rows before pairing.
         raise AssertionError(
             f"row sets differ on paired keys: {model_a} has {len(a)} rows, "
             f"{model_b} has {len(b)}, join keeps {len(j)}"
@@ -96,7 +94,7 @@ def pooled_monthly_dm(
     pred_rows: pd.DataFrame, model_a: str, model_b: str, horizon: int,
     value_cols: tuple[str, str] = ("target", "pred"),
 ) -> tuple[float, float]:
-    """DM on the cross-basin mean monthly squared-loss differential — the pooled headline test."""
+    """Pooled Diebold-Mariano test on monthly cross-basin mean squared losses at one lead time."""
     sub = pred_rows[pred_rows["horizon"] == horizon]
     j = _paired_losses(sub, model_a, model_b, value_cols)
     la = j.groupby("target_date")["loss_a"].mean().sort_index()
@@ -109,11 +107,12 @@ def block_bootstrap_skill_ci(
     n_boot: int = 2000, block: int | None = None, seed: int = 0,
     value_cols: tuple[str, str] = ("target", "pred"),
 ) -> tuple[float, float, float]:
-    """Moving-block bootstrap CI on skill = 1 - MSE_a/MSE_b over monthly pooled losses.
+    """Skill score 1 - MSE_a / MSE_b and its 95 % moving-block bootstrap interval.
 
-    Block length defaults to max(3, horizon): overlapping h-step forecasts induce
-    loss-differential dependence out to lag h-1, so a fixed 3-month block understates
-    long-lead uncertainty (audit 2026-08-15; the DM path already scales its HAC lag).
+    Returns (point, lower, upper) as fractions. The bootstrap resamples the monthly
+    cross-basin mean losses. The block length defaults to max(3, horizon), because
+    overlapping h-step forecasts make the losses dependent out to lag h - 1. Returns
+    NaNs when there are fewer months than the block length.
     """
     if block is None:
         block = max(3, horizon)
@@ -140,7 +139,12 @@ def per_basin_dm_fdr(
     pred_rows: pd.DataFrame, model_a: str, model_b: str, horizon: int,
     q: float = 0.10, value_cols: tuple[str, str] = ("target", "pred"),
 ) -> pd.DataFrame:
-    """DM per basin then Benjamini-Hochberg: how many basins individually favor A over B."""
+    """Per-basin Diebold-Mariano tests with Benjamini-Hochberg control at level q.
+
+    Here q is the false-discovery-rate level, unrelated to the Kalman q. Returns one row
+    per basin with a finite p value, sorted by p: dm_stat, p, a_better (negative
+    statistic), bh_threshold and significant.
+    """
     sub = pred_rows[pred_rows["horizon"] == horizon]
     j = _paired_losses(sub, model_a, model_b, value_cols)
     rows = []

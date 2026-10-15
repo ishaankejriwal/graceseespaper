@@ -1,4 +1,9 @@
-"""Phase 0 inventory: structure, coverage, and alignment of the CSR mascon file and L3 basin mask."""
+"""Print the structure, time axis, grid and coverage of the CSR mascon file and the L3 basin mask.
+
+Reads the two NetCDF files in the repository root and writes nothing.
+
+Usage: python scripts/inspect_inputs.py
+"""
 from pathlib import Path
 
 import numpy as np
@@ -34,7 +39,7 @@ def main() -> None:
     section("BASIN MASK FILE")
     dm = xr.open_dataset(MASK_NC, decode_times=False)
     print(dm)
-    section("Mask coverage — the global vs Africa question")
+    section("Mask coverage: extent of labeled cells")
     for c in dm.coords:
         v = dm[c]
         if v.ndim == 1 and v.size > 1:
@@ -48,7 +53,7 @@ def main() -> None:
         print(f"  unique values: {uniq.size}")
         if uniq.size < 500:
             print(f"  values: {uniq[:50]}{' ...' if uniq.size > 50 else ''}")
-        # Where on Earth do labeled cells actually sit — this answers global vs Africa-only
+        # The extent of labeled cells shows whether the mask covers the globe
         if var.ndim == 2 and uniq.size > 1:
             lat_name = [d for d in var.dims if "lat" in d.lower()]
             lon_name = [d for d in var.dims if "lon" in d.lower()]

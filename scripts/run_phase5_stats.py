@@ -1,7 +1,21 @@
-"""Phase 5: one consolidated significance table across every experiment that has run.
+"""Collect the neighbor and nonlinear-head comparisons from several runs into one significance
+table.
 
-Every comparison is computed on the exact intersection of prediction rows (basin, issue,
-target date, fold) so arms from different runs are never scored on different row sets.
+Each comparison is scored on the intersection of the two arms' prediction rows (basin,
+issue date, target date, fold, lead), so arms from different runs are never scored on
+different rows. Reports skill, a block-bootstrap confidence interval and the
+Diebold-Mariano (DM) test, plus per-basin DM tests with false-discovery-rate control at a
+1-month lead. Not used in the manuscript: the paper takes its neighbor numbers
+(Sect. 4.6) from phase3b_summary.csv and phase4_surrogate_summary.csv.
+
+Inputs: results/phase3b_predictions.csv and, when present, phase5_predlag_predictions.csv,
+phase5_fusion_predictions.csv, phase5_coupled_predictions.csv,
+phase5_nonlinear_predictions.csv.
+Outputs: results/phase5_headline_table.csv, phase5_perbasin_fdr_h1.csv.
+
+Usage:
+  python scripts/run_phase5_stats.py
+  GRACEFC_SOURCE=jpl python scripts/run_phase5_stats.py
 """
 import sys
 from pathlib import Path
@@ -19,6 +33,7 @@ KEYS = ["name", "issue_date", "target_date", "fold", "horizon"]
 
 
 def load(tag: str) -> pd.DataFrame | None:
+    """results/<tag>_predictions.csv, or None if that run has not been made."""
     p = OUT_DIR / f"{tag}_predictions.csv"
     if not p.exists():
         return None
@@ -26,7 +41,7 @@ def load(tag: str) -> pd.DataFrame | None:
 
 
 def matched_compare(df_a, model_a, df_b, model_b, horizon) -> dict | None:
-    """Skill, bootstrap CI, and DM for A vs B on their common rows only."""
+    """Skill, bootstrap CI and DM test of A against B on their common rows; None below 100 rows."""
     a = df_a[(df_a["model"] == model_a) & (df_a["horizon"] == horizon)][KEYS + ["target", "pred"]]
     b = df_b[(df_b["model"] == model_b) & (df_b["horizon"] == horizon)][KEYS + ["target", "pred"]]
     m = a.merge(b, on=KEYS, suffixes=("_a", "_b"))
@@ -55,7 +70,7 @@ def main() -> None:
     nonlin = load("phase5_nonlinear")
 
     comparisons = []
-    # Headline and its committed comparators, all horizons
+    # Neighbor and in-filter arms against their comparators, leads 1-6
     for h in range(1, 7):
         comparisons += [
             (p3b, "kalman_corr_top1", p3b, "kalman_own_ridge", h),
@@ -102,7 +117,7 @@ def main() -> None:
     table.to_csv(OUT_DIR / "phase5_headline_table.csv", index=False)
     print(table.to_string(index=False))
 
-    # Per-basin FDR at h1 for the two arms that could carry the paper
+    # Per-basin DM tests with FDR control at a 1-month lead
     fdr_frames = []
     fdr = per_basin_dm_fdr(p3b, "kalman_corr_top1", "kalman_own_ridge", horizon=1)
     fdr["comparison"] = "corr_top1_vs_own_ridge"

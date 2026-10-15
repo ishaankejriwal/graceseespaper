@@ -1,19 +1,22 @@
-"""Mission-split observation-noise sensitivity: does a separate r for GRACE-FO move the headline?
+"""Refit the Kalman filter with separate model-noise variances for GRACE and GRACE-FO.
 
-The published Kalman benchmark fits one observation-noise variance per basin-fold on a record
-that spans GRACE (Apr 2002 - Jun 2017) and GRACE-FO (Jun 2018 onward), while every scored month
-is GRACE-FO. This runner refits the same filter with two observation-noise variances split at
-2018-01, on the same folds, the same deseasonalization, the same keep-list and the same forecast
-rule, and reports what changes.
+KF fits one model-noise variance r per basin and fold on a record that spans GRACE
+(April 2002 to June 2017) and GRACE-FO (from June 2018), while every scored month is a
+GRACE-FO month. The two-variance variant (kalman_mission, Sect. 3.4) splits r at
+January 2018 and is fitted on the same folds, deseasonalization, basins and forecast
+rule. The single-variance filter is refit in the same run and checked against
+results/kalman_predictions.csv: rows and targets must match, and the largest forecast
+difference is stored as max_abs_pred_diff_vs_published. Contrasts, each with a
+block-bootstrap CI and DM test on identical rows:
 
-Contrasts:
-  kalman_mission vs kalman_ar1   -> the effect of the extra parameter (the question asked)
-  kalman_mission vs damped ref   -> the headline margin under the two-r variant
-  kalman_ar1     vs damped ref   -> the published margin, recomputed here as a control
+  kalman_mission vs kalman_ar1   effect of the second variance (mission_split_term)
+  kalman_mission vs damped ref   mission_vs_damped
+  kalman_ar1     vs damped ref   published_vs_damped
 
-Both Kalman variants are generated inside this run so the pair shares every upstream choice;
-the regenerated one-r forecasts are then checked against results/kalman_predictions.csv, and
-every pairing goes through the row-set assertion in gracefc.stats.
+The damped reference is the stronger damped-persistence variant at each lead. The
+summary also holds diagnostic rows (fits with r at its lower bound, fallbacks to a
+single variance, variance ratios). Feeds Fig. 4b, Sect. 4.2 and the boundary-fit counts
+in Sect. 3.4.
 
 Inputs : data/processed/basin_month_twsa_global.csv, data/processed/basin_meta.csv
          results/kalman_predictions.csv, results/phase2_baseline_predictions.csv
@@ -22,7 +25,9 @@ Outputs: results/kalman_mission_predictions.csv
          results/kalman_mission_summary.csv
          results/kalman_mission_perbasin_h1.csv
 
-Run: .venv/Scripts/python.exe scripts/run_kalman_mission_sensitivity.py
+Usage:
+  python scripts/run_kalman_mission_sensitivity.py
+  GRACEFC_SOURCE=jpl python scripts/run_kalman_mission_sensitivity.py
 """
 from __future__ import annotations
 
@@ -55,7 +60,7 @@ DAMPED_VARIANTS = ["damped_persistence_rho", "damped_persistence_reg"]
 
 def attach_and_clip(df: pd.DataFrame, resid_wide: pd.DataFrame, fold, model: str,
                     h: int) -> pd.DataFrame:
-    """Join observed targets and clip to the fold's ISSUE window, matching evaluate.split_fold."""
+    """Join observed targets; keep rows issued in the fold's test window (as split_fold does)."""
     tgt = resid_wide.stack().rename("target").reset_index()
     tgt.columns = ["target_date", "name", "target"]
     out = df.merge(tgt, on=["target_date", "name"], how="inner").dropna(subset=["target"])
@@ -64,6 +69,8 @@ def attach_and_clip(df: pd.DataFrame, resid_wide: pd.DataFrame, fold, model: str
 
 
 def fit_all() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """(two-variance forecast rows, refit single-variance rows, fitted parameters) over all
+    folds."""
     wide, meta, keep = load_sample(DATA)
 
     two_rows, one_rows, param_rows = [], [], []
@@ -85,7 +92,10 @@ def fit_all() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
 
 def check_against_published(one: pd.DataFrame) -> float:
-    """The regenerated one-r forecasts must reproduce the published file to float precision."""
+    """Max |pred| difference between the refit single-variance filter and kalman_predictions.csv.
+
+    Raises if the row sets or the targets differ.
+    """
     pub = pd.read_csv(RESULTS / "kalman_predictions.csv",
                       parse_dates=["issue_date", "target_date"])
     key = ["name", "issue_date", "target_date", "horizon"]
@@ -101,6 +111,7 @@ def check_against_published(one: pd.DataFrame) -> float:
 
 
 def load_pool(mission: pd.DataFrame) -> pd.DataFrame:
+    """Two-variance, KF and damped-persistence forecasts in standardized units, stacked."""
     kal = pd.read_csv(RESULTS / "kalman_predictions.csv",
                       parse_dates=["issue_date", "target_date"])
     ph2 = pd.read_csv(RESULTS / "phase2_baseline_predictions.csv",
@@ -111,6 +122,7 @@ def load_pool(mission: pd.DataFrame) -> pd.DataFrame:
 
 
 def contrast(pool: pd.DataFrame, a: str, b: str, h: int, label: str) -> dict:
+    """Summary row for a against b at lead h: both RMSEs, skill in percent with CI, DM test."""
     point, lo, hi = block_bootstrap_skill_ci(pool, a, b, h)
     stat, p = pooled_monthly_dm(pool, a, b, h)
     sub = pool[pool["horizon"] == h]
@@ -144,7 +156,7 @@ def main() -> None:
     params[cols].to_csv(RESULTS / "kalman_mission_params.csv", index=False)
 
     pool = load_pool(mission)
-    # Every contrast must run on identical rows; assert before scoring anything
+    # _paired_losses raises unless the two models share identical rows; check before scoring
     for h in range(1, 7):
         sub = pool[pool["horizon"] == h]
         for b in ["kalman_ar1"] + DAMPED_VARIANTS:
@@ -153,7 +165,7 @@ def main() -> None:
     rows = []
     for h in range(1, 7):
         sub = pool[pool["horizon"] == h]
-        # Stronger damped variant per lead, exactly as the paper ladder chooses it
+        # Stronger damped variant at each lead, chosen as in build_paper_ladder.py
         r_damped = {m: rmse(sub[sub["model"] == m]["target"].values,
                             sub[sub["model"] == m]["pred"].values) for m in DAMPED_VARIANTS}
         ref = min(DAMPED_VARIANTS, key=lambda m: r_damped[m])

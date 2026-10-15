@@ -1,24 +1,25 @@
-"""Issue-date lag features for forecasting: everything is indexed by when the forecast is made."""
+"""Own-basin lag features indexed by forecast issue date, and the short-gap fill behind them."""
 import numpy as np
 import pandas as pd
 
-# Issue-date lags carried over from the prior Africa work: t, t-1, t-2, t-5, t-11
+# Lags in months before the issue month t: t, t-1, t-2, t-5, t-11
 DEFAULT_LAGS = (0, 1, 2, 5, 11)
 
 
 def pivot_wide(long_df: pd.DataFrame) -> pd.DataFrame:
     """Long basin-month table -> wide (date x basin_name) matrix on a complete monthly index."""
     wide = long_df.pivot(index="date", columns="name", values="twsa_cm").sort_index()
-    # Reindex to a gapless monthly axis so lag arithmetic never silently skips missing months
+    # A complete monthly axis keeps lag shifts aligned with calendar months across gaps
     full = pd.date_range(wide.index.min(), wide.index.max(), freq="MS")
     return wide.reindex(full)
 
 
 def interpolate_short_gaps(wide: pd.DataFrame, max_run: int = 2) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Linear-fill NaN runs of at most max_run months. For FEATURE series only, never targets.
+    """Linearly fill interior NaN runs of at most max_run months; for features, never targets.
 
-    Also returns each filled cell's right-anchor date: a filled value is only causally legal
-    at issue dates on or after that anchor, and build_lag_table masks the rest.
+    Returns the filled frame and, for each filled cell, its right anchor: the first observed
+    month after the run. A filled value is known only at issue dates on or after its anchor,
+    and build_lag_table masks it at earlier issue dates.
     """
     filled = wide.interpolate(method="linear", limit=max_run, limit_area="inside")
     anchors = pd.DataFrame(pd.NaT, index=wide.index, columns=wide.columns)
@@ -26,9 +27,9 @@ def interpolate_short_gaps(wide: pd.DataFrame, max_run: int = 2) -> tuple[pd.Dat
         isna = wide[col].isna()
         run_id = (~isna).cumsum()
         run_len = isna.groupby(run_id).transform("sum")
-        # limit fills the first max_run of longer runs too; revert those so long gaps stay missing
+        # interpolate(limit=...) also fills the first max_run months of longer runs; undo
+        # that so long gaps stay missing
         filled.loc[isna & (run_len > max_run), col] = np.nan
-        # Right anchor of each legally filled cell = the first observed month after its run
         valid_dates = wide.index[~isna]
         for t in wide.index[isna & (run_len <= max_run)]:
             after = valid_dates[valid_dates > t]
@@ -44,11 +45,12 @@ def build_lag_table(
     feature_wide: pd.DataFrame | None = None,
     anchors: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """One row per (issue_date, basin) with own-basin lags and the target at issue+horizon.
+    """One row per (issue_date, basin) with own-basin lags and the target horizon months later.
 
-    feature_wide lets lags come from a gap-interpolated copy while targets stay observed-only.
-    anchors enforces causality: an interpolated lag value is masked at issue dates before its
-    right anchor, so no feature ever embeds data that postdates the forecast issue.
+    Lags come from feature_wide when given (a gap-filled copy); targets always come from the
+    observed values in wide. With anchors, a filled lag value is masked at issue dates before
+    its right anchor, so no feature uses data observed after the issue date. Rows with any
+    missing lag or target are dropped.
     """
     src = wide if feature_wide is None else feature_wide
     rows = []

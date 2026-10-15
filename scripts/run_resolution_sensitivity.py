@@ -1,27 +1,34 @@
-"""Resolution stratification on native CSR or JPL mascon geometry.
+"""Measure each basin's native mascon footprint and stratify the neighbor result by it.
 
-History: the first version of this analysis believed no official mascon-assignment
-product existed and recovered native tiles empirically (identical 8-month fingerprints
-across a tile's 0.25 deg cells). The audit of 2026-08-15 found that CSR's RL06.3 page
-does distribute both a native-mascon-ID mapping file and v02 land/ocean masks
-(doi:10.15781/cgq9-nh24), and recommends the masks for basin definitions to minimize
-coastal leakage. This script now:
+The native tile geometry comes, for CSR, from the official native-mascon mapping file
+and the v02 land/ocean mask (doi:10.15781/cgq9-nh24), which CSR recommends for basin
+definitions to limit coastal leakage. For JPL, mascon_ID is read from the product and
+mapped to the 0.25-degree basin-mask grid; CRI files carry a land mask, and for non-CRI
+files the union of the HydroSHEDS basin masks is used and recorded as
+``land_mask_source``. As a cross-check, tiles are also recovered from the data
+(0.25-degree cells with identical values in eight months belong to one tile) and the
+two partitions are compared. Per basin, the script reports the number of tiles, the
+effective number of tiles and the contamination, the share of the basin's signal that
+comes from land outside it.
 
-1. Uses the OFFICIAL mapping file as the primary tile assignment and the OFFICIAL land
-   mask as the land definition for contamination.
-2. Retains the fingerprint recovery as a cross-check and reports partition agreement
-   (the validation the fingerprint approach previously could not have).
-3. Sweeps area thresholds as before, and repeats the decisive 2x2 at BOTH the 90,000 km2
-   convention and CSR's published ~200,000 km2 caution threshold.
+The 1-month neighbor contrast (kalman_corr_top1 vs kalman_own_ridge) is then computed
+within area and contamination strata, with 2x2 tables at 90 000 km2 and at CSR's
+published caution threshold of about 200 000 km2. These strata are not reported in the
+paper; scripts/build_li_basin_series.py reuses load_official_geometry for the
+native-mascon coverage rule of the GRACE-FCast comparison (Sect. 3.6).
 
-For JPL, mascon_ID is read from the product itself and mapped to the 0.25-degree
-basin-mask grid. CRI files provide a land mask; for expert non-CRI files, the union of
-the supplied HydroSHEDS basins is used and recorded as ``land_mask_source``.
-
-Outputs: resolution_diagnostics.csv (official geometry, plus *_fp fingerprint columns),
-mascon_tile_inventory.csv, csr_geometry_validation.csv, resolution_sweep_area.csv,
-resolution_sweep_contamination.csv, resolution_cross_2x2.csv (90k),
+Inputs: the mascon NetCDF (GRACEFC_MASCON_FILE overrides the default file), the CSR
+ancillary files in data/raw/csr_ancillary/ (CSR only), HydroShed+Mascon_Basins_L3.nc,
+results/phase3b_predictions.csv.
+Outputs, in results/: resolution_diagnostics.csv
+(official geometry, plus *_fp columns from the recovered tiles),
+mascon_tile_inventory.csv, <product>_geometry_validation.csv, resolution_sweep_area.csv,
+resolution_sweep_contamination.csv, resolution_cross_2x2.csv (90 000 km2) and
 resolution_cross_2x2_200k.csv.
+
+Usage:
+  python scripts/run_resolution_sensitivity.py
+  GRACEFC_SOURCE=jpl python scripts/run_resolution_sensitivity.py
 """
 import os
 import sys
@@ -58,7 +65,7 @@ MODEL_A, MODEL_B = "kalman_corr_top1", "kalman_own_ridge"
 
 
 def _align_to(ds: xr.Dataset, lat_ref: np.ndarray, lon_ref: np.ndarray) -> xr.Dataset:
-    """Flip/verify a 0.25-deg global dataset onto the solutions grid axes."""
+    """Reindex a 0.25-degree ancillary dataset onto the solutions-grid axes and check the match."""
     if not np.allclose(ds["lat"].values, lat_ref):
         ds = ds.reindex(lat=lat_ref, method="nearest", tolerance=1e-3)
     if not np.allclose(ds["lon"].values, lon_ref):
@@ -69,7 +76,11 @@ def _align_to(ds: xr.Dataset, lat_ref: np.ndarray, lon_ref: np.ndarray) -> xr.Da
 
 
 def load_official_geometry() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """(tile_id 2D int, cell_km2 2D, land 2D bool) on the solutions grid, from CSR files."""
+    """(tile_id, cell_km2, land) as 2D arrays: compact tile ids, cell area in km2, land flag.
+
+    CSR: on the solutions grid, from the mapping and land-mask files. JPL: on the
+    basin-mask grid, from the product's mascon_ID and land_mask variables.
+    """
     if PRODUCT == "jpl":
         masks = load_basin_masks(MASK_NC)
         ds = xr.open_dataset(MASCON_NC, decode_times=False)
@@ -123,7 +134,7 @@ def load_official_geometry() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 
 def recover_mascon_tiles() -> np.ndarray:
-    """Fingerprint recovery (cross-check only): label cells by identical 8-month series."""
+    """Tile ids from the data: cells with identical values at FINGERPRINT_TIMES share a tile."""
     ds = xr.open_dataset(MASCON_NC, decode_times=False)
     fp = ds["lwe_thickness"].isel(time=list(FINGERPRINT_TIMES)).values  # (T, lat, lon)
     n_lat, n_lon = fp.shape[1], fp.shape[2]
@@ -177,6 +188,7 @@ def validate_partitions(off_id: np.ndarray, fp_id: np.ndarray) -> pd.DataFrame:
 
 
 def tile_report(tile_id: np.ndarray, cell_km2: np.ndarray) -> pd.DataFrame:
+    """Cell count and area in km2 per tile."""
     flat_id = tile_id.ravel()
     flat_km2 = cell_km2.ravel()
     n_tiles = int(flat_id.max()) + 1
@@ -222,6 +234,7 @@ def basin_diagnostics(tile_id, cell_km2, masks, land_cells, suffix="") -> pd.Dat
 
 
 def contrast(pred: pd.DataFrame, names, horizon: int) -> dict:
+    """Skill (percent) and DM test of MODEL_A against MODEL_B at one lead, over the named basins."""
     sub = pred[pred["name"].isin(names)]
     # Horizon must be filtered BEFORE the pairing merge: several horizons share a
     # target_date (different issue dates), so joining on (name, target_date) alone
@@ -248,6 +261,7 @@ def contrast(pred: pd.DataFrame, names, horizon: int) -> dict:
 
 
 def cross_2x2(keep: pd.DataFrame, pred: pd.DataFrame, area_cut: float) -> pd.DataFrame:
+    """1-month contrast in each cell of area (split at area_cut) x contamination (top tercile)."""
     q_hi = keep["contamination"].quantile(2 / 3)
     rows = []
     for a_lab, a_sel in (("resolved", keep["area_km2"] >= area_cut),
@@ -280,7 +294,7 @@ def main() -> None:
     meta = masks["meta"]
     flat_land = land.ravel()
     diag = basin_diagnostics(tile_id, cell_km2, masks, flat_land)
-    # Fingerprint variant kept for the delta report ("what did the official switch change")
+    # The same diagnostics on the recovered tiles, with the basin-mask union as land (*_fp)
     legacy_land = np.zeros(tile_id.size, dtype=bool)
     for idx in masks["indices"]:
         legacy_land[idx] = True
@@ -308,7 +322,7 @@ def main() -> None:
 
     pred = pd.read_csv(OUT_DIR / "phase3b_predictions.csv")
 
-    # Sweep: area threshold (200k = CSR's published caution threshold)
+    # Area sweep; 200 000 km2 is CSR's published caution threshold
     rows = []
     for cut in (40_000, 60_000, 80_000, 90_000, 100_000, 120_000, 150_000, 200_000):
         small = keep[keep["area_km2"] < cut]["name"]
@@ -319,7 +333,7 @@ def main() -> None:
     area_sweep = pd.DataFrame(rows)
     area_sweep.to_csv(OUT_DIR / "resolution_sweep_area.csv", index=False)
 
-    # Sweep: contamination — the physical quantity, cut at fixed shares
+    # Contamination sweep at fixed shares
     rows = []
     for cut in (0.10, 0.20, 0.30, 0.40, 0.50):
         hi = keep[keep["contamination"] >= cut]["name"]
@@ -327,7 +341,7 @@ def main() -> None:
         for label, names in (("contaminated", hi), ("clean", lo)):
             r = contrast(pred, names, horizon=1)
             rows.append({"split": "contamination", "cut": cut, "stratum": label, **r})
-    # and by tercile, for a split that cannot be accused of threshold shopping
+    # Terciles, a split with no chosen threshold
     q1, q2 = keep["contamination"].quantile([1 / 3, 2 / 3])
     for label, names in (
         ("tercile_low", keep[keep["contamination"] <= q1]["name"]),
@@ -336,7 +350,7 @@ def main() -> None:
     ):
         rows.append({"split": "contamination_tercile", "cut": np.nan, "stratum": label,
                      **contrast(pred, names, horizon=1)})
-    # single-tile basins: the sharpest possible statement of the leakage worry
+    # Basins that lie mostly within a single tile
     for label, names in (
         ("n_eff_tiles<2", keep[keep["n_eff_tiles"] < 2]["name"]),
         ("n_eff_tiles>=2", keep[keep["n_eff_tiles"] >= 2]["name"]),
@@ -346,7 +360,7 @@ def main() -> None:
     cont_sweep = pd.DataFrame(rows)
     cont_sweep.to_csv(OUT_DIR / "resolution_sweep_contamination.csv", index=False)
 
-    # The decisive 2x2 at both thresholds
+    # Area x contamination 2x2 at both area thresholds
     cross90 = cross_2x2(keep, pred, 90_000)
     cross90.to_csv(OUT_DIR / "resolution_cross_2x2.csv", index=False)
     cross200 = cross_2x2(keep, pred, 200_000)

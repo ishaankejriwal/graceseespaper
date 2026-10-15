@@ -1,41 +1,25 @@
-"""Phase 8: the best-performing system in the study.
+"""Two-stage correction: an LSTM on own-basin inputs, then an MLP on a neighbor's state.
 
-In plain terms, the final prediction is three things added together:
+The forecast is kalman + LSTM + MLP. Stage 1 is the shared-encoder LSTM of experiment_lstm
+over 12-month windows of the basin's filtered state and the 11 ERA5-Land anomaly channels
+(lstm_own_era5), or the same with the correlation top-1 neighbor's filtered-state history
+as a further channel (lstm_corr_top1_era5). Stage 2 is an sklearn MLP fitted to the
+stage-1 training residual (target - kalman - lstm) from the neighbor's propagated state
+alone. lstmres_corr_top1 adds stage 2 to lstm_own_era5, and lstmres_nbrin_corr_top1 adds
+it to lstm_corr_top1_era5, so the arms supply the neighbor as a second stage, as an LSTM
+input channel, or both.
 
-    prediction = kalman forecast + LSTM correction + neighbour correction
+Placebo arms randomize only the stage-2 neighbor graph and refit the MLP with the same
+seed as the real arm. The stage-1 nets are shared across placebo draws for each
+(arm, seed), as the ridge stage is in experiment_resmlp. Placebo draws are seeded per
+(fold, lead time).
 
-The Kalman forecast is the clean baseline. The LSTM (stage 1) reads 12 months of the
-basin's own FILTERED history plus 11 weather channels and predicts how wrong the Kalman
-guess will be. Then a small network (stage 2) looks at the single most-connected
-neighbour's propagated state and predicts how wrong the answer STILL is.
-
-The point of the study is in that third term: the same neighbour information, fed to the
-network as an extra input channel instead of as a correction stage, does nothing. Delivery
-decides. The _nbrin arms below exist to make exactly that comparison.
-
-Technical detail follows.
-
-Stage 1 is the Phase 7 shared-encoder LSTM over 12-month windows of the Kalman-filtered
-own state plus the 11 ERA5 anomaly channels (and, in the _nbrin arms, the corr_top1
-neighbor's filtered-state history as a further channel — the literal Phase 7
-lstm_corr_top1_era5). Stage 2 is the Phase 7 resMLP correction: an sklearn MLP fits the
-STAGE-1 residual (target - kalman - lstm) from the propagated top-1 neighbor state alone,
-so final prediction = kalman + lstm + mlp. Placebos randomize ONLY the stage-2 neighbor
-graph and retrain the MLP with the SAME model seed as the real arm they null (audit
-2026-08-15: the old 1000+draw MLP seed changed init, shuffle, and early-stop split
-alongside the graph, so the null was not graph-identity-only); the stage-1 nets are
-shared per (arm, seed) across draws, mirroring experiment_resmlp's shared ridge stage.
-Placebo graph draws are seeded per (fold, horizon) cell, so the 6 leads x 5 folds are
-independent draws rather than one reused set.
-
-Caveat by construction: stage-2 residuals are computed on train rows the LSTM itself
-trained on (~85%) or early-stopped on (~15%), so they are in-sample and smaller than
-test-time residuals — same design as resmlp's in-sample ridge residuals, but the LSTM
-overfits harder than ridge. The EVALUATION stays honest either way (challenger and
-reference share the identical stage-1 net and test prediction; the MLP sees no test
-information), but the learned correction is plausibly attenuated — and in-sample
-residuals are also less noisy than honest ones, so "attenuated" is the likely, not
-guaranteed, direction (phase 8 audit, finding 2).
+The stage-2 residuals are computed on rows the LSTM was trained on (about 85 %) or
+early-stopped on (about 15 %), so they are in-sample and generally smaller than test-time
+residuals. The test evaluation is unaffected, since challenger and reference share the
+stage-1 net and the MLP sees no test data, but the fitted correction can differ from one
+fitted to out-of-sample residuals. The oof arms fit stage 2 to out-of-fold residuals
+instead (see run_lstm_combined_experiment).
 """
 import zlib
 from functools import partial
@@ -65,16 +49,15 @@ def run_lstm_combined_experiment(
     era5_lags: tuple[int, ...] = (0, 1, 2),
     oof_blocks: int = 3,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Returns (pred rows for real arms, aggregated monthly losses for placebo arms).
+    """Return (prediction rows for the real arms, monthly summed losses for the placebo arms).
 
-    oof_blocks > 0 adds, on the lstm_own_era5 backbone only, stage-2 arms trained on
-    OUT-OF-FOLD stage-1 residuals (K contiguous issue-month blocks, one held-out net
-    each): lstmres_oof_corr_top1 and the lstmres_oof_own diagnostic. The audit expected
-    in-sample residuals to attenuate the correction and to be the mechanism behind the
-    own-state control's wrong-direction behavior; these arms answer both. A
-    delivery-equalized arm (lstmres_corr_top1_hist12) feeds stage 2 the SAME 12-month
-    neighbor history the input-channel arm receives, closing the representation
-    confound in the "same information, different delivery" claim (audit 2026-08-15).
+    With oof_blocks > 0, the lstm_own_era5 backbone also gets stage-2 arms fitted to
+    out-of-fold stage-1 residuals: the training issue months are split into oof_blocks
+    contiguous blocks, and each block's residuals come from an LSTM trained without it.
+    These arms are lstmres_oof_corr_top1 and the own-state control lstmres_oof_own.
+    lstmres_corr_top1_hist12 gives stage 2 the neighbor's 12-month filtered-state
+    history, the representation the input-channel arm receives, in place of its
+    propagated state.
     """
     out, placebo_monthly = [], []
     for fold in folds:
@@ -107,31 +90,29 @@ def run_lstm_combined_experiment(
 
             emit("kalman_ar1", kal_te)
 
-            # Ridge twins on the flat Phase 5/6 features — must stay bit-identical to Phase 7
+            # The same ridge twins as in experiment_lstm
             fn_tr = propagated_neighbor_features(frame, nbr_idx, "tr")
             fn_te = propagated_neighbor_features(frame, nbr_idx, "te")
             for arm, (Xtr, Xte) in flat_ridge_arms(tr, te, era5_cols, fn_tr, fn_te).items():
                 emit(f"ridge_{arm}", kal_te + _fit_head("ridge", Xtr, ytr, Xte, 0))
 
-            # Neighbor-free stage-2 control (audit 2026-08-14, phase7_corrected_analysis):
-            # a self-graph feeds each basin its OWN propagated state through the identical
-            # feature path, so lstmres_own isolates the "any second stage helps" term from
-            # the "the neighbor's information helps" term the lstmres_corr_top1 arm claims
+            # Stage-2 control without a neighbor: a self-graph passes each basin its own
+            # propagated state through the same feature path, so lstmres_own measures the
+            # effect of a second stage without neighbor information
             self_idx = np.arange(len(names), dtype=int).reshape(-1, 1)
             fs_tr = propagated_neighbor_features(frame, self_idx, "tr")
             fs_te = propagated_neighbor_features(frame, self_idx, "te")
 
-            # Stage 1 per seed: own_era5 (Phase 7 winner) and corr_top1_era5 (literal variant 2)
+            # Stage 1 per seed, without and with the neighbor input channel
             stage1 = {
                 "lstm_own_era5": stack([own_tr, era_tr], [own_te, era_te]),
                 "lstm_corr_top1_era5": stack([own_tr, nb_tr, era_tr], [own_te, nb_te, era_te]),
             }
             stacked_of = {"lstm_own_era5": "lstmres_corr_top1",
                           "lstm_corr_top1_era5": "lstmres_nbrin_corr_top1"}
-            # Keep every seed's stage-1 residual and test prediction: placebos must ride the
-            # SAME stage-1 net as the arm they are compared against. Scoring seed-1 arms
-            # against seed-0 placebos made the seed gap (~0.002-0.009 RMSE) swamp the placebo
-            # spread (sd ~0.0008) and produced a spurious 16/20 cell (phase 8 audit, 2026-08-15).
+            # Keep each seed's stage-1 residual and test prediction so that placebos use the
+            # same stage-1 net as the arm they are compared with. The RMSE difference between
+            # seeds (about 0.002-0.009) is larger than the placebo spread (sd about 0.0008).
             resid_by, lstm_te_by, oof_by = {}, {}, {}
             for arm, (Xtr, Xte) in stage1.items():
                 for s in seeds:
@@ -144,8 +125,8 @@ def run_lstm_combined_experiment(
                     if arm == "lstm_own_era5":
                         emit(f"lstmres_own_s{s}",
                              kal_te + lstm_te + _fit_head("mlp", fs_tr, resid2, fs_te, s))
-                        # Delivery-equalized: stage 2 sees the neighbor's 12-month
-                        # history — the input-channel arm's exact representation
+                        # Stage 2 on the neighbor's 12-month history, the representation
+                        # the input-channel arm receives
                         emit(f"lstmres_corr_top1_hist12_s{s}",
                              kal_te + lstm_te + _fit_head("mlp", nb_tr, resid2, nb_te, s))
                         if oof_blocks > 0:
@@ -164,9 +145,9 @@ def run_lstm_combined_experiment(
                             oof_by[(arm, s)] = oof
                     resid_by[(arm, s)], lstm_te_by[(arm, s)] = resid2, lstm_te
 
-            # Placebos randomize the stage-2 neighbor graph ONLY: the MLP seed equals the
-            # real arm's seed s, so within each (arm, s) comparison everything but graph
-            # identity is held fixed. Draws are per (fold, horizon) cell.
+            # Placebos randomize only the stage-2 neighbor graph, with the MLP seed equal to
+            # the real arm's seed s, so within each (arm, s) comparison only the graph
+            # differs. Draws are seeded per (fold, lead time).
             cell_base = zlib.crc32(f"phase8_lstm_combined:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
                 g_rand = random_degree_matched(graph, cell_base + seed)
@@ -178,7 +159,7 @@ def run_lstm_combined_experiment(
                         emit_placebo(f"{stacked_of[arm]}_s{s}_rand{seed}",
                                      kal_te + lstm_te_by[(arm, s)]
                                      + _fit_head("mlp", pb_tr, resid_by[(arm, s)], pb_te, s))
-                # Seed-matched nulls for the new arms on the own_era5 backbone
+                # Seed-matched placebos for the hist12 and oof arms on the lstm_own_era5 backbone
                 p_hist_tr = _state_channel(F, widx_tr, valid_tr, p_idx[frame["tr_pos"], 0])
                 p_hist_te = _state_channel(F, widx_te, valid_te, p_idx[frame["te_pos"], 0])
                 for s in seeds:

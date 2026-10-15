@@ -1,14 +1,13 @@
-"""Phase 6 engine: ERA5-Land basin forcings as exogenous features on the Kalman backbone.
+"""ERA5-Land forcing as features for ridge, GBM and MLP corrections to the Kalman filter forecast.
 
-Same construction as experiment_nonlinear — heads (ridge, GBM, MLP) learn the residual
-(target - kalman) — but every arm now comes in a with-ERA5 twin: own state, own+ERA5,
-own+neighbor, own+neighbor+ERA5. ERA5 features are deseasonalized and standardized on the
-train window per fold (identical treatment to the target), and every arm real or placebo is
-fit on the identical row set, so gains isolate added information rather than sample changes.
-Placebos randomize ONLY the neighbor while keeping ERA5 aboard: the graph test becomes
-"does the neighbor still beat chance once shared meteorology is conditioned on?" Placebo
-heads reuse the real arms' seeds (ridge/GBM always did; the MLP now does too — audit
-2026-08-15), and draws are seeded per (fold, horizon) cell.
+As in experiment_nonlinear, each head predicts the filter error (target - kalman). Four
+feature sets are used: the own filtered state, own state plus ERA5-Land lags, own state
+plus the propagated state of the correlation top-1 neighbor, and all three. ERA5-Land
+features are deseasonalized and standardized on each fold's training window, as the
+target is, and every real and placebo arm is fitted on the same rows. Placebo arms replace
+only the neighbor with a random basin and keep the ERA5-Land features, so they test the
+neighbor conditional on the shared forcing. Placebo heads use the same seeds as the real
+arms, and the random draws are seeded per (fold, lead time).
 """
 import zlib
 from functools import partial
@@ -34,7 +33,7 @@ def run_era5_experiment(
     params_cache: dict | None = None,
     era5_lags: tuple[int, ...] = (0, 1, 2),
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
+    """Return (prediction rows for the real arms, monthly summed losses for the placebo arms)."""
     out, placebo_monthly = [], []
     for fold in folds:
         setup = fold_setup(wide, fold, params_cache)
@@ -42,9 +41,9 @@ def run_era5_experiment(
         graph = corr_topk(setup["train_src"], 1)
         nbr_idx = neighbor_rank_matrix(graph, names, name_pos, 1)
 
-        # Fold-safe ERA5 features: climatology and std fit strictly before test_start.
-        # ERA5 NaN rows are dropped BEFORE any arm is fit (inside horizon_frame), so every
-        # model — with or without ERA5 — sits on exactly the same rows.
+        # ERA5-Land climatology and standard deviation are fitted before test_start. Rows
+        # with missing ERA5-Land features are dropped in horizon_frame before any arm is
+        # fitted, so models with and without ERA5-Land use the same rows.
         era5_feats, era5_cols = era5_fold_features(era5_wide, fold.test_start, names, era5_lags)
 
         for h in horizons:
@@ -89,7 +88,7 @@ def run_era5_experiment(
                 for s in mlp_seeds:
                     emit_placebo(f"mlp_corr_top1_era5_s{s}_rand{seed}",
                                  te["kalman"].values + _fit_head("mlp", Xtr_p, ytr, Xte_p, s))
-                # No-ERA5 ridge placebo on the same rows: re-anchors the Phase 3b null here
+                # Ridge placebo without ERA5-Land on the same rows, as in experiment_kalman
                 emit_placebo(f"ridge_corr_top1_rand{seed}",
                              te["kalman"].values + _fit_head(
                                  "ridge", np.column_stack([own_tr, p1_tr]), ytr,

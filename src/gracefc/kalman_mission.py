@@ -1,27 +1,21 @@
-"""Mission-split observation noise: one r for GRACE, another for GRACE-FO.
+"""Two-variance Kalman filter: separate model-noise variances for GRACE and GRACE-FO.
 
-The published filter estimates a single observation-noise variance r per basin-fold from a
-training record that spans two different satellite missions. GRACE flew Apr 2002 - Jun 2017,
-GRACE-FO from Jun 2018 onward, and the two have different accelerometer, instrument and
-post-gap processing characteristics. Every test month in this study is GRACE-FO. A referee
-can reasonably ask whether a single r, dominated by the longer GRACE record, mis-sizes the
-Kalman gain on the months that actually get scored.
+The observation equation of gracefc.kalman gets one model-noise variance for months before
+January 2018 and another from then on,
 
-This module answers that with the same model, estimator, folds and forecast rule, changing
-one thing: the observation equation gets two variances,
+    y_t = x_t + eta_t,    eta_t ~ N(0, r_grace)   (months before 2018-01)
+    y_t = x_t + eta_t,    eta_t ~ N(0, r_fo)      (months from 2018-01)
 
-    what we observe  =  real level  +  noise of size r_grace   (months before 2018-01)
-    what we observe  =  real level  +  noise of size r_fo      (months from 2018-01 on)
+so the parameter vector is (rho, q, r_grace, r_fo). Everything else follows gracefc.kalman:
+maximum likelihood with L-BFGS-B from four starts on training months only, and the forecast
+at lead time h is rho**h times the filtered state at the issue month (code id
+kalman_mission).
+All test months are GRACE-FO months.
 
-so the parameter vector is (rho, q, r_grace, r_fo) instead of (rho, q, r). Everything else
-matches gracefc.kalman: L-BFGS-B from four starts, training months only, forecast at lead h
-is rho**h times the filtered state at the issue month.
-
-Identifiability caveat that drives the fallback below: the training window of the first fold
-ends 2019-06 and contains only ten finite GRACE-FO months, which is too thin to separate a
-second variance from q. Folds whose training window carries fewer than MIN_FO_OBS GRACE-FO
-observations are refit with the one-r model and flagged, rather than reported as if the extra
-parameter had been estimated.
+The training window of the first fold ends in May 2019 and contains only ten observed
+GRACE-FO months, too few to separate a second variance from q. A basin whose training window
+holds fewer than MIN_FO_OBS observed GRACE-FO months is reported with the single-variance fit
+and flagged (r_fo_fallback).
 """
 from __future__ import annotations
 
@@ -32,11 +26,11 @@ from scipy.stats import chi2
 
 from .kalman import fit_kalman_ar1
 
-# GRACE ends 2017-06 and GRACE-FO begins 2018-06; the gap year holds no observations, so any
-# split date inside it partitions the record identically. 2018-01 is the calendar convention.
+# GRACE ends in June 2017 and GRACE-FO begins in June 2018. No month in between is observed,
+# so any split date inside the gap gives the same partition.
 MISSION_SPLIT = pd.Timestamp("2018-01-01")
 
-# A variance estimated from under a year of observations is not separately identified from q
+# With under a year of GRACE-FO months, r_fo is not separately identified from q
 MIN_FO_OBS = 12
 
 
@@ -46,6 +40,7 @@ def mission_flag(index: pd.DatetimeIndex) -> np.ndarray:
 
 
 def _mission_loglik(params: np.ndarray, y: np.ndarray, is_fo: np.ndarray) -> float:
+    """Negative log-likelihood; params is (arctanh rho, log q, log r_grace, log r_fo)."""
     rho = np.tanh(params[0])
     q = np.exp(params[1])
     r_grace = np.exp(params[2])
@@ -53,11 +48,10 @@ def _mission_loglik(params: np.ndarray, y: np.ndarray, is_fo: np.ndarray) -> flo
     x, p = 0.0, q / max(1 - rho**2, 1e-6)
     ll = 0.0
     for i, obs in enumerate(y):
-        # Predict
         x, p = rho * x, rho * rho * p + q
         if np.isnan(obs):
             continue
-        # Update; the only departure from the one-r filter is which variance enters s
+        # The only difference from the single-variance filter is which r enters s
         r = r_fo if is_fo[i] else r_grace
         s = p + r
         ll -= 0.5 * (np.log(2 * np.pi * s) + (obs - x) ** 2 / s)
@@ -67,11 +61,12 @@ def _mission_loglik(params: np.ndarray, y: np.ndarray, is_fo: np.ndarray) -> flo
 
 
 def fit_kalman_mission(y_train: np.ndarray, fo_train: np.ndarray, full: bool = False):
-    """MLE of (rho, q, r_grace, r_fo); same four starts and seeding as fit_kalman_ar1.
+    """Maximum-likelihood estimate of (rho, q, r_grace, r_fo), from fit_kalman_ar1's starts.
 
-    Both noise starts take the same seed value, so a mission flag that is constant
-    reduces this to the one-r problem embedded in a coordinate the likelihood does
-    not depend on, and the identified parameters land on the one-r optimum.
+    Both variances start from the same value. If fo_train is constant, the likelihood
+    does not depend on one of them and the other parameters land on the single-variance
+    optimum. With full=True a diagnostics dict is also returned, as in fit_kalman_ar1,
+    with a boundary flag (< 1e-6) for each variance.
     """
     v = float(np.nanvar(y_train))
     best, best_val, best_res = None, np.inf, None
@@ -99,7 +94,7 @@ def fit_kalman_mission(y_train: np.ndarray, fo_train: np.ndarray, full: bool = F
 def mission_filter_series(
     y: np.ndarray, rho: float, q: float, r_grace: float, r_fo: float, is_fo: np.ndarray
 ) -> np.ndarray:
-    """Filtered state at every index t using observations up to and including t."""
+    """Filtered state x_{t|t} at every index t, using observations up to and including t."""
     x, p = 0.0, q / max(1 - rho**2, 1e-6)
     out = np.empty(len(y))
     for i, obs in enumerate(y):
@@ -115,43 +110,47 @@ def mission_filter_series(
 def fit_basin_pair(
     y_train: np.ndarray, fo_train: np.ndarray, min_fo_obs: int = MIN_FO_OBS
 ) -> dict:
-    """Fit the one-r and two-r models on the same training window and pick the reported one.
+    """Fit the single- and two-variance models on one training window; choose the reported
+    fit.
 
-    Returns the raw two-r estimates alongside the guarded ones so the fallback decision
-    stays auditable: a reader can see what the unidentified fit would have claimed.
+    With fewer than min_fo_obs observed GRACE-FO months the reported parameters are the
+    single-variance fit, with r_grace = r_fo = r. The unguarded two-variance estimates
+    (*_raw) are returned as well, so the effect of the fallback can be inspected. lr_stat
+    and lr_p are the likelihood-ratio test of the reported fit against the single-variance
+    fit (chi-squared, one degree of freedom); lr_stat_raw and lr_p_raw use the raw fit.
     """
     n_fo = int(np.isfinite(y_train[fo_train]).sum())
-    rho1, q1, r1, d1 = fit_kalman_ar1(y_train, full=True)
-    rho2, q2, rg2, rf2, d2 = fit_kalman_mission(y_train, fo_train, full=True)
+    rho1, q1, r1, diag_one = fit_kalman_ar1(y_train, full=True)
+    rho2, q2, rg2, rf2, diag_two = fit_kalman_mission(y_train, fo_train, full=True)
 
     fallback = n_fo < min_fo_obs
     if fallback:
-        # Too few GRACE-FO months to separate a second variance; report the one-r fit
         rho, q, r_grace, r_fo = rho1, q1, r1, r1
-        neg_ll_used = d1["neg_loglik"]
+        neg_ll_used = diag_one["neg_loglik"]
     else:
         rho, q, r_grace, r_fo = rho2, q2, rg2, rf2
-        neg_ll_used = d2["neg_loglik"]
+        neg_ll_used = diag_two["neg_loglik"]
 
-    # Nested models differing in one free parameter; a negative statistic means the
-    # four-parameter optimizer found a worse optimum than the three-parameter one
-    lr_stat = 2.0 * (d1["neg_loglik"] - neg_ll_used)
-    lr_stat_raw = 2.0 * (d1["neg_loglik"] - d2["neg_loglik"])
+    # The models are nested and differ by one free parameter. A negative statistic means
+    # the four-parameter optimizer found a worse optimum than the three-parameter one;
+    # the p value treats it as zero.
+    lr_stat = 2.0 * (diag_one["neg_loglik"] - neg_ll_used)
+    lr_stat_raw = 2.0 * (diag_one["neg_loglik"] - diag_two["neg_loglik"])
     return {
         "n_train_obs": int(np.isfinite(y_train).sum()),
         "n_fo_train": n_fo,
         "rho": rho, "q": q, "r_grace": r_grace, "r_fo": r_fo,
         "r_fo_fallback": bool(fallback),
         "rho_one": rho1, "q_one": q1, "r_one": r1,
-        "r_one_at_boundary": d1["r_at_boundary"],
-        "one_converged": d1["converged"],
-        "loglik_one": -d1["neg_loglik"],
+        "r_one_at_boundary": diag_one["r_at_boundary"],
+        "one_converged": diag_one["converged"],
+        "loglik_one": -diag_one["neg_loglik"],
         "rho_two_raw": rho2, "q_two_raw": q2,
         "r_grace_raw": rg2, "r_fo_raw": rf2,
-        "r_grace_at_boundary": d2["r_grace_at_boundary"],
-        "r_fo_at_boundary": d2["r_fo_at_boundary"],
-        "two_converged": d2["converged"],
-        "loglik_two_raw": -d2["neg_loglik"],
+        "r_grace_at_boundary": diag_two["r_grace_at_boundary"],
+        "r_fo_at_boundary": diag_two["r_fo_at_boundary"],
+        "two_converged": diag_two["converged"],
+        "loglik_two_raw": -diag_two["neg_loglik"],
         "loglik_two": -neg_ll_used,
         "lr_stat": lr_stat,
         "lr_p": float(chi2.sf(max(lr_stat, 0.0), df=1)),
@@ -164,11 +163,12 @@ def mission_predictions(
     resid_wide: pd.DataFrame, test_start: pd.Timestamp, horizons: range,
     min_obs: int = 60, min_fo_obs: int = MIN_FO_OBS, progress: str | None = None,
 ) -> tuple[dict[int, pd.DataFrame], dict[int, pd.DataFrame], pd.DataFrame]:
-    """Two-r and one-r forecasts on identical rows, plus the per-basin parameter table.
+    """Two-variance and single-variance forecasts on identical rows, and the parameter table.
 
-    The one-r forecasts are regenerated here rather than read back from disk so that the
-    pair is guaranteed to share fold, deseasonalization and keep-list, and so the run can
-    check itself against the published kalman_predictions.csv.
+    Returns (two-variance forecasts, single-variance forecasts, per-basin parameters), each
+    forecast set as {lead time h: frame}. The single-variance forecasts are recomputed here,
+    so both share the fold, deseasonalization and basin list, and they can be checked
+    against kalman_predictions.csv. With progress set, a line is printed every 25 basins.
     """
     is_fo = mission_flag(resid_wide.index)
     out_two = {h: [] for h in horizons}

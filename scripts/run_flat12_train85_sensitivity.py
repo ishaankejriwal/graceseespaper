@@ -1,11 +1,20 @@
-"""Sensitivity: the flat-12 ridge refit on exactly the LSTM's training rows.
+"""Refit KF-R12E on the LSTM's training rows and repeat the comparison with the LSTM.
 
-The published flat12-vs-LSTM comparison (Sect. results_era5) has one mechanical
-asymmetry: the ridge fits on all training rows while the LSTM holds out the last
-15% of training months for early stopping (train_val_mask). This refits
-ridge_own_era5_flat12 on the identical ~85% row subset the LSTM trains its
-weights on and rescores the head-to-head, so the architecture comparison cannot
-be attributed to the extra training rows. Output: results/flat12_train85_sensitivity.csv.
+The LSTM holds out the last 15 % of training months for early stopping
+(phase7.train_val_mask), whereas ridge_own_era5_flat12 (KF-R12E) is fitted on all
+training rows. This script refits KF-R12E on the same rows (about 85 %) that the LSTM
+trains its weights on (ridge_own_era5_flat12_train85) and compares it at leads of 1 to
+3 months with the two-seed LSTM ensemble and with the original KF-R12E, so the
+difference between the two models cannot come from the extra training rows.
+Feeds Fig. 6b and Sect. 4.3.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv, era5_basin_month.csv,
+results/kalman_fold_params.pkl, results/phase7_lstm_predictions.csv.
+Outputs: results/flat12_train85_sensitivity.csv.
+
+Usage:
+  python scripts/run_flat12_train85_sensitivity.py
+  GRACEFC_SOURCE=jpl python scripts/run_flat12_train85_sensitivity.py
 """
 import sys
 from pathlib import Path
@@ -27,7 +36,7 @@ from gracefc.runtime import load_era5, load_sample, processed_dir, results_dir  
 
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
-HORIZONS = range(1, 4)  # flat12 exists at h1-3 only
+HORIZONS = range(1, 4)  # the LSTM predictions cover leads 1-3 only
 
 
 def main() -> None:
@@ -35,7 +44,7 @@ def main() -> None:
     era5_wide = load_era5(keep)
     cache = load_params_cache(OUT_DIR / "kalman_fold_params.pkl",
                               DATA / "basin_month_twsa_global.csv")
-    assert cache, "params cache missing or stale - run phase3b first"
+    assert cache, "Kalman parameter cache missing or stale; run flat12_ridge or phase3b first"
 
     out = []
     for fold in DEFAULT_FOLDS:
@@ -60,7 +69,7 @@ def main() -> None:
             print(f"{fold.name} h{h} done", flush=True)
     flat85 = pd.concat(out, ignore_index=True)
 
-    # Two-seed LSTM ensemble from the published predictions, on identical keys
+    # Two-seed LSTM ensemble: seed forecasts averaged on identical keys
     pub = pd.read_csv(OUT_DIR / "phase7_lstm_predictions.csv",
                       parse_dates=["issue_date", "target_date"])
     key = ["name", "issue_date", "target_date", "horizon"]

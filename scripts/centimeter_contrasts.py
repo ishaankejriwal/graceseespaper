@@ -1,10 +1,20 @@
 """Diebold-Mariano tests and bootstrap intervals on pooled squared error in centimeters.
 
-Sect. 4.5 compares the retained forecasts in cm; this tests those differences with the
-same pooled monthly DM and moving-block bootstrap used for the standardized comparisons.
-Reuses the row construction of compute_conventional_metrics.py.
+Tests the cm comparisons of Sect. 4.5 (KF-R1, KF-R12 and KF-R12E against KF, and KF
+against damped persistence) with the same pooled monthly DM test and moving-block
+bootstrap used for the standardized comparisons. Rows and cm values come from
+compute_conventional_metrics.py.
 
 Output: results/centimeter_contrasts.csv
+
+Usage:
+  python scripts/centimeter_contrasts.py
+  GRACEFC_SOURCE=jpl python scripts/centimeter_contrasts.py
+
+The archived tables in results/jpl/ were produced at commit 71be5ec of the JPL
+pipeline branch (results/jpl/RUN_PROVENANCE.md; archived as
+graceseespaper-71be5ec-jpl-run-code.zip). With this revision, run the full JPL
+chain (run_chain.py --source jpl) first.
 """
 import sys
 from pathlib import Path

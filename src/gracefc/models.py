@@ -1,4 +1,4 @@
-"""Baselines: pooled and per-basin ridge on own lags, and the RMSE used everywhere."""
+"""Pooled and per-basin ridge regressions for the lag-ridge benchmarks, and RMSE."""
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge
@@ -6,6 +6,7 @@ from sklearn.preprocessing import StandardScaler
 
 
 def fit_ridge(train: pd.DataFrame, feat_cols: list[str], alpha: float = 1.0) -> tuple:
+    """Pooled ridge on train-standardized features; returns (model, scaler)."""
     scaler = StandardScaler().fit(train[feat_cols].values)
     model = Ridge(alpha=alpha).fit(scaler.transform(train[feat_cols].values), train["target"].values)
     return model, scaler
@@ -14,7 +15,10 @@ def fit_ridge(train: pd.DataFrame, feat_cols: list[str], alpha: float = 1.0) -> 
 def per_basin_ridge_predict(
     train: pd.DataFrame, test: pd.DataFrame, feat_cols: list[str], alpha: float = 1.0
 ) -> np.ndarray:
-    """One ridge per basin: dodges the pooling penalty under coefficient heterogeneity."""
+    """Ridge refit separately for each basin on unscaled features (ridge_own_perbasin).
+
+    A basin needs at least three training rows per feature to be fitted.
+    """
     preds = np.full(len(test), np.nan)
     test_idx = {name: np.flatnonzero(test["name"].values == name) for name in test["name"].unique()}
     for name, grp in train.groupby("name"):

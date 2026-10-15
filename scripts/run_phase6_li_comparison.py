@@ -1,16 +1,37 @@
-"""Phase 6: matched comparison with the Li & Kusche (2026) LSTM hindcast.
+"""Comparison of our forecasts with the GRACE-FCast hindcast (Li and Kusche, 2026).
 
-Places their basin-aggregated forecasts into our evaluation space: subtract OUR
-fold-specific climatology (full variant) and a train-window-only mean offset that
-absorbs baseline-epoch and decomposition-convention differences, then standardize by
-our train std. Scoring is restricted to the matched sample — identical (basin,
-target_date) rows for every model at each horizon — so all skill numbers are
-directly comparable.
+Moves the basin-aggregated GRACE-FCast forecasts into each fold's standardized
+residual space (Sect. 3.6). The full product has our training-window climatology
+subtracted and the non-seasonal component does not; both then receive a per-fold,
+per-basin, per-lead mean offset estimated on months whose target precedes the test window (at
+least 24), and both are divided by our training-window residual standard deviation.
+Every model is scored on the identical set of (basin, target month) rows at each
+lead time.
 
-Two Li variants:
-  li_lstm_full     their operational product (LSTM non-seasonal + extrapolated
-                   seasonal/trend), evaluated as a forecast of our deseasonalized target
-  li_lstm_nonseas  their LSTM component alone (interannual + sub-seasonal)
+  li_lstm_full     the full product: non-seasonal forecast plus the extrapolated
+                   seasonal and trend terms
+  li_lstm_nonseas  the non-seasonal component (interannual plus sub-seasonal)
+
+Basin subsets: all_matched (every basin with a usable GRACE-FCast cell),
+coverage_ge_0.5, and joint_full_cells, the fully covered set the manuscript reports.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv,
+li2026_basin_coverage.csv, li2026_<source>_basin_forecasts.csv;
+results/kalman_predictions.csv, flat12_ridge_predictions.csv,
+phase2_baseline_predictions.csv.
+Outputs: results/phase6_li_comparison_predictions.csv, _summary.csv, _headline.csv
+(every pair in both orientations, with block-bootstrap CI and DM p) and _perbasin.csv
+(per-basin DM with Benjamini-Hochberg control on the fully covered set). These feed
+Table 5, Fig. 7 and Sects. 3.6 and 4.4.
+
+Usage:
+  python scripts/run_phase6_li_comparison.py
+  GRACEFC_SOURCE=jpl python scripts/run_phase6_li_comparison.py
+
+The archived tables in results/jpl/ were produced at commit 71be5ec of the JPL
+pipeline branch (results/jpl/RUN_PROVENANCE.md; archived as
+graceseespaper-71be5ec-jpl-run-code.zip). With this revision, run the full JPL
+chain (run_chain.py --source jpl) first.
 """
 import sys
 from pathlib import Path
@@ -32,30 +53,33 @@ from gracefc.runtime import processed_dir, results_dir, source  # noqa: E402
 OUT_DIR = results_dir(ROOT)
 DATA = processed_dir(ROOT)
 HORIZONS = range(1, 7)
-# file -> models to pull. kalman/flat12 files are already in std units; phase2 has
-# *_std_units cols. The Kalman arms used to be read out of phase3b_predictions.csv,
-# a neighbor experiment whose claim the paper has dropped; they are bit-identical
-# there and here (verified 2026-09-10), so the matched sample is unchanged.
+# Prediction file -> models read from it. The kalman and flat12 files are in
+# standardized units; phase2 stores them in *_std_units columns. kalman_ar1 and
+# kalman_own_ridge here are bit-identical to their copies in phase3b_predictions.csv.
 OUR_MODELS = {
     "kalman": ["kalman_ar1"],
     "flat12": ["kalman_own_ridge", "ridge_own_flat12", "ridge_own_era5_flat12"],
-    # persistence and climatology_zero carry no contrast of their own any more, but
-    # they stay in the pool because the matched row set is defined over it.
+    # persistence and climatology_zero are not contrasted, but the matched row set is
+    # defined over every model in this pool, so they stay in it.
     "phase2": ["ridge_own_perbasin", "damped_persistence_rho", "persistence", "climatology_zero"],
 }
 # Models scored head to head with the published product, in ladder order
 COMPARED = ["damped_persistence_rho", "ridge_own_perbasin", "kalman_ar1",
             "kalman_own_ridge", "ridge_own_flat12", "ridge_own_era5_flat12"]
 LI_MODELS = ["li_lstm_full", "li_lstm_nonseas"]
-# Both orientations: Li as challenger (the archived convention) and ours as
-# challenger (the reframed paper's question)
+# Every pair in both orientations: GRACE-FCast first, and ours first
 PAIRS = ([(li, m) for li in LI_MODELS for m in COMPARED]
          + [(m, li) for li in LI_MODELS for m in COMPARED])
 MIN_TRAIN_OFFSET_MONTHS = 24
 
 
 def build_li_pred_rows(li: pd.DataFrame, wide: pd.DataFrame) -> pd.DataFrame:
-    """Li forecasts -> our standardized deseasonalized space, per fold, train-only transforms."""
+    """GRACE-FCast forecasts as test rows in each fold's standardized residual space.
+
+    Climatology, residual standard deviation and mean offset use pre-test months only.
+    A (fold, basin, lead, variant) cell with fewer than MIN_TRAIN_OFFSET_MONTHS offset
+    months is dropped.
+    """
     out = []
     for fold in DEFAULT_FOLDS:
         train_wide = wide[wide.index < fold.test_start]
@@ -73,14 +97,14 @@ def build_li_pred_rows(li: pd.DataFrame, wide: pd.DataFrame) -> pd.DataFrame:
                 resid_full = sh["li_full_cm"].values - clim[sh["target_date"]].values
                 resid_ns = sh["li_nonseasonal_cm"].values
                 obs = resid_obs.reindex(sh["target_date"]).values
-                # Train mask is about what was OBSERVABLE before the freeze (target seen);
-                # test membership is by ISSUE date, matching evaluate.split_fold
+                # Offset months are those whose target was observed before the test
+                # window; test rows are selected by issue date, as in evaluate.split_fold
                 is_train = (sh["target_date"] < fold.test_start).values
                 is_test = ((sh["issue_date"] >= fold.test_start)
                            & (sh["issue_date"] <= fold.test_end)).values
                 for model, pred_resid in (("li_lstm_full", resid_full), ("li_lstm_nonseas", resid_ns)):
-                    # Offset on train targets only: absorbs baseline-epoch and
-                    # decomposition-convention differences, never test information
+                    # The mean offset absorbs differences in baseline epoch and
+                    # decomposition convention and uses no test months
                     ok = is_train & np.isfinite(pred_resid) & np.isfinite(obs)
                     if ok.sum() < MIN_TRAIN_OFFSET_MONTHS:
                         continue
@@ -108,18 +132,18 @@ def main() -> None:
                      parse_dates=["issue_date", "target_date"])
     li = li[li["name"].isin(keep_names)]
 
-    # One strict spatial-support rule for both products (2026-09-10): the subset used
-    # to exist only for JPL, which left the CSR comparison scored on basins the two
-    # products only partially cover.
+    # One spatial-support rule for both products: a basin is fully covered when it
+    # contains at least one complete native mascon and one complete valid GRACE-FCast
+    # cell (Sect. 3.6)
     support = li_joint_support_table(meta, coverage)
     n_joint = int(support["joint_full_cells"].sum())
-    print(f"strict joint spatial support: {n_joint} basins contain >=1 complete "
-          f"native {source().upper()} mascon and >=1 complete valid Li cell")
+    print(f"fully covered set: {n_joint} basins contain >=1 complete "
+          f"native {source().upper()} mascon and >=1 complete valid GRACE-FCast cell")
 
     li_rows = build_li_pred_rows(li, wide)
-    print(f"li rows: {len(li_rows)} | basins: {li_rows['name'].nunique()}")
+    print(f"GRACE-FCast rows: {len(li_rows)} | basins: {li_rows['name'].nunique()}")
 
-    # Our models, all converted to standardized units
+    # Our models, all in standardized units
     kal = pd.read_csv(OUT_DIR / "kalman_predictions.csv", parse_dates=["issue_date", "target_date"])
     kal = kal[kal["model"].isin(OUR_MODELS["kalman"])]
     flat = pd.read_csv(OUT_DIR / "flat12_ridge_predictions.csv",
@@ -150,7 +174,7 @@ def main() -> None:
 
     subsets = {
         "all_matched": matched,
-        # kept for continuity with the archived CSR tables
+        # not used in the manuscript
         "coverage_ge_0.5": matched[matched["li_coverage"] >= 0.5].copy(),
         "joint_full_cells": matched[matched["joint_full_cells"]].copy(),
     }
@@ -178,15 +202,15 @@ def main() -> None:
                 })
 
     summary = pd.DataFrame(summary_rows)
-    # Skill vs damped persistence on the SAME matched rows, the ladder's reference point
+    # Skill relative to damped_persistence_rho on the same matched rows
     damped = summary[summary["model"] == "damped_persistence_rho"].set_index(["subset", "horizon"])["rmse_std"]
     summary["skill_vs_damped"] = 1 - (summary["rmse_std"] / summary.set_index(["subset", "horizon"]).index.map(damped)) ** 2
     summary = summary.sort_values(["subset", "horizon", "rmse_std"]).reset_index(drop=True)
     summary.to_csv(OUT_DIR / "phase6_li_comparison_summary.csv", index=False)
     pd.DataFrame(headline_rows).to_csv(OUT_DIR / "phase6_li_comparison_headline.csv", index=False)
 
-    # Per-basin outputs feed later analyses on the strict spatial support, so those
-    # downstream summaries cannot reintroduce partially covered basins.
+    # Per-basin tests use the fully covered set only, so analyses that read this file
+    # cannot reintroduce partially covered basins
     perbasin_sample = subsets["joint_full_cells"]
     pb_rows = []
     for model_a, model_b in [(li, ref) for li in LI_MODELS

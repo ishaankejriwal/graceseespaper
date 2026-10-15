@@ -1,13 +1,31 @@
-"""Phase 6 basin analysis: which basins benefit from neighbors, and can we predict it?
+"""Per-basin analysis of where the correlation-selected neighbor improves the forecast.
 
-Builds a per-basin table joining neighbor skill (phase3b kalman backbone, phase4
-index-conditioned, phase6 ERA5-conditioned ridge backbone) with static covariates
-(continent, SNR stratum, area, latitude, ERA5 coverage, neighbor distance/correlation,
-Kalman signal-to-noise, coupling), then answers:
-  1. what predicts benefit (Spearman + random-forest permutation importance)
-  2. whether selective application beats apply-everywhere (fold-honest selection)
-  3. geographic patterns
-  4. whether ERA5 conditioning changes who benefits
+Not used in the manuscript, which sets the neighboring-basin correction aside
+(Sect. 4.6).
+
+Joins the per-basin 1-month skill of the neighbor forecast (kalman_corr_top1 vs
+kalman_own_ridge in phase3b and in phase4_conditioned, where every arm also gets
+Nino 3.4 and DMI lags; ridge_corr_top1 and
+ridge_corr_top1_era5 vs their own-basin twins in phase6_era5) with static covariates:
+continent, signal-to-noise stratum, area, latitude, ERA5-Land coverage, neighbor
+distance and correlation, the fitted Kalman rho and q/r, and the coupled-filter
+coupling. It then reports:
+  1. which covariates predict the benefit (Spearman, random-forest permutation importance)
+  2. pooled skill when the neighbor is applied only to selected basins, with the
+     selection made without the test fold
+  3. the benefit by continent, stratum, neighbor distance, correlation and latitude
+  4. whether ERA5-Land conditioning changes which basins benefit
+
+Inputs: results/kalman_fold_params.pkl, phase2_strata.csv, phase5_coupled_coupling.csv,
+phase3b_predictions.csv, phase4_conditioned_predictions.csv, phase6_era5_predictions.csv
+and phase6_li_comparison_perbasin.csv; data/processed/basin_month_twsa_global.csv,
+basin_meta.csv and era5_basin_coverage.csv.
+Outputs: results/phase6_basin_analysis_summary.csv, _spearman.csv, _rf_importance.csv,
+_selective.csv and _q4.csv.
+
+Usage:
+  python scripts/run_phase6_basin_analysis.py
+  GRACEFC_SOURCE=jpl python scripts/run_phase6_basin_analysis.py
 """
 import sys
 from pathlib import Path
@@ -33,12 +51,17 @@ RNG = 0
 # ---------------------------------------------------------------- covariates
 
 def build_neighbor_table() -> pd.DataFrame:
-    """Reconstruct the fold-specific corr_top1 graphs exactly as the experiments built them."""
+    """Per-basin neighbor statistics from the fold-specific corr_top1 graphs.
+
+    The graphs are rebuilt the same way the experiments build them. Returns (table,
+    metadata of the kept basins, Kalman parameter cache); the table averages neighbor
+    correlation and distance over folds and flags basins whose neighbor never changes.
+    """
     wide, meta, keep = load_sample(DATA)
     meta_kept = meta[meta["name"].isin(wide.columns)].reset_index(drop=True)
     dist = distance_matrix_km(meta_kept)
     cache = load_params_cache(OUT / "kalman_fold_params.pkl", DATA / "basin_month_twsa_global.csv")
-    assert cache, "params cache missing or stale for current data/protocol - run phase3b first"
+    assert cache, "Kalman parameter cache missing or stale; run flat12_ridge or phase3b first"
 
     rows = []
     for fold in DEFAULT_FOLDS:
@@ -66,6 +89,7 @@ def build_neighbor_table() -> pd.DataFrame:
 
 
 def build_covariates() -> pd.DataFrame:
+    """One row of static covariates per kept basin."""
     nbr, meta_kept, cache = build_neighbor_table()
     cov = meta_kept[["name", "continent", "centroid_lat", "centroid_lon",
                      "area_km2", "glaciated"]].copy()
@@ -79,7 +103,8 @@ def build_covariates() -> pd.DataFrame:
     cov = cov.merge(era5, on="name", how="left")
     cov = cov.merge(nbr, on="name", how="left")
 
-    # Kalman signal-to-noise q/r, fold-averaged in log space; r floors at ~1e-8 so clip first
+    # q/r averaged over folds in log space; the fit can drive r to effectively zero
+    # (fitted values reach ~1e-13), so q and r are floored at 1e-8 before the log
     snr = pd.concat(cache.values())
     snr["log_qr"] = np.log10(snr["q"].clip(1e-8) / snr["r"].clip(1e-8))
     kal = snr.groupby("name").agg(rho=("rho", "mean"), log_qr=("log_qr", "mean")).reset_index()
@@ -98,7 +123,7 @@ def perbasin_skill(pred_csv: str, challenger: str, reference: str, horizon: int,
     df = pd.read_csv(OUT / pred_csv)
     df = df[(df["horizon"] == horizon) & (df["model"].isin([challenger, reference]))]
     df["loss"] = (df["target"] - df["pred"]) ** 2
-    # Matched rows only: identical (name, target_date) sets guard against row-set drift
+    # Score only the (name, target_date) rows present for both models
     piv = df.pivot_table(index=["name", "target_date"], columns="model", values="loss")
     piv = piv.dropna()
     rows = []
@@ -145,8 +170,14 @@ def selective_skill(pred_csv: str, challenger: str, reference: str, horizon: int
 
 def fold_honest_selections(pred_csv: str, challenger: str, reference: str,
                            horizon: int, cov: pd.DataFrame) -> dict:
-    """Build per-fold basin selections: oracle (in-sample), leave-one-fold-out empirical,
-    and covariate-RF predicted benefit (double cross-validated)."""
+    """Per-fold basin selections for selective_skill.
+
+    all: every basin. oracle: basins that benefit over the full sample (in-sample, an
+    upper bound). lofo_empirical: basins that benefit on the other folds.
+    rf_covariates: a random forest on the covariates predicts the lofo_empirical label,
+    trained on the other basin groups, so the selection is out of sample in both folds
+    and basins.
+    """
     from sklearn.ensemble import RandomForestClassifier
 
     df = pd.read_csv(OUT / pred_csv)
@@ -157,7 +188,6 @@ def fold_honest_selections(pred_csv: str, challenger: str, reference: str,
     folds = [f.name for f in DEFAULT_FOLDS if f.name in set(piv["fold"])]
     all_names = sorted(piv["name"].unique())
 
-    # Oracle: full-sample per-basin benefit (upper bound, in-sample by construction)
     full = piv.groupby("name")[[challenger, reference]].mean()
     oracle = set(full[full[challenger] < full[reference]].index)
 
@@ -171,7 +201,8 @@ def fold_honest_selections(pred_csv: str, challenger: str, reference: str,
         other = piv[piv["fold"] != f].groupby("name")[[challenger, reference]].mean()
         lofo_benefit = other[challenger] < other[reference]
         sel["lofo_empirical"][f] = set(other[lofo_benefit].index)
-        # RF trained on out-of-fold labels AND out-of-group basins: honest in time and space
+        # Labels come from the other folds; each basin group is predicted by a forest
+        # fit on the remaining groups
         y = lofo_benefit.reindex(all_names).fillna(False).astype(int).values
         picked = set()
         for g in range(5):
@@ -193,6 +224,7 @@ NUM_FEATS = ["abs_lat", "centroid_lat", "log10_area", "era5_coverage",
 
 
 def feature_matrix(cov: pd.DataFrame) -> np.ndarray:
+    """Numeric covariates plus continent and stratum dummies; NaNs set to column medians."""
     X = cov[NUM_FEATS].copy()
     X = pd.concat([X, pd.get_dummies(cov["continent"], prefix="cont"),
                    pd.get_dummies(cov["stratum"], prefix="snr")], axis=1)
@@ -235,6 +267,8 @@ def spearman_table(cov: pd.DataFrame, targets: pd.DataFrame) -> pd.DataFrame:
 
 
 def strat_table(merged: pd.DataFrame, by: str, skill_col: str, dm_col: str) -> pd.DataFrame:
+    """Per group: basin count, median skill (%), and the fractions of basins helped,
+    significantly helped and significantly hurt (DM p < 0.05)."""
     g = merged.groupby(by, observed=True)
     tab = pd.DataFrame({
         "n": g.size(),
@@ -252,7 +286,7 @@ def main() -> None:
     cov = build_covariates()
     print(f"covariates: {len(cov)} basins")
 
-    # Per-basin h1 neighbor skill in the three settings + unconditioned ridge backbone
+    # Per-basin 1-month neighbor skill in each setting
     settings = {
         "p3b": ("phase3b_predictions.csv", "kalman_corr_top1", "kalman_own_ridge"),
         "p4cond": ("phase4_conditioned_predictions.csv", "kalman_corr_top1", "kalman_own_ridge"),
@@ -265,16 +299,16 @@ def main() -> None:
         print(f"{label}: {len(t)} basins, median skill {t[f'skill_{label}'].median()*100:+.2f}%")
         skills = t if skills is None else skills.merge(t, on="name", how="outer")
 
-    # Li long-lead edge as a covariate: does exogenous-forcing benefit align with neighbor benefit?
+    # Per-basin DM statistic of GRACE-FCast (full) against kalman_ar1 at a 4-month lead,
+    # compared with the neighbor benefit in Q4. The per-basin file holds contrasts
+    # against two reference models; keeping one gives one row per basin in the merge.
     li = pd.read_csv(OUT / "phase6_li_comparison_perbasin.csv")
-    # The Li per-basin table now carries two reference models; pin the one this
-    # analysis has always meant, or the merge below duplicates every basin row.
     li4 = (li[(li["model"] == "li_lstm_full") & (li["horizon"] == 4)
               & (li["vs"] == "kalman_ar1")]
            [["name", "dm_stat"]].rename(columns={"dm_stat": "li_dm_h4"}))
     merged = cov.merge(skills, on="name", how="inner").merge(li4, on="name", how="left")
 
-    # Q1: correlations and RF importance against the primary (phase3b) benefit measures
+    # Q1: rank correlations and random-forest importance for the phase3b benefit
     spear = spearman_table(cov, skills)
     spear.to_csv(OUT / "phase6_basin_analysis_spearman.csv", index=False)
     imps = pd.concat([
@@ -297,12 +331,12 @@ def main() -> None:
     for k, t in tabs.items():
         print(f"\n=== {k} ===\n{t}")
 
-    # Q2: selective application, fold-honest
+    # Q2: selective application, with selections that do not use the test fold
     sel = fold_honest_selections("phase3b_predictions.csv", "kalman_corr_top1",
                                  "kalman_own_ridge", 1, cov)
     selective = selective_skill("phase3b_predictions.csv", "kalman_corr_top1",
                                 "kalman_own_ridge", 1, sel)
-    # Same question on the ERA5-conditioned backbone
+    # Same selection on the ERA5-Land-conditioned ridge (phase6_era5)
     sel_e = fold_honest_selections("phase6_era5_predictions.csv", "ridge_corr_top1_era5",
                                    "ridge_own_era5", 1, cov)
     selective_e = selective_skill("phase6_era5_predictions.csv", "ridge_corr_top1_era5",
@@ -312,7 +346,7 @@ def main() -> None:
     selective_all.to_csv(OUT / "phase6_basin_analysis_selective.csv", index=False)
     print(f"\n=== selective application (h1) ===\n{selective_all.round(4)}")
 
-    # Q4: does ERA5 conditioning move who benefits?
+    # Q4: does ERA5-Land conditioning change which basins benefit?
     from scipy import stats as sps
     q4 = {}
     for a, b in [("dm_p3b", "dm_era5c"), ("dm_era5r", "dm_era5c"), ("skill_era5r", "skill_era5c")]:
@@ -320,7 +354,7 @@ def main() -> None:
         q4[f"spearman_{a}_vs_{b}"] = sps.spearmanr(sub[a], sub[b])[0]
     both = skills[["skill_era5r", "skill_era5c"]].dropna()
     q4["frac_sign_flip_era5"] = ((both["skill_era5r"] > 0) != (both["skill_era5c"] > 0)).mean()
-    # Replication check: the no-ERA5 ridge arms in phase6 should reproduce phase3b exactly
+    # Replication check: the phase6_era5 ridge arms without ERA5-Land should reproduce phase3b
     rep = skills[["dm_p3b", "dm_era5r"]].dropna()
     q4["max_abs_diff_dm_p3b_vs_era5r"] = (rep["dm_p3b"] - rep["dm_era5r"]).abs().max()
     for lab in ["p3b", "era5r", "era5c"]:

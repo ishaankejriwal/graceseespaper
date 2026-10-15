@@ -1,13 +1,31 @@
-"""Phase 8b: merge stacked-LSTM runs and compare to Li on common spatial support.
+"""Merge the h1-3 and h4-6 stacked-model runs and compare them with GRACE-FCast.
 
-Part 1 concatenates the phase 8 (h1-3) and phase 8b (h4-6) summary/headline tables into
-one h1-6 comparison table. Part 2 restricts our arms (per-seed and 2-seed ensemble) and
-the Li variants to a matched sample — identical (basin, target_date) rows for every model
-at each horizon, exactly the phase 6 protocol — and asks the phase 6 crossing question
-with the new stack: Li won h3-6 against the Kalman backbone; does lstmres close that gap?
+Not used in the manuscript.
 
-All Li rows come from phase6_li_comparison_predictions.csv, already transformed into our
-standardized deseasonalized space with train-only offsets (see run_phase6_li_comparison).
+Part 1 concatenates the phase8_lstm_combined (h1-3) and phase8b_lstm_h46 (h4-6)
+summary and headline tables into h1-6 tables. Part 1b scores two-seed ensembles of
+the stacked-model arms against each other. Part 2 scores our arms (per seed and
+two-seed ensemble), the GRACE-FCast variants and damped persistence on identical
+(basin, target month) rows at each lead, as in run_phase6_li_comparison.py, and adds
+per-basin DM tests of the stacked ensemble against the full GRACE-FCast product. On
+JPL the tables also cover the fully covered basin set, which the per-basin tests use.
+
+The GRACE-FCast and damped-persistence rows come from
+results/phase6_li_comparison_predictions.csv, already in each fold's standardized
+residual space.
+
+Inputs: results/phase8_lstm_combined_{summary,headline,predictions}.csv,
+phase8b_lstm_h46_{summary,headline,predictions}.csv,
+phase6_li_comparison_predictions.csv; data/processed/li2026_basin_coverage.csv,
+basin_meta.csv.
+Outputs: results/phase8b_h16_summary.csv, phase8b_h16_headline.csv,
+phase8b_h16_ensemble_headline.csv, phase8b_li_comparison_predictions.csv,
+phase8b_li_comparison_summary.csv, phase8b_li_comparison_headline.csv,
+phase8b_li_comparison_perbasin.csv.
+
+Usage:
+  python scripts/run_phase8b_merge.py
+  GRACEFC_SOURCE=jpl python scripts/run_phase8b_merge.py
 """
 import sys
 from pathlib import Path
@@ -47,8 +65,10 @@ PAIRS = [
 
 
 def add_ensembles(ours: pd.DataFrame, fams: list[str] | None = None) -> pd.DataFrame:
-    # fams defaults to the Li-comparison set; widening it there would change n_models and
-    # therefore the matched sample, so extra families are only requested for Part 1b
+    """Append the mean of the _s0 and _s1 seeds as <family>_ens for each family."""
+    # fams defaults to the families in the GRACE-FCast comparison; adding families there
+    # would change n_models and so the matched sample, so the extra families are
+    # requested only in Part 1b
     parts = [ours]
     for fam in (ENSEMBLES if fams is None else fams):
         s0 = ours[ours["model"] == f"{fam}_s0"]
@@ -73,14 +93,9 @@ def main() -> None:
         merged = merged.sort_values(sort_cols).reset_index(drop=True)
         merged.to_csv(OUT / f"phase8b_h16_{piece}.csv", index=False)
 
-    # ---- Part 1b: two-seed ensemble within-backbone contrasts ----
-    # The reporting rule (audit P0-6) makes the ensemble the headline quantity, but only
-    # per-seed contrasts were being shipped (phase 8 audit, 2026-08-15).
+    # ---- Part 1b: contrasts between two-seed ensembles ----
     full = pd.concat([pd.read_csv(OUT / f"{t}_predictions.csv", parse_dates=["issue_date", "target_date"])
                       for t in (TAG_H13, TAG_H46)], ignore_index=True)
-    # hist12 and oof were added in the 2026-08-15 repair; they need ensemble rows too,
-    # because Sect. results_delivery reports two-seed ensembles and the representation
-    # and out-of-fold contrasts have to be quoted on the same footing as the headline.
     ens_fams = ["lstmres_corr_top1", "lstm_own_era5", "lstmres_own", "lstm_corr_top1_era5",
                 "lstmres_nbrin_corr_top1", "lstmres_corr_top1_hist12",
                 "lstmres_oof_corr_top1", "lstmres_oof_own"]
@@ -94,11 +109,11 @@ def main() -> None:
         ("lstmres_own_ens", "lstm_own_era5_ens"),
         ("lstmres_corr_top1_ens", "ridge_corr_top1_era5"),
         ("lstm_corr_top1_era5_ens", "lstm_own_era5_ens"),
-        # Representation held against delivery: same correction stage, the input arm's
-        # 12-month history instead of the propagated scalar
+        # Same correction stage given the input-channel arm's 12-month neighbor history
+        # instead of the propagated neighbor state
         ("lstmres_corr_top1_hist12_ens", "lstm_own_era5_ens"),
         ("lstmres_corr_top1_hist12_ens", "lstmres_corr_top1_ens"),
-        # Out-of-fold stage-2 residuals: does the in-sample-residual caveat bite?
+        # Stage 2 fitted to out-of-fold instead of in-sample stage-1 residuals
         ("lstmres_oof_corr_top1_ens", "lstm_own_era5_ens"),
         ("lstmres_oof_corr_top1_ens", "lstmres_corr_top1_ens"),
         ("lstmres_oof_own_ens", "lstm_own_era5_ens"),
@@ -116,7 +131,7 @@ def main() -> None:
                          "ci_hi_pct": 100 * hi, "dm_stat": stat, "dm_p": p})
     pd.DataFrame(rows).to_csv(OUT / "phase8b_h16_ensemble_headline.csv", index=False)
 
-    # ---- Part 2: matched-sample comparison against Li ----
+    # ---- Part 2: comparison with GRACE-FCast on matched rows ----
     ours = pd.concat([pd.read_csv(OUT / f"{t}_predictions.csv", parse_dates=["issue_date", "target_date"])
                       for t in (TAG_H13, TAG_H46)], ignore_index=True)
     ours = add_ensembles(ours[ours["model"].isin(OUR_MODELS)])
@@ -130,13 +145,13 @@ def main() -> None:
     matched_keys = counts[counts == n_models].reset_index()[KEY]
     matched = all_rows.merge(matched_keys, on=KEY)
 
-    # Guard: our standardized target must equal the one stored with the Li rows
+    # Guard: our standardized target must equal the one stored with the GRACE-FCast rows
     chk = (matched[matched["model"] == "kalman_ar1"][KEY + ["target"]]
            .merge(matched[matched["model"] == "li_lstm_full"][KEY + ["target"]],
                   on=KEY, suffixes=("_ours", "_li")))
     gap = (chk["target_ours"] - chk["target_li"]).abs().max()
     if not (gap < 1e-6):
-        raise AssertionError(f"target mismatch vs Li rows: max |diff| = {gap}")
+        raise AssertionError(f"target mismatch vs GRACE-FCast rows: max |diff| = {gap}")
 
     coverage = pd.read_csv(DATA / "li2026_basin_coverage.csv")
     support = coverage
@@ -179,7 +194,7 @@ def main() -> None:
     summary.to_csv(OUT / "phase8b_li_comparison_summary.csv", index=False)
     pd.DataFrame(headline_rows).to_csv(OUT / "phase8b_li_comparison_headline.csv", index=False)
 
-    # Per-basin: who wins where on the strict JPL/Li support when available.
+    # Per-basin tests on the fully covered set when it exists (JPL), otherwise all matched
     perbasin_sample = subsets.get("joint_full_cells", matched)
     pb_rows = []
     for h in HORIZONS:
@@ -199,7 +214,7 @@ def main() -> None:
     print(hl[hl["subset"] == headline_subset].round(4).to_string(index=False))
     wins = perbasin.groupby("horizon").agg(
         we_win=("dm_stat", lambda s: int((s < 0).sum())), n=("name", "nunique"))
-    print("\nper-basin win counts (lstmres_ens beats li_full, dm_stat<0):")
+    print("\nper-basin win counts (lstmres_corr_top1_ens beats li_lstm_full, dm_stat<0):")
     print(wins.to_string())
 
 

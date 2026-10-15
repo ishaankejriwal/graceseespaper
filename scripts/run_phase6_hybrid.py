@@ -1,17 +1,28 @@
-"""Phase 6 hybrid splice: our short-lead model at h1-2 + Li & Kusche LSTM at h3-6.
+"""Splice of one of our forecasts at short leads with GRACE-FCast at the longer leads.
 
-Quantifies the complementarity claim from the head-to-head: if short leads are a
-filtering problem (we win) and long leads need exogenous forcing (they win), the
-best-of-both splice should beat either method alone overall. Evaluation reuses the
-matched sample (identical basin/target_date rows per model per horizon) and the
-same skill-vs-damped-persistence framework as phase6_li_comparison.
+Not used in the manuscript. Each hybrid takes a model of
+ours at the short leads and the full GRACE-FCast product (li_lstm_full) at the
+remaining leads. All models are scored on the matched rows of
+results/phase6_li_comparison_predictions.csv (on JPL, the fully covered basin set
+only), with skill relative to damped_persistence_rho on the same rows.
 
-Hybrids (primary splice at h1-2/h3-6; _h1 variants splice at h1/h2-6 because the
-head-to-head found h2 a statistical tie that nominally favors Li):
   hybrid_kalman_li     kalman_corr_top1 at h1-2, li_lstm_full at h3-6
   hybrid_era5_li       ridge_corr_top1_era5 at h1-2, li_lstm_full at h3-6
   hybrid_kalman_li_h1  kalman_corr_top1 at h1 only, li_lstm_full at h2-6
   hybrid_era5_li_h1    ridge_corr_top1_era5 at h1 only, li_lstm_full at h2-6
+
+The script needs kalman_corr_top1 rows in the comparison predictions file. The
+current run_phase6_li_comparison.py does not write that model, so with the current
+CSR file the target check below raises (max |diff| = nan); the JPL file, from an
+earlier revision, still has those rows. The archived hybrid outputs were produced
+from earlier comparison files.
+
+Inputs: results/phase6_li_comparison_predictions.csv, phase6_era5_predictions.csv.
+Outputs: results/phase6_hybrid_summary.csv, phase6_hybrid_headline.csv.
+
+Usage:
+  python scripts/run_phase6_hybrid.py
+  GRACEFC_SOURCE=jpl python scripts/run_phase6_hybrid.py
 """
 import sys
 from pathlib import Path
@@ -41,11 +52,12 @@ COLS = ["name", "issue_date", "target_date", "target", "pred", "model", "fold", 
 
 
 def pooled_all_horizon_dm(rows: pd.DataFrame, model_a: str, model_b: str) -> tuple[float, float]:
-    """DM on monthly losses averaged across basins AND horizons (Newey-West max_lag=5).
+    """DM test on monthly losses averaged across basins and horizons (Newey-West lag 5).
 
-    Descriptive only: edge months carry a partial horizon mix, and for hybrid-vs-
-    component pairs the differential is exactly zero at shared horizons, diluting the
-    test ~6:1. The per-horizon DMs are the defensible evidence."""
+    Descriptive only. Months at the edges of the record carry a partial mix of
+    horizons, and for a hybrid against one of its components the loss differential is
+    zero at the shared horizons, which dilutes the test. The per-horizon DM tests are
+    the ones to read."""
     a = rows[rows["model"] == model_a]
     b = rows[rows["model"] == model_b]
     la = a.assign(loss=(a["target"] - a["pred"]) ** 2).groupby("target_date")["loss"].mean()
@@ -59,7 +71,7 @@ def main() -> None:
                           parse_dates=["issue_date", "target_date"])
     if source() == "jpl":
         if "joint_full_cells" not in matched:
-            raise ValueError("JPL Li comparison is missing joint spatial-support diagnostics")
+            raise ValueError("JPL GRACE-FCast comparison file lacks the joint_full_cells column")
         matched = matched[matched["joint_full_cells"]].copy()
 
     era5 = pd.read_csv(OUT_DIR / "phase6_era5_predictions.csv",
@@ -74,7 +86,7 @@ def main() -> None:
         raise AssertionError(f"target mismatch matched vs era5: max |diff| = {gap}")
 
     # Restrict ERA5 rows to the matched keys so every model scores identical rows.
-    # The ERA5 run only produced h1-3; the splice needs h1-2 fully covered.
+    # The ERA5 run covers h1-3; the splice needs h1-2 fully covered.
     keys = matched[["horizon", "name", "target_date"]].drop_duplicates()
     era5 = era5.merge(keys, on=["horizon", "name", "target_date"])
     n_short = len(keys[keys["horizon"].isin(SHORT_H)])
@@ -97,7 +109,7 @@ def main() -> None:
 
     models = SOLO_MODELS + list(HYBRIDS)
 
-    # Per-horizon and pooled RMSE; skill vs damped persistence on the same rows
+    # Per-horizon and pooled RMSE; skill relative to damped persistence on the same rows
     summary = []
     for model in models:
         sub = rows[rows["model"] == model]
@@ -124,9 +136,10 @@ def main() -> None:
         key=lambda s: s.map(str) if s.name == "horizon" else s).reset_index(drop=True)
     summary.to_csv(OUT_DIR / "phase6_hybrid_summary.csv", index=False)
 
-    # Headline: hybrid vs each component alone and vs damped, per horizon + pooled
+    # Each hybrid against each component and against damped persistence, per horizon
+    # and pooled over horizons. A pair is tested only at the horizons where the hybrid
+    # differs from the reference.
     headline = []
-    # Per pair, only test horizons where the hybrid actually differs from the reference
     pairs = []
     for hyb, (short_model, long_model, short_h) in HYBRIDS.items():
         pairs.append((hyb, short_model, set(HORIZONS) - set(short_h)))

@@ -1,46 +1,39 @@
-"""Fail-fast pipeline chain with declared dependencies (audit repair, 2026-08-15;
-completed to the full pipeline after the 2026-08-17 external audit — the earlier
-version consumed phase3b/fusion/coupled/Li outputs it never generated, and ran
-basin_analysis before the phase6_era5 predictions it reads existed).
+"""Run the analysis pipeline in dependency order and stop at the first failure.
 
-The 2026-08-15 morning chain was an inline PowerShell one-liner: steps joined by ';'
-with no dependency checks, so basin analysis launched before the coupled-filter output
-existed, crashed, and the chain sailed on. This runner declares each step's input and
-output files, verifies inputs BEFORE launching, verifies outputs (existence + fresh
-mtime) after, stops at the first failure, and logs each step to results/chain_<name>.log.
+Each step runs one script with declared input and output files. A step is blocked if
+any input is missing, and fails if the script exits non-zero or if any declared output
+is missing or was not rewritten during the run. Script output goes to
+results/chain_<step>.log (results/jpl/ for --source jpl).
 
-The default list is the paper spine: processed-and-raw data, the baselines, the
-Kalman reference forecast and its flat-12 ridge correction, the mission-split
-sensitivity, the ladder, the Li comparison, the conventional metrics and the
-checksum manifest. It needs neither torch nor any neighbor experiment. Everything
-neighbor-only or torch-heavy sits in the EXTENDED list, run with --extended or named
-in --steps; no script was deleted when the spine was narrowed. What stays manual is
-only what needs a network or credentials: downloading the CSR mascon + ancillary
-files, the basin mask, ERA5 (scripts/download_era5.py), the Li 2026 archive, and the
-climate indices (scripts/download_indices.py). See README "Getting set up".
+The default list builds the processed basin tables, the benchmark forecasts (phase2,
+kalman), KF-R1, KF-R12 and KF-R12E (flat12_ridge), the two-variance and zero-r
+variants of the filter (kalman_mission, r0_ablation), the benchmark tables
+(Table 2, Appendix B), the GRACE-FCast comparison (Table 5), the centimeter metrics
+(Appendix C) and the checksum manifest. It does not need torch. The extended list holds
+the neighbor experiments (Sect. 4.6), the nonlinear models (Table 4, Fig. 6), the
+training-matched KF-R12E refit (Fig. 6b), several experiments not reported in the
+paper, and the figures. The figures step also reads the JPL comparison tables in
+results/jpl/ and is unavailable on JPL because make_figures.py asserts the CSR values
+quoted in the paper. climatology_offset.py, kalman_gain_correlates.py and
+centimeter_contrasts.py (Sects. 3.1, 4.1, 4.5) are not chain steps; run them after the
+default list.
 
-figures is EXTENDED, not default. The seven manuscript figures (rebuilt 2026-09-11) read
-spine outputs plus two torch outputs, phase7_lstm_summary.csv and
-phase7_lstm_predictions.csv (Fig. 6, the sequence models), and the versioned JPL
-comparison tables under results/jpl/, so a default-only machine cannot finish it. It
-would move to DEFAULT only if Fig. 6 were dropped or its inputs versioned.
+Steps that need network access or credentials are not part of the chain: downloading
+the CSR mascon and ancillary files, the basin mask, ERA5-Land
+(scripts/download_era5.py), the GRACE-FCast archive and the climate indices
+(scripts/download_indices.py). See README section 4, "Getting set up".
+
+results/kalman_fold_params.pkl is a content-addressed cache of the fitted filter
+parameters (src/gracefc/cache.py). flat12_ridge and phase3b rewrite it only when it is
+missing or stale, so it is never a declared output (a cache hit would fail the
+freshness check). Steps that read it declare it as an input.
 
 Usage:
-  python scripts/run_chain.py             # default step list, in order
-  python scripts/run_chain.py --extended  # the neighbor and torch steps
-  python scripts/run_chain.py --source jpl # same experiments, isolated JPL outputs
-  python scripts/run_chain.py --steps a b # explicit subset, in the order given
-  python scripts/run_chain.py --list      # show steps and their dependencies
-
-The figures step reads the two phase-7 LSTM outputs named above. Running it on a
-machine that has only ever run the default list is blocked with the missing files
-named. That is the dependency check working, not a defect.
-
-kalman_fold_params.pkl is deliberately absent from every step's OUTPUT list: it is a
-content-addressed cache (src/gracefc/cache.py) that flat12_ridge (default) and phase3b
-(extended) create when missing but legitimately leave untouched when the fingerprint
-still matches, which would fail the fresh-mtime output check. Steps that need it
-declare it as an INPUT; the two steps that can build it do not.
+  python scripts/run_chain.py               # default list, in order
+  python scripts/run_chain.py --extended    # extended list only
+  python scripts/run_chain.py --source jpl  # JPL product, outputs under results/jpl/
+  python scripts/run_chain.py --steps a b   # named steps, in the order given
+  python scripts/run_chain.py --list        # steps with their inputs and outputs
 """
 import argparse
 import os
@@ -74,11 +67,10 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      [RAW / "era5", MASK_NC],
      [DATA / "era5_basin_month.csv", DATA / "era5_basin_coverage.csv"]),
 
-    # CSR-only extra inputs: build_li's native-mascon count exec-loads
-    # run_resolution_sensitivity.load_official_geometry, which reads the solutions
-    # file for its lat/lon axes plus the two CSR ancillary grids. The JPL source path
-    # reads mascon_ID out of the product itself and needs none of the three, so
-    # steps_for_source drops them (see remap/build_li there).
+    # On CSR, build_li counts native mascons with
+    # run_resolution_sensitivity.load_official_geometry, which reads the lat/lon axes of
+    # the solutions file and the two CSR ancillary grids. On JPL, mascon_ID comes from the
+    # product itself, so steps_for_source drops these three inputs.
     ("build_li",
      ["scripts/build_li_basin_series.py"],
      [RAW / "li2026" / "CSR-FCast" / "global_gridded", MASK_NC, DATA / "basin_meta.csv",
@@ -308,18 +300,14 @@ STEPS: list[tuple[str, list[str], list[Path], list[Path]]] = [
      [],
      [RESULTS / "SHA256_MANIFEST_LIVE.csv"]),
 ]
-# The default chain is the reframed paper spine: processed tables, the baselines, the
-# Kalman reference forecast and its flat-12 ridge correction, the mission-split
-# sensitivity, the ladder, the cross-product comparison, the conventional metrics and
-# the manifest. It needs no torch and touches no neighbor experiment. figures is NOT
-# here: it declares the two phase-7 LSTM outputs as inputs (see the module docstring),
-# so a default-only machine would be blocked at it.
+# figures is not in the default list because it reads outputs of extended steps
+# (phase7_lstm, flat12_train85) and the JPL comparison tables.
 DEFAULT = [
     "build_basin", "build_era5", "build_li", "phase2", "kalman", "flat12_ridge",
     "kalman_mission", "r0_ablation", "ladder", "li_comparison",
     "conventional_metrics", "manifest",
 ]
-# Everything neighbor-only or torch-heavy. Run with --extended, or name in --steps.
+# Neighbor experiments, torch models and figures. Run with --extended or name in --steps.
 EXTENDED = [s[0] for s in STEPS if s[0] not in DEFAULT]
 
 SHARED_DATA_FILES = {
@@ -330,7 +318,14 @@ JPL_UNAVAILABLE = {"figures"}
 
 def steps_for_source(source: str, mascon_file: Path | None = None,
                      no_scale_factors: bool = False):
-    """Rewrite declared paths/commands into an isolated product namespace."""
+    """Return (steps, default step names, results directory) for one product.
+
+    CSR returns the declared lists unchanged. For JPL, processed data, results and
+    figures move to a <source> subdirectory (the ERA5-Land and index tables are
+    shared), the CSR input files are swapped for their JPL counterparts, build_basin
+    and build_li receive --source, and build_basin also receives --mascon-file and
+    --no-scale-factors when given.
+    """
     if source == "csr":
         return STEPS, DEFAULT, RESULTS
     data_jpl = DATA / source
@@ -369,9 +364,9 @@ def steps_for_source(source: str, mascon_file: Path | None = None,
 
         mapped_inputs = [remap(p) for p in inputs]
         if name == "build_li":
-            # JPL reads mascon_ID straight out of the product, so the CSR geometry
-            # trio is not an input on that source (and MASCON_NC must not be remapped
-            # into it by remap()).
+            # JPL reads mascon_ID from the product, so the three CSR geometry files
+            # are dropped here rather than remapped (remap() would turn MASCON_NC into
+            # the JPL file).
             mapped_inputs = [remap(p) for p in inputs if p not in CSR_GEOMETRY_FILES]
         if name == "resolution":
             mapped_inputs = [jpl_mascon, MASK_NC,
@@ -385,7 +380,7 @@ def run_step(name: str, args: list[str], inputs: list[Path], outputs: list[Path]
              results: Path) -> None:
     missing = [str(p) for p in inputs if not p.exists()]
     if missing:
-        raise SystemExit(f"[{name}] BLOCKED — missing inputs:\n  " + "\n  ".join(missing))
+        raise SystemExit(f"[{name}] BLOCKED, missing inputs:\n  " + "\n  ".join(missing))
     results.mkdir(parents=True, exist_ok=True)
     log = results / f"chain_{name}.log"
     t0 = time.time()
@@ -395,11 +390,11 @@ def run_step(name: str, args: list[str], inputs: list[Path], outputs: list[Path]
                             stderr=subprocess.STDOUT).returncode
     mins = (time.time() - t0) / 60
     if rc != 0:
-        raise SystemExit(f"[{name}] FAILED (exit {rc}, {mins:.1f} min) — see {log}")
+        raise SystemExit(f"[{name}] FAILED (exit {rc}, {mins:.1f} min), see {log}")
     stale = [str(p) for p in outputs
              if not p.exists() or p.stat().st_mtime < t0 - 1]
     if stale:
-        raise SystemExit(f"[{name}] FAILED — outputs missing or not refreshed:\n  "
+        raise SystemExit(f"[{name}] FAILED, outputs missing or not refreshed:\n  "
                          + "\n  ".join(stale))
     print(f"[{name}] done ({mins:.1f} min)", flush=True)
 
@@ -408,7 +403,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", choices=("csr", "jpl"), default="csr")
     ap.add_argument("--mascon-file", type=Path,
-                    help="JPL NetCDF path (useful for the recommended CRI product)")
+                    help="JPL mascon NetCDF to use instead of the default file")
     ap.add_argument("--no-scale-factors", action="store_true",
                     help="disable scale factors when building a JPL CRI target")
     ap.add_argument("--steps", nargs="+", default=None)

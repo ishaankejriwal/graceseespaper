@@ -1,8 +1,20 @@
-"""Jump-screen robustness for the h1 headline, both variants, committed per the Phase 4 audit.
+"""Re-score the 1-month neighbor result with jump-flagged basins left out.
 
-Full-series screen is test-informed (26/28 flags trigger only on test-period jumps) and must be
-reported as a post-hoc diagnostic; the train-only screen is the clean pre-registerable variant.
-Exclusion is score-time only: models were fit with flagged basins in the pool.
+A basin is flagged when a month-to-month change in its fold-1 residual exceeds 6 times
+its training-window standard deviation. The full-series screen also looks at test
+months, so it is a post hoc diagnostic; the training-only screen uses no test data.
+Flagged basins are removed at scoring time only, and the models were fitted with them.
+For each screen the correlation-selected neighbor arm (kalman_corr_top1) is compared
+with KF-R1 (kalman_own_ridge) and ranked among the random-neighbor placebos. Not
+reported in the paper.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv,
+results/phase3b_predictions.csv, results/phase3b_placebo_basin.csv.
+Outputs: results/phase4_jump_screen.csv.
+
+Usage:
+  python scripts/run_jump_screen.py
+  GRACEFC_SOURCE=jpl python scripts/run_jump_screen.py
 """
 import sys
 from pathlib import Path
@@ -21,6 +33,7 @@ DATA = processed_dir(ROOT)
 
 
 def flag_basins(resid: pd.DataFrame, train_end, full_series: bool) -> list[str]:
+    """Basins with a month-to-month change above 6 training-window standard deviations."""
     flagged = []
     for name in resid.columns:
         s = resid[name] if full_series else resid[name][resid.index < train_end]
@@ -31,6 +44,8 @@ def flag_basins(resid: pd.DataFrame, train_end, full_series: bool) -> list[str]:
 
 
 def headline_without(pred: pd.DataFrame, pb: pd.DataFrame, flagged: list[str], h: int = 1) -> dict:
+    """Skill of kalman_corr_top1 over KF-R1 and its placebo rank at lead h, without flagged
+    basins."""
     sub = pred[(pred["horizon"] == h) & (~pred["name"].isin(flagged))]
 
     def prmse(m):

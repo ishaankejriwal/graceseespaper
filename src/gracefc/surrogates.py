@@ -1,21 +1,18 @@
-"""IAAFT surrogates: keep each series' distribution and spectrum, destroy cross-basin synchrony.
+"""IAAFT surrogates: each basin keeps its distribution and spectrum, cross-basin synchrony is lost.
 
-Two properties of this null are deliberate and should be read together with
-scripts/run_phase4_surrogates.py:
+Used by scripts/run_phase4_surrogates.py. Two design choices matter when reading its results:
 
-- The surrogate is built from the FULL record, test months included. It is a null draw
-  of the DATA, not a forecast system: no information flows into the real arm, and a
-  truncated-support surrogate could not supply the test-month neighbor values the
-  evaluation needs. Because the surrogate's distribution and spectrum are estimated
-  with test-period observations, this is a disclosed transductive sensitivity, not a
-  fold-pure prospective control. Sharing the real series' full-record marginal and
-  spectrum makes the null closely matched to the real arm — a design argument, not a
-  proof that the test is conservative (external audit 2026-08-17).
-- The FFT runs on the full monthly grid. GRACE gap months are linearly interpolated
-  before the transform and the NaN mask is re-imposed after, so the preserved spectrum
-  is that of the true monthly time axis. (Before audit 2026-08-15 the transform ran on
-  the NaN-compressed vector — 257 of 290 months spliced together — so the "preserved"
-  frequencies did not correspond to real months.)
+- Surrogates are built from the full record, test months included. A surrogate is a null
+  draw of the data, not a forecast, so no information flows into the real arm, and the
+  evaluation needs neighbor values in test months that a training-only surrogate could
+  not supply. Because the distribution and spectrum are estimated with test-period
+  observations, this is a transductive sensitivity test rather than a prospective control
+  within each fold. Sharing the real series' full-record distribution and spectrum keeps
+  the null closely matched to the real data, which does not by itself make the test
+  conservative.
+- The FFT runs on the full monthly grid. Missing months are linearly interpolated before
+  the transform and set back to NaN afterwards, so the preserved spectrum is that of the
+  true monthly time axis.
 """
 import numpy as np
 import pandas as pd
@@ -28,16 +25,17 @@ def _gap_fill(x: np.ndarray, isnan: np.ndarray) -> np.ndarray:
 
 
 def iaaft(series: np.ndarray, seed: int, n_iter: int = 100) -> np.ndarray:
-    """Iterative amplitude-adjusted Fourier transform surrogate of one series (NaN-safe).
+    """Iterative amplitude-adjusted Fourier transform surrogate of one series with NaN months.
 
-    Operates on the gap-filled full-length series so the spectrum lives on the true
-    monthly axis; the amplitude distribution is the gap-filled series' (89% observed
-    values for the GRACE record). Gap months are NaN again in the output.
+    Works on the gap-filled full-length series, so the spectrum is defined on the true
+    monthly axis and the amplitude distribution is that of the gap-filled series (89 %
+    observed values for the GRACE record). Gap months are NaN again in the output.
+    Raises ValueError for fewer than 24 observed months.
     """
     x = np.asarray(series, dtype=float)
     isnan = np.isnan(x)
     if (~isnan).sum() < 24:
-        # Never return the real series into a null arm — that would gift it real information
+        # Falling back to the real series would put real information into the null arm
         raise ValueError(f"series too short to surrogate ({(~isnan).sum()} obs); exclude it upstream")
     g = _gap_fill(x, isnan)
     rng = np.random.default_rng(seed)
@@ -56,7 +54,7 @@ def iaaft(series: np.ndarray, seed: int, n_iter: int = 100) -> np.ndarray:
 
 
 def surrogate_wide(wide: pd.DataFrame, seed: int) -> pd.DataFrame:
-    """Independent IAAFT surrogate per basin column; NaN pattern (gaps) is preserved."""
+    """Independent IAAFT surrogate for each basin column, with its NaN months preserved."""
     out = {}
     for i, name in enumerate(wide.columns):
         out[name] = iaaft(wide[name].values, seed=seed * 100_003 + i)

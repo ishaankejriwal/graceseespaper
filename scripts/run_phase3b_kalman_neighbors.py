@@ -1,4 +1,22 @@
-"""Phase 3b: do neighbor filtered states add skill on the Kalman backbone?"""
+"""Score neighbor-basin corrections to KF-R1 against random-neighbor placebos (Sect. 4.6).
+
+Each arm adds to KF-R1 (kalman_own_ridge) the filtered state of k other basins,
+propagated to the target month. Neighbors are chosen by training-window correlation
+(corr), centroid distance (geo), training-window correlation among basins at least a
+given distance away (corr_min300 and similar, in km) or lagged correlation (pred_lag1). Each arm is
+ranked against degree-matched random neighbor graphs, one per seed.
+
+Inputs: data/processed/basin_month_twsa_global.csv, basin_meta.csv, indices.csv (with
+--condition-indices), results/kalman_fold_params.pkl (refitted and rewritten when
+missing or stale).
+Outputs: results/<tag>_predictions.csv, <tag>_placebo_monthly.csv,
+<tag>_placebo_basin.csv, <tag>_summary.csv (default tag phase3b). The predlag and
+conditioned steps of run_chain.py call this script with other cells and tags.
+
+Usage:
+  python scripts/run_phase3b_kalman_neighbors.py [--cells corr:1,2 geo:1] [--seeds 50]
+  GRACEFC_SOURCE=jpl python scripts/run_phase3b_kalman_neighbors.py [same options]
+"""
 import argparse
 import sys
 from pathlib import Path
@@ -21,7 +39,7 @@ PARAMS_CACHE = OUT_DIR / "kalman_fold_params.pkl"
 
 
 def parse_cells(specs: list[str]) -> tuple:
-    # Format: kind:k1,k2  e.g. corr:1,2,3 geo:1,2,3 corr_min300:1
+    """Parse 'kind:k1,k2' specs (e.g. corr:1,2,3 geo:1 corr_min300:1) into (kind, k) pairs."""
     cells = []
     for spec in specs:
         kind, ks = spec.split(":")

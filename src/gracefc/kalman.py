@@ -1,29 +1,21 @@
-"""The Kalman filter — the heart of the study.
+"""Scalar Kalman filter for the per-basin AR(1) state plus model-noise model (KF).
 
-The problem in one paragraph: the satellite measurement is the real water level plus
-measurement noise. The field's usual baseline ("damped persistence") forecasts by
-shrinking the last *measurement* toward zero, which faithfully carries the noise forward
-along with the signal. This module estimates the underlying level first, then shrinks
-that instead.
+Each basin's deseasonalized, standardized residual y_t is modeled as
 
-The model per basin is two lines:
+    x_t = rho * x_{t-1} + eps_t,    eps_t ~ N(0, q)
+    y_t = x_t + eta_t,              eta_t ~ N(0, r)
 
-    real level next month  =  rho * real level this month  +  random shock (size q)
-    what we observe        =  real level                   +  noise       (size r)
+with latent state x_t, process-noise variance q and model-noise variance r. The
+parameters (rho, q, r) are estimated per basin and fold by maximum likelihood on
+training months only (L-BFGS-B from four starting points). At each observed month the
+filter updates its state estimate x_{t|t} with the Kalman gain k = p / (p + r), where p
+is the predicted state variance. At a month with no observation it skips the update and
+propagates x and p forward. The forecast at lead time h issued at month t is
+rho**h * x_{t|t} (code id kalman_ar1).
 
-Each month the filter predicts where the level should be, compares that to the new
-measurement, and splits the difference by the "Kalman gain" = p / (p + r). Gain near 1
-means trust the measurement; near 0 means trust the model. Forecasting h months ahead is
-then just rho**h times the current clean estimate.
-
-rho, q and r are fitted per basin by maximum likelihood on training months only.
-
-Setting fixed_r=0 forces the gain to 1, which collapses this into damped persistence with
-an MLE decay rate — that is the ablation in scripts/run_r0_ablation.py, and it isolates
-how much of the win comes from noise removal rather than from a better decay rate.
-
-Caveat worth keeping in mind: we call r "measurement noise", but it is really whatever
-part of the signal the model cannot carry forward. 259 of 1170 basin-fits land at r ~ 0.
+With fixed_r=0.0 the gain is 1 at every observed month, so the forecast reduces to
+damped persistence with a maximum-likelihood rho. This is the zero-r variant
+(kalman_r0, scripts/run_r0_ablation.py).
 """
 import numpy as np
 import pandas as pd
@@ -31,17 +23,23 @@ from scipy.optimize import minimize
 
 
 def _filter_loglik(params: np.ndarray, y: np.ndarray, fixed_r: float | None = None) -> float:
+    """Negative Gaussian log-likelihood of y, the objective for fit_kalman_ar1.
+
+    params is (arctanh rho, log q, log r), or (arctanh rho, log q) when fixed_r is
+    given, so the optimizer works unconstrained while |rho| < 1 and q, r > 0. The
+    filter starts from x = 0 with the stationary variance q / (1 - rho**2).
+    """
     rho = np.tanh(params[0])
     q = np.exp(params[1])
     r = fixed_r if fixed_r is not None else np.exp(params[2])
     x, p = 0.0, q / max(1 - rho**2, 1e-6)
     ll = 0.0
     for obs in y:
-        # Predict
         x, p = rho * x, rho * rho * p + q
+        # A NaN month skips the update and adds nothing to the likelihood
         if np.isnan(obs):
             continue
-        # Update; NaN months simply skip the update, which handles gaps exactly
+        # s is the innovation variance and k the Kalman gain
         s = p + r
         ll -= 0.5 * (np.log(2 * np.pi * s) + (obs - x) ** 2 / s)
         k = p / s
@@ -50,14 +48,17 @@ def _filter_loglik(params: np.ndarray, y: np.ndarray, fixed_r: float | None = No
 
 
 def fit_kalman_ar1(y_train: np.ndarray, full: bool = False, fixed_r: float | None = None):
-    """MLE of (rho, q, r) with multiple starts; observed variance seeds the noise scales.
+    """Maximum-likelihood estimate of (rho, q, r) from one basin's training residuals.
 
-    With full=True also returns optimizer diagnostics: r is not separately
-    identified when the likelihood is flat in the q/r split, and boundary
-    collapse (r -> 0) must be visible downstream (audit 2026-08-13, P0-5).
-    With fixed_r=0.0 the update gain is 1 wherever an observation exists, so the
-    model degenerates to damped persistence with MLE rho — the ablation that
-    isolates the observation-noise term (audit 2026-08-15, blocker 2).
+    L-BFGS-B runs from four starts (rho of 0.5 or 0.9; q given 50 % or 20 % of the
+    sample variance and r the rest) and the lowest negative log-likelihood is kept.
+    NaN months are allowed.
+
+    Returns (rho, q, r), or (rho, q, r, diag) with full=True. diag holds the
+    optimizer's convergence flag, iteration count and negative log-likelihood, and
+    r_at_boundary, which is True when r < 1e-6 (the likelihood has driven r to
+    effectively zero). When fixed_r is given only rho and q are fitted and r is
+    returned as fixed_r; fixed_r=0.0 gives the zero-r variant.
     """
     v = float(np.nanvar(y_train))
     best, best_val, best_res = None, np.inf, None
@@ -85,7 +86,10 @@ def fit_kalman_ar1(y_train: np.ndarray, full: bool = False, fixed_r: float | Non
 
 
 def kalman_forecast_series(y: np.ndarray, rho: float, q: float, r: float) -> np.ndarray:
-    """Filtered state at every index t using observations up to and including t."""
+    """Filtered state x_{t|t} at every index t, using observations up to and including t.
+
+    The lead-h forecast issued at t is rho**h times this value.
+    """
     x, p = 0.0, q / max(1 - rho**2, 1e-6)
     out = np.empty(len(y))
     for i, obs in enumerate(y):
@@ -101,7 +105,11 @@ def kalman_forecast_series(y: np.ndarray, rho: float, q: float, r: float) -> np.
 def fit_fold_params(
     resid_wide: pd.DataFrame, test_start: pd.Timestamp, min_obs: int = 60
 ) -> pd.DataFrame:
-    """Per-basin (rho, q, r) fit on pre-test data only; cacheable across treatments."""
+    """Per-basin (rho, q, r) and fit diagnostics from months before test_start.
+
+    Basins with fewer than min_obs observed training months are skipped. The result
+    depends only on the data and the fold, so runners cache it (gracefc.cache).
+    """
     rows = []
     for name in resid_wide.columns:
         y_train = resid_wide[name][resid_wide.index < test_start].values
@@ -113,7 +121,10 @@ def fit_fold_params(
 
 
 def filtered_state_wide(resid_wide: pd.DataFrame, params: pd.DataFrame) -> pd.DataFrame:
-    """Filtered state x_{t|t} for every basin and month; causal by construction."""
+    """Filtered state x_{t|t} for every basin in params and every month of resid_wide.
+
+    Each value uses observations up to and including its own month only.
+    """
     out = {}
     p = params.set_index("name")
     for name in resid_wide.columns:
@@ -128,7 +139,12 @@ def kalman_predictions(
     resid_wide: pd.DataFrame, test_start: pd.Timestamp, horizons: range,
     fixed_r: float | None = None,
 ) -> dict[int, pd.DataFrame]:
-    """Fit per basin on pre-test data; forecast rho^h times the filtered state at each issue."""
+    """KF forecasts rho**h * x_{t|t} at every issue month, as {lead time h: frame}.
+
+    (rho, q, r) are fit per basin on months before test_start; basins with fewer than
+    60 observed training months are skipped. fixed_r=0.0 gives the zero-r variant.
+    Rows cover the whole record, and callers select the test issue months.
+    """
     out = {h: [] for h in horizons}
     for name in resid_wide.columns:
         s = resid_wide[name]

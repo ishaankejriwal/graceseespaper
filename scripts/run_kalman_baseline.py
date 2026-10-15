@@ -1,7 +1,20 @@
-"""Side experiment: Kalman AR(1)+noise vs per-basin ridge — noise filtering or real dynamics?
+"""Fit the Kalman filter benchmark (kalman_ar1, KF in the paper) and write its forecasts.
 
-If the Kalman filter matches per-basin ridge, the h1-3 own-lag win is mostly measurement-noise
-filtering. If ridge stays ahead, multi-lag structure carries real dynamics beyond AR(1).
+For each fold, fits (rho, q, r) per basin by maximum likelihood on the training months
+(Sect. 3.4), runs the filter through all months and forecasts rho**h times the filtered
+state at leads of 1 to 6 months. Rows are kept by issue date, as in evaluate.split_fold.
+Afterwards prints the pooled standardized RMSE of KF, ridge_own_perbasin and
+damped_persistence_reg by lead, with a DM test of KF against the per-basin ridge.
+
+Reads data/processed/basin_month_twsa_global.csv, basin_meta.csv and
+results/phase2_baseline_predictions.csv. Writes results/kalman_predictions.csv (standardized
+units), the KF forecasts read by build_paper_ladder.py (Table 2, Appendix B), the
+GRACE-FCast comparison, the centimeter metrics and Fig. 3. The flat12_ridge and phase7
+runners write their own kalman_ar1 rows from the cached parameters.
+
+Usage:
+  python scripts/run_kalman_baseline.py
+  GRACEFC_SOURCE=jpl python scripts/run_kalman_baseline.py
 """
 import sys
 from pathlib import Path
@@ -24,9 +37,8 @@ DATA = processed_dir(ROOT)
 def main() -> None:
     wide, meta, keep = load_sample(DATA)
 
-    # No resume shortcut: a cached predictions file once silently mixed fold
-    # protocols (audit 2026-08-14). The ~20 min MLE refit is the price of
-    # knowing the file matches the current data and fold semantics.
+    # The filter is refit on every run (about 20 min) instead of reusing an earlier
+    # predictions file, so the output cannot mix data versions or fold definitions.
     rows = []
     for fold in DEFAULT_FOLDS:
         resid_raw, train_std = deseasonalize_fold(wide, fold)
@@ -34,9 +46,8 @@ def main() -> None:
         preds = kalman_predictions(resid_wide, fold.test_start, range(1, 7))
         for h, df in preds.items():
             df = df.copy()
-            # Attach observed targets and clip to this fold's ISSUE window, matching
-            # evaluate.split_fold — target-date clipping puts this file on a different
-            # row set than every other runner and breaks cross-file comparisons
+            # Attach observed targets and keep rows by issue date, as evaluate.split_fold
+            # does, so this file has the same rows as the other forecast files
             tgt = resid_wide.stack().rename("target").reset_index()
             tgt.columns = ["target_date", "name", "target"]
             df = df.merge(tgt, on=["target_date", "name"], how="inner").dropna(subset=["target"])
@@ -51,6 +62,7 @@ def main() -> None:
 
 
 def compare(kal: pd.DataFrame) -> None:
+    """Print pooled standardized RMSE of KF, the per-basin ridge and damped persistence by lead."""
     other = pd.read_csv(OUT_DIR / "phase2_baseline_predictions.csv", parse_dates=["issue_date", "target_date"])
     print(f"{'h':>2} {'kalman':>8} {'perbasin':>9} {'damped':>8}  kalman-vs-ridge DM p")
     for h in range(1, 7):

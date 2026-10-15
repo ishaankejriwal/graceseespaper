@@ -1,15 +1,16 @@
-"""Phase 7 arch 1: the Africa-study two-stage head — ridge on own state, MLP on neighbors only.
+"""Two-stage correction: a ridge on the own filtered state, then an MLP on correction features.
 
-Ridge fits the Kalman residual from own_state; an MLP then fits the RIDGE residual from
-neighbor propagated states alone (plus ERA5 lags in the _era5 arms, ERA5-only in the
-own_era5 control). Final prediction = kalman + ridge + MLP. Information sets match the
-Phase 5/6 one-stage twins exactly, so resmlp vs ridge_corr_top1 isolates the two-stage
-architecture rather than the features. Placebos randomize ONLY the neighbor graph and
-retrain the MLP stage with the SAME seed as the real arm they null (audit 2026-08-15:
-the old 1000+draw seed changed MLP init/shuffle/early-stop split alongside the graph);
-the ridge stage is neighbor-free and shared. ERA5 stays aboard in _era5 placebos,
-mirroring experiment_era5's "neighbor beyond shared meteorology" test. Placebo draws are
-seeded per (fold, horizon) cell, so cells are independent draws rather than one reused set.
+The ridge fits the filter error (target - kalman) from own_state, and an MLP then fits the
+ridge's training residual from the correction features alone: neighbor propagated states,
+with ERA5-Land lags added in the _era5 arms, or ERA5-Land lags only in the own_era5 arm.
+The forecast is kalman + ridge + MLP. Each arm has the same information as the one-stage
+ridge of the same name (flat_ridge_arms), so resmlp_<arm> and ridge_<arm> differ only in
+the two-stage structure. Placebo arms randomize only the neighbor graph and refit the MLP
+with the same seed as the real arm; the ridge stage has no neighbor input and is shared.
+ERA5-Land features are kept in the _era5 placebos, as in experiment_era5. Placebo draws
+are seeded per (fold, lead time).
+
+The resmlp_own_era5_s* arms are the residual MLP of the paper.
 """
 import zlib
 from functools import partial
@@ -36,12 +37,12 @@ def run_resmlp_experiment(
     params_cache: dict | None = None,
     era5_lags: tuple[int, ...] = (0, 1, 2),
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Returns (pred rows for real arms, aggregated monthly losses for placebo arms)."""
+    """Return (prediction rows for the real arms, monthly summed losses for the placebo arms)."""
     out, placebo_monthly = [], []
     for fold in folds:
         setup = fold_setup(wide, fold, params_cache)
         names, name_pos = setup["names"], setup["name_pos"]
-        # One top-2 graph serves both arms: rank 0 of corr_top2 IS the corr_top1 neighbor
+        # One top-2 graph serves both arms; its first rank is the corr_top1 neighbor
         graph = corr_topk(setup["train_src"], 2)
         nbr_idx = neighbor_rank_matrix(graph, names, name_pos, 2)
         era5_feats, era5_cols = era5_fold_features(era5_wide, fold.test_start, names, era5_lags)
@@ -61,7 +62,7 @@ def run_resmlp_experiment(
 
             emit("kalman_ar1", kal_te)
 
-            # One-stage ridge twins: DM references that pin down what the architecture adds
+            # Ridge twins: one-stage ridges on the same features as the two-stage arms
             for arm, (Xtr, Xte) in flat_ridge_arms(tr, te, era5_cols, nb_tr, nb_te).items():
                 emit(f"ridge_{arm}", kal_te + _fit_head("ridge", Xtr, ytr, Xte, 0))
 
@@ -70,7 +71,7 @@ def run_resmlp_experiment(
             r_tr, r_te = ridge0.predict(own_tr), ridge0.predict(own_te)
             resid2 = ytr - r_tr
 
-            # Stage 2: MLP sees ONLY the listed correction features (never own state)
+            # Stage 2: the MLP sees only the listed correction features, never the own state
             mlp_arms = {
                 "corr_top1": (nb_tr[:, :1], nb_te[:, :1]),
                 "corr_top2": (nb_tr, nb_te),
@@ -85,8 +86,8 @@ def run_resmlp_experiment(
                     emit(f"resmlp_{arm}_s{s}",
                          kal_te + r_te + _fit_head("mlp", Ctr, resid2, Cte, s))
 
-            # Placebo MLPs reuse the real arms' seeds so each (arm, s) null varies only
-            # the graph; labels carry _s{s} so the summary matches seed to seed.
+            # Placebo MLPs reuse the real arms' seeds so that each (arm, s) placebo differs
+            # only in the graph; the _s{s} label pairs them seed by seed in the summary.
             cell_base = zlib.crc32(f"phase7_resmlp:{fold.name}:h{h}".encode()) % 1_000_000
             for seed in range(n_placebo):
                 g_rand = random_degree_matched(graph, cell_base + seed)

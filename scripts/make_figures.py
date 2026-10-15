@@ -1,34 +1,30 @@
-"""Publication figures for the GRACE TWSA forecasting paper (HESS, copernicus.cls).
+"""Build the seven manuscript figures and write figures/BUILD_NOTES.md.
 
-Seven figures, each a single file, vector PDF plus a 300 dpi PNG, into
-``figures/``:
+Each figure is written to ``figures/`` as a vector PDF and a 300 dpi PNG:
 
-    fig01_basins            the sample and the two comparison subsets
-    fig02_benchmark_ladder  where the filter sits on the conventional ladder
-    fig03_example_series    lead-1 forecasts against the observed anomaly, four basins
-    fig04_filter_mechanism  which half of the filter does the work
-    fig05_era5_where        where the ERA5-Land window helps
-    fig06_sequence_models   the nonlinear models against KF-R12E
-    fig07_crossing          the crossover against GRACE-FCast
+    fig01_basins            Fig. 1, the basin sample and the two comparison subsets
+    fig02_benchmark_ladder  Fig. 2, KF and the conventional benchmark ladder
+    fig03_example_series    Fig. 3, lead-1 forecasts against the observed residual
+    fig04_filter_mechanism  Fig. 4, the zero-r and two-variance variants and the
+                            per-basin KF gain map
+    fig05_era5_where        Fig. 5, where the ERA5-Land window helps
+    fig06_sequence_models   Fig. 6, the MLP and LSTM against KF and KF-R12E
+    fig07_crossing          Fig. 7, the crossover against GRACE-FCast
 
-Figure numbers follow the order of first citation in paper/main.tex (the
-crossing is cited last, in Sect. 4.4), so the fig0N_ prefix is the manuscript
-figure number.
+The fig0N_ prefix is the manuscript figure number (order of first citation in
+paper/main.tex).
 
-Every number plotted is read from ``results/*.csv`` or ``data/processed/*.csv``;
-nothing is typed in by hand. Every headline value is asserted against its source
-to the precision the manuscript prints, so a rerun that moves a number breaks the
-build instead of silently redrawing it. The asserts are pinned to the CURRENT
-result files, not to paper/notes/REWRITE_LEDGER.md, which describes the earlier
-three-finding structure and is no longer authoritative.
+Every plotted number is read from ``results/*.csv`` or ``data/processed/*.csv``.
+Headline values are asserted against their source files to the precision the
+manuscript prints, so a rerun that changes a number stops the build instead of
+redrawing the figure.
 
-Sign convention throughout: skill = 1 - MSE(first)/MSE(second), so a positive
-number means the first-named model is better. Where a source file lists the
-GRACE-FCast first, the figure plots the inverse comparison
-1 - MSE(ours)/MSE(theirs), which is NOT the negated skill -- see ours_over on the
-flip helper below.
+Skill is 1 - MSE(first)/MSE(second), so a positive value means the first-named
+model is better. Where a source file lists GRACE-FCast first, the figure plots
+1 - MSE(ours)/MSE(theirs), which is the reciprocal transform of the stored
+skill, not its negation (see ours_over).
 
-Usage:  .venv\\Scripts\\python.exe scripts\\make_figures.py
+Usage: python scripts/make_figures.py
 """
 
 import sys
@@ -99,15 +95,15 @@ BATLOW = {
     "olive":  "#828231",  # L 0.49
     "gold":   "#c09036",  # L 0.58
     "orange": "#f19d6b",  # L 0.67
-    "pink":   "#d7999b",  # L 0.65 -- batlow's #fdb4b6 darkened 15 % so a 1.4 pt
-                          # line still reads on white; hue unchanged
+    "pink":   "#d7999b",  # L 0.65; batlow's #fdb4b6 darkened 15 % so a 1.4 pt
+                          # line still reads on white, hue unchanged
 }
 REFGRAY = "0.45"
 LANDGRAY = "0.93"
 COASTGRAY = "0.55"
 
-# One name and one look per model, reused by every figure. Plain English only:
-# no code identifiers ever reach a legend.
+# One legend label and line style per model, shared by every figure. Legends
+# use the manuscript's model names, never code ids.
 STYLE = {
     "kalman_ar1":            dict(label="KF",     c=BATLOW["navy"],   ls="-",  m="o", lw=1.7),
     "kalman_own_ridge":      dict(label="KF-R1",          c=BATLOW["teal"],   ls="-",  m="^", lw=1.3),
@@ -129,7 +125,7 @@ CAPTION_NOTES = []
 
 
 def note(fig_stem, text):
-    """Record a caveat the caption must carry; printed at the end and in BUILD_NOTES."""
+    """Record a caveat the caption must carry; printed now and listed in BUILD_NOTES."""
     CAPTION_NOTES.append((fig_stem, text))
     print(f"    NOTE [{fig_stem}] {text}")
 
@@ -139,10 +135,10 @@ def note(fig_stem, text):
 # ---------------------------------------------------------------------------
 
 def assert_source(label, plotted, expected, tol=0.005):
-    """Hard check: what is drawn must reproduce the source value to print precision.
+    """Raise AssertionError unless the plotted values match the source within tol.
 
-    STOP (raise) on mismatch. Never adjust the expected value to make it pass --
-    a mismatch means the results moved and the figure must not be used.
+    A mismatch means the result files have changed since the manuscript values
+    were fixed; the expected values are not to be edited to make it pass.
     """
     p = np.atleast_1d(np.asarray(plotted, dtype=float))
     e = np.atleast_1d(np.asarray(expected, dtype=float))
@@ -157,13 +153,13 @@ def assert_source(label, plotted, expected, tol=0.005):
 
 
 def save(fig, stem):
-    """Vector PDF plus a 300 dpi PNG, at the exact figure size.
+    """Write figures/<stem>.pdf and .png at the exact figure size, then close it.
 
-    bbox_inches is deliberately NOT "tight": a tight box crops to whatever the
-    artists happen to occupy, which silently pushes the page past the 17 cm
-    double-column limit and then gets scaled down in LaTeX, shrinking every
-    label below the 7 pt floor. Margins are set per figure instead, and the
-    width is checked here.
+    bbox_inches is left at None rather than "tight": a tight box can push the
+    page past the 17 cm double-column width, LaTeX then scales it down, and the
+    labels fall below 7 pt. Margins are set per figure instead. Raises if any
+    artist runs off the canvas, a file exceeds the HESS size limit, or the
+    width is outside 8-17 cm.
     """
     FIGURES.mkdir(exist_ok=True)
     fig.canvas.draw()
@@ -213,6 +209,7 @@ def lead_axis(ax, lo=0.7, hi=6.3, leads=H):
 
 
 def series(df, keys, value, horizon_col="horizon", leads=H):
+    """Column `value` of the rows matching `keys`, in lead order; raises if a lead is missing."""
     sub = df.copy()
     for k, v in keys.items():
         sub = sub[sub[k] == v]
@@ -226,10 +223,10 @@ def ours_over(skill_theirs_first):
     """Invert a skill reported with the other model first.
 
     skill_theirs_first = 1 - MSE(theirs)/MSE(ours); the figure wants
-    1 - MSE(ours)/MSE(theirs) = 1 - 1/(1 - skill_theirs_first). This is the
-    reciprocal transform, not a sign flip: a sign flip would report +77.7 %
-    where the RMSEs say +43.7 %. Verified against both directions of the CSR
-    file and against rmse_std in the JPL summary (see fig03).
+    1 - MSE(ours)/MSE(theirs) = 1 - 1/(1 - skill_theirs_first). Negating the
+    skill instead would report +77.7 % at JPL lead 1 where the RMSEs give
+    +43.7 %. fig07_crossing checks the transform against both directions of
+    the CSR file and against rmse_std in the JPL summary.
     """
     s = np.asarray(skill_theirs_first, dtype=float)
     return 1.0 - 1.0 / (1.0 - s)
@@ -342,10 +339,17 @@ def hcolorbar(fig, ax, norm, cmap, label, extend="both", shrink=0.72, pad=0.05):
 
 
 # ===========================================================================
-# Figure 1 -- the sample and the two comparison subsets
+# Figure 1: the basin sample and the two comparison subsets
 # ===========================================================================
 
 def fig01_basins():
+    """Fig. 1: maps of the 234-basin sample by GRACE-FCast coverage, CSR (a) and JPL (b).
+
+    Reads data/processed/basin_meta.csv, data/processed/li2026_basin_coverage.csv,
+    the basin mask file, and phase6_li_comparison_perbasin.csv and
+    phase6_li_comparison_summary.csv from both results/ and results/jpl/.
+    Returns the subset counts for the build notes.
+    """
     stem = "fig01_basins"
     print(f"{stem}")
     import matplotlib.patches as mpatches
@@ -470,18 +474,20 @@ def fig01_basins():
 
 
 # ===========================================================================
-# Figure 2 -- the conventional benchmark ladder
+# Figure 3: lead-1 example series
 # ===========================================================================
 
 def fig03_example_series():
-    """Lead-1 forecasts against the observed deseasonalized anomaly for four
-    basins, in centimetres, over the whole test window. Damped persistence and
-    the Kalman filter are drawn from the archived per-prediction files; the
-    Kalman forecast, archived in standardized units, is returned to centimetres
-    with the per-fold training standard deviation implied by the baseline file
-    (target_cm / target_std). Each panel's RMSE is asserted against
-    conventional_metrics_perbasin.csv, so the panels are the same numbers the
-    tables report."""
+    """Fig. 3: lead-1 KF and damped-persistence forecasts against the observed
+    deseasonalized residual, in cm, over the test window for four basins.
+
+    Reads phase2_baseline_predictions.csv, kalman_predictions.csv,
+    conventional_metrics_perbasin.csv and data/processed/basin_meta.csv. The
+    KF forecast is stored in standardized units and is converted to cm with
+    the per-fold training standard deviation implied by the baseline file
+    (target / target_std_units). Each panel's RMSE is asserted against
+    conventional_metrics_perbasin.csv.
+    """
     stem = "fig03_example_series"
     print(f"{stem}")
     base = pd.read_csv(RESULTS / "phase2_baseline_predictions.csv",
@@ -491,10 +497,9 @@ def fig03_example_series():
     per = pd.read_csv(RESULTS / "conventional_metrics_perbasin.csv")
     meta = pd.read_csv(PROC / "basin_meta.csv").set_index("name")
 
-    # Chosen to span the per-basin lead-1 outcome, not to flatter the filter:
-    # two noisy arid basins where it helps most, one mid-latitude river where
-    # the gain is a few percent, and the Amazon, where damped persistence is
-    # marginally better.
+    # The four basins span the per-basin lead-1 outcome: two noisy arid basins
+    # where KF gains most, a mid-latitude river where the gain is a few
+    # percent, and the Amazon, where damped persistence is marginally better.
     basins = ["E_Saharan_and_Algerian_Atlas", "C_East_Nile_Delta",
               "R_Danube_River", "R_Amazon_River"]
     display = {"E_Saharan_and_Algerian_Atlas": "Saharan and Algerian Atlas",
@@ -515,7 +520,7 @@ def fig03_example_series():
         m = d.merge(k[["target_date", "pred", "target", "fold"]],
                     on=["target_date", "fold"], suffixes=("", "_kf"))
         assert len(m) == len(d) == len(k), f"{name}: row mismatch {len(d)} / {len(k)} / {len(m)}"
-        # the two files must describe the same target month in their own units
+        # both files must hold the same standardized target for each month
         assert_source(f"F3 {name} kalman target == baseline target (std units)",
                       m["target_kf"].to_numpy(), m["target_std_units"].to_numpy(), tol=1e-6)
         std_train = (m["target"] / m["target_std_units"]).groupby(m["fold"]).transform("median")
@@ -551,16 +556,28 @@ def fig03_example_series():
     save(fig, stem)
 
 
+# ===========================================================================
+# Figure 2: the conventional benchmark ladder
+# ===========================================================================
+
 def fig02_benchmark_ladder():
+    """Fig. 2: (a) skill against the stronger damped-persistence variant by lead for
+    the benchmark forecasts and KF, KF-R1, KF-R12 and KF-R12E, with 95 %
+    block-bootstrap CIs where the contrasts file has them; (b) pooled RMSE in cm for
+    the five forecasts reported in cm.
+
+    Reads paper_baseline_ladder.csv, paper_baseline_contrasts.csv and
+    conventional_metrics_summary.csv.
+    """
     stem = "fig02_benchmark_ladder"
     print(f"{stem}")
     lad = pd.read_csv(RESULTS / "paper_baseline_ladder.csv")
     con = pd.read_csv(RESULTS / "paper_baseline_contrasts.csv")
     conv = pd.read_csv(RESULTS / "conventional_metrics_summary.csv")
 
-    # The zero line is the STRONGER damped variant at each lead: rho at h1,
-    # regression at h2-h6. Pin that convention -- if it changes, the ladder is
-    # no longer measured against what the caption says.
+    # The zero line is the stronger damped variant at each lead: rho at lead 1,
+    # regression at leads 2-6. The caption states this, so the convention is
+    # asserted here.
     ref = lad[lad["model"] == "kalman_ar1"].sort_values("horizon")["damped_ref"].tolist()
     assert ref == ["damped_persistence_rho"] + ["damped_persistence_reg"] * 5, (
         "damped_ref convention changed; the zero line is no longer the stronger variant"
@@ -574,15 +591,14 @@ def fig02_benchmark_ladder():
     bot_models = ["persistence", "climatology_zero"]
     vals = {m: ladder(m) for m in top_models + bot_models}
 
-    # headline asserts, straight off paper_baseline_ladder.csv
     assert_source("F2a KF lead 1 = +4.98 %", vals["kalman_ar1"][:1], [4.98])
     assert_source("F2a KF leads 1-6", vals["kalman_ar1"],
                   [4.98, 8.79, 5.62, 3.07, 2.55, 3.63])
     assert_source("F2a KF-R12E leads 1-6", vals["ridge_own_era5_flat12"],
                   [12.24, 13.71, 9.61, 6.16, 4.58, 4.47])
 
-    # CI ribbons where the contrasts file has them, always against the same
-    # stronger damped variant the ladder used at that lead.
+    # CI ribbons where the contrasts file has them, taken against the same
+    # damped variant the ladder uses at each lead.
     def damped_ci(model):
         sub = con[(con["challenger"] == model)
                   & (((con["reference"] == "damped_persistence_rho") & (con["horizon"] == 1))
@@ -598,7 +614,8 @@ def fig02_benchmark_ladder():
     have_ci = [m for m in top_models if cis[m] is not None]
     print(f"    CI available for: {', '.join(STYLE[m]['label'] for m in have_ci)}")
 
-    # panel (b): pooled raw-cm RMSE, stacked_ens excluded (an extended-chain arm)
+    # Panel (b): pooled RMSE in cm. stacked_ens is excluded because it is not one of
+    # the five forecasts reported in cm.
     cm_models = ["damped_persistence", "kalman_ar1", "kalman_own_ridge",
                  "ridge_own_flat12", "ridge_own_era5_flat12"]
     pooled = {m: series(conv, {"model": m}, "pooled_rmse_cm") for m in cm_models}
@@ -639,6 +656,7 @@ def fig02_benchmark_ladder():
     axm.set_yticks([-120, -80, -40])
     axt.spines["bottom"].set_visible(False)
     axt.tick_params(bottom=False, labelbottom=False)
+    # diagonal break marks for the broken y axis
     d = 0.55
     brk = dict(marker=[(-1, -d), (1, d)], markersize=5.5, linestyle="none",
                color="0.25", mec="0.25", mew=0.7, clip_on=False)
@@ -681,10 +699,11 @@ def fig02_benchmark_ladder():
 
 
 # ===========================================================================
-# Figure 6 -- the crossover against GRACE-FCast
+# Figure 7: the crossover against GRACE-FCast
 # ===========================================================================
 
 def _li_series(df, model, vs, subset="joint_full_cells"):
+    """Skill, CI bounds (all in %), DM p-values and the rows for one pair, or None."""
     sub = df[(df["subset"] == subset) & (df["model"] == model) & (df["vs"] == vs)]
     sub = sub.sort_values("horizon")
     if list(sub["horizon"]) != list(H):
@@ -694,15 +713,22 @@ def _li_series(df, model, vs, subset="joint_full_cells"):
 
 
 def fig07_crossing():
+    """Fig. 7: skill of KF and KF-R12E over GRACE-FCast (full and non-seasonal) by
+    lead, with 95 % CIs, over the fully covered basins on CSR (a) and, for KF only,
+    on JPL (b).
+
+    Reads phase6_li_comparison_headline.csv from results/ and results/jpl/,
+    and results/jpl/phase6_li_comparison_summary.csv. Returns the interpolated
+    zero-crossing lead for each plotted pair.
+    """
     stem = "fig07_crossing"
     print(f"{stem}")
     csr = pd.read_csv(RESULTS / "phase6_li_comparison_headline.csv")
     jpl = pd.read_csv(JPL / "phase6_li_comparison_headline.csv")
     jpl_sum = pd.read_csv(JPL / "phase6_li_comparison_summary.csv")
 
-    # --- CSR: our model is listed first, so the file value is already
-    # "skill of ours over GRACE-FCast". Verify against the
-    # reverse-direction rows that the reciprocal identity holds.
+    # CSR lists our model first, so the stored skill is already ours over
+    # GRACE-FCast. The reverse-direction rows check the reciprocal identity.
     csr_pairs = [("kalman_ar1", "li_lstm_full"), ("kalman_ar1", "li_lstm_nonseas"),
                  ("ridge_own_era5_flat12", "li_lstm_full"),
                  ("ridge_own_era5_flat12", "li_lstm_nonseas")]
@@ -729,9 +755,8 @@ def fig07_crossing():
                   A[("ridge_own_era5_flat12", "li_lstm_nonseas")][0][:2],
                   [32.781, 11.231], tol=0.01)
 
-    # --- JPL: the collaborator's file lists GRACE-FCast FIRST, so the
-    # figure inverts it. Cross-check the inversion against rmse_std, which is
-    # independent of how the skill column was signed.
+    # The JPL file lists GRACE-FCast first, so the skill is inverted. rmse_std
+    # does not depend on how the skill column was signed and serves as the check.
     B = {}
     piv = jpl_sum[jpl_sum["subset"] == "joint_full_cells"].pivot(
         index="model", columns="horizon", values="rmse_std")
@@ -760,7 +785,6 @@ def fig07_crossing():
                        & (jpl["horizon"] == 1)]["skill"].iloc[0] * 100.0],
                   [-77.678], tol=0.01)
 
-    # --- draw ---------------------------------------------------------------
     def key(model, vs):
         c = STYLE[model]["c"]
         ls = "-" if vs == "li_lstm_full" else "--"
@@ -774,6 +798,7 @@ def fig07_crossing():
     axa = fig.add_subplot(gs[0])
     axb = fig.add_subplot(gs[1], sharey=axa)
 
+    # horizontal offsets so the error bars at one lead do not overlap
     OFF = {0: -0.13, 1: -0.045, 2: 0.045, 3: 0.13}
 
     from matplotlib.patheffects import withStroke
@@ -844,18 +869,26 @@ def fig07_crossing():
 
 
 # ===========================================================================
-# Figure 3 -- which half of the filter does the work
+# Figure 4: the zero-r and two-variance variants and the per-basin KF gain map
 # ===========================================================================
 
 def fig04_filter_mechanism():
+    """Fig. 4: (a) KF with and without the model-noise term; (b) the two-variance
+    mission-split KF against KF; (c) map of per-basin lead-1 skill of KF over
+    damped persistence.
+
+    Reads r0_ablation_summary.csv, kalman_mission_summary.csv,
+    conventional_metrics_perbasin.csv and the basin mask file. Returns the
+    number of basins where KF is better and worse at lead 1.
+    """
     stem = "fig04_filter_mechanism"
     print(f"{stem}")
     r0 = pd.read_csv(RESULTS / "r0_ablation_summary.csv")
     ms = pd.read_csv(RESULTS / "kalman_mission_summary.csv")
     cmet = pd.read_csv(RESULTS / "conventional_metrics_perbasin.csv")
 
-    # (a) the same filter with and without the model-noise term, both
-    # scored against the regression damped variant at every lead.
+    # (a) KF with and without the model-noise term, both scored against the
+    # regression damped variant at every lead
     full = r0[r0["component"] == "full_margin"].sort_values("horizon")
     zero = r0[r0["component"] == "rho_estimation_term"].sort_values("horizon")
     gap = r0[r0["component"] == "noise_filtering_term"].sort_values("horizon")
@@ -876,7 +909,7 @@ def fig04_filter_mechanism():
     assert_source("F3a skill given up when r = 0, leads 1-6", y_gap,
                   [5.354, 9.633, 11.667, 12.481, 12.653, 12.272], tol=0.001)
 
-    # (b) two model-noise variances (one per mission) against one
+    # (b) one model-noise variance per mission against a single variance
     split = ms[ms["component"] == "mission_split_term"].copy()
     split["horizon"] = split["horizon"].astype(int)
     split = split.sort_values("horizon")
@@ -890,7 +923,7 @@ def fig04_filter_mechanism():
         "the mission split is no longer a loss at every lead"
     )
 
-    # (c) per-basin lead-1 skill of the filter over damped persistence, in cm
+    # (c) per-basin lead-1 skill of KF over damped persistence, from RMSE in cm
     h1 = cmet[cmet["horizon"] == 1].pivot(index="name", columns="model",
                                           values="rmse_cm")
     assert len(h1) == 234, f"per-basin metrics cover {len(h1)} basins, not 234"
@@ -973,10 +1006,19 @@ def fig04_filter_mechanism():
 
 
 # ===========================================================================
-# Figure 4 -- where the ERA5 window pays
+# Figure 5: where the ERA5-Land window helps
 # ===========================================================================
 
 def fig05_era5_where():
+    """Fig. 5: (a) map of per-basin lead-1 skill of KF-R12E over KF, BH-FDR
+    significant basins hatched; (b) the same skill against each basin's
+    training-window standard deviation of the deseasonalized target.
+
+    Reads flat12_ridge_predictions.csv, data/processed/basin_meta.csv,
+    data/processed/basin_month_twsa_global.csv and the basin mask file.
+    Returns the significance counts, the Spearman coefficient and its p-value,
+    and the pooled lead-1 skill.
+    """
     stem = "fig05_era5_where"
     print(f"{stem}")
     from scipy.stats import spearmanr
@@ -990,7 +1032,6 @@ def fig05_era5_where():
         "flat12 predictions missing a model"
     )
 
-    # per-basin lead-1 skill of KF-R12E over the KF
     wide = h1.pivot_table(index=["name", "target_date"], columns="model",
                           values="pred")
     tgt = (h1[h1["model"] == "kalman_ar1"].set_index(["name", "target_date"])["target"]
@@ -1003,8 +1044,8 @@ def fig05_era5_where():
     assert_source("F4 pooled lead-1 skill of KF-R12E over the "
                   "KF = +7.65 %", [pooled], [7.646], tol=0.005)
 
-    # per-basin Diebold-Mariano with a HAC lag of h-1 (the repository helper),
-    # then Benjamini-Hochberg at q = 0.10
+    # per-basin Diebold-Mariano test (gracefc.stats), then Benjamini-Hochberg
+    # at q = 0.10
     fdr = per_basin_dm_fdr(h1, "ridge_own_era5_flat12", "kalman_ar1", 1, q=0.10)
     assert len(fdr) == 234, f"DM ran on {len(fdr)} basins"
     sig = fdr[fdr["significant"]]
@@ -1019,8 +1060,8 @@ def fig05_era5_where():
              for n in sig_names]
     assert all(agree), "DM sign and per-basin skill disagree on a significant basin"
 
-    # training-window std of the deseasonalized target, in cm, exactly as the
-    # pipeline computes it (evaluate.deseasonalize_fold), median over the folds
+    # training-window std of the deseasonalized target in cm, computed with
+    # evaluate.deseasonalize_fold as in the pipeline, median over the folds
     meta = pd.read_csv(PROC / "basin_meta.csv")
     keep = set(meta.loc[meta["exclude_reason"] == "keep", "name"])
     long = pd.read_csv(PROC / "basin_month_twsa_global.csv", parse_dates=["date"])
@@ -1071,7 +1112,6 @@ def fig05_era5_where():
                 linewidth=0.55, zorder=4, label="not significant")
     axb.scatter(x[is_sig], y[is_sig], s=11, color=BATLOW["navy"], edgecolor="none",
                 zorder=5, label="BH-FDR significant (0.10 level)")
-    # the median is printed in the build notes; no guide line is drawn
     med = float(np.median(x))
     axb.set_xscale("log")
     axb.set_xlim(0.6, 60)
@@ -1080,14 +1120,14 @@ def fig05_era5_where():
     axb.set_yticks([-40, -20, 0, 20, 40])
     axb.set_xticks([1, 3, 10, 30])
     axb.set_xticklabels(["1", "3", "10", "30"])
-    # a median guide line was tried here and removed: it crossed the densest
-    # part of the cloud and the Spearman coefficient already carries the claim
+    # No median guide line: it would cross the densest part of the cloud, and
+    # the Spearman coefficient carries the result.
     axb.set_xlabel("training-window standard deviation\n"
                    "of the deseasonalized target (cm)")
     axb.set_ylabel("1-month skill over KF (%)")
     n_off = int((y < YLO).sum())
-    # Show the x positions of off-scale basins without implying that their
-    # skill equals the plotting limit. Downward triangles mark clipped values.
+    # Off-scale basins are drawn as downward triangles on the lower limit, at
+    # their true x positions, so the limit is not read as their skill.
     off = y < YLO
     if n_off:
         axb.scatter(x[off], np.full(n_off, YLO), s=22, marker="v",
@@ -1095,10 +1135,9 @@ def fig05_era5_where():
                     edgecolors=[BATLOW["navy"] if s else "0.45" for s in is_sig[off]],
                     linewidth=0.6, zorder=6, clip_on=False)
     tail = f"\n{n_off} triangles: skill below −{abs(YLO):.0f} %" if n_off else ""
-    # One non-significant basin falls under this label. The scatter has zorder
-    # 4-5, so the box is raised above it and left slightly transparent: the
-    # text stays legible and the marker underneath is still visible. The top
-    # right corner was tried instead and collides with the legend.
+    # One non-significant basin falls under this label, so the box sits above
+    # the scatter and is slightly transparent to keep that marker visible. The
+    # top right corner would collide with the legend.
     axb.annotate(f"Spearman $r_s$ = {rho:+.2f}".replace("-", "−") + f" ($p$ = {p_rho:.3f}, $n$ = 234)"
                  f"{tail}", xy=(0.97, 0.035), xycoords="axes fraction",
                  ha="right", va="bottom", fontsize=7.5, color="0.15", zorder=6,
@@ -1129,10 +1168,19 @@ def fig05_era5_where():
 
 
 # ===========================================================================
-# Figure 5 -- the sequence models against KF-R12
+# Figure 6: the MLP and LSTM against the linear models
 # ===========================================================================
 
 def fig06_sequence_models():
+    """Fig. 6: (a) skill over KF at leads 1-3 for KF-R1E, KF-R12, KF-R12E, the
+    two MLP seeds and the LSTM ensemble, with 95 % block-bootstrap CIs;
+    (b) KF-R12E with training months matched to the LSTM's, against the LSTM
+    ensemble.
+
+    Reads phase7_lstm_summary.csv, phase7_lstm_predictions.csv,
+    flat12_train85_sensitivity.csv and paper_baseline_contrasts.csv. Returns
+    the panel (b) skills and DM p-values.
+    """
     stem = "fig06_sequence_models"
     print(f"{stem}")
     from gracefc.stats import block_bootstrap_skill_ci
@@ -1143,9 +1191,9 @@ def fig06_sequence_models():
     con = pd.read_csv(RESULTS / "paper_baseline_contrasts.csv")
     L3 = np.array([1, 2, 3])
 
-    # the two-seed LSTM ensemble is the mean of the seed predictions; build it
-    # and verify against the published lstm_own_era5_ens used by the
-    # equalized-training-window sensitivity run.
+    # The LSTM ensemble is the mean of the two seed predictions. It is rebuilt
+    # here and checked against the lstm_own_era5_ens rows of the
+    # equalized-training-window sensitivity file.
     keys = ["name", "issue_date", "target_date", "horizon", "fold"]
     ens = (pred[pred["model"].isin(["lstm_own_era5_s0", "lstm_own_era5_s1"])]
            .groupby(keys, as_index=False)
@@ -1162,9 +1210,9 @@ def fig06_sequence_models():
 
     r_ens = np.array([rmse_of("lstm_own_era5_ens", h) for h in L3])
     r_flat = np.array([rmse_of("ridge_own_era5_flat12", h) for h in L3])
-    # ridge_own_era5_flat12_train85 has no prediction rows here; reconstruct its
-    # RMSE from its stored skill against the full-window twin, then check that
-    # the published ensemble comparison falls out of our reconstructed ensemble.
+    # ridge_own_era5_flat12_train85 has no prediction rows here, so its RMSE is
+    # recovered from its stored skill against the full-window model; the
+    # stored comparison against the ensemble must then follow from r_ens.
     s85 = series(sens[sens["reference"] == "ridge_own_era5_flat12"],
                  {"challenger": "ridge_own_era5_flat12_train85"}, "skill_pct",
                  leads=L3)
@@ -1178,7 +1226,6 @@ def fig06_sequence_models():
     assert_source("F5b equalized-window KF-R12E over the LSTM "
                   "ensemble, leads 1-3", published, [1.02, 2.76, 2.27], tol=0.005)
 
-    # panel (a): skill over KF, with block-bootstrap CIs
     arms = ["ridge_own_era5", "ridge_own_flat12", "ridge_own_era5_flat12",
             "mlp_own_era5_flat12_s0", "mlp_own_era5_flat12_s1", "lstm_own_era5_ens"]
     pt, lo, hi = {}, {}, {}
@@ -1209,9 +1256,9 @@ def fig06_sequence_models():
                   pt["lstm_own_era5_ens"], [6.534, 2.743, 2.186], tol=0.005)
 
     LOOK = {
-        # mlp_own_era5_flat12_s* is the MLP of the manuscript (the
-        # MLP on KF-R12E's feature vector), NOT the residual MLP
-        # (resmlp_own_era5_s*), which has no prediction rows in this file.
+        # mlp_own_era5_flat12_s* is the manuscript's MLP (on KF-R12E's feature
+        # vector). The residual MLP (resmlp_own_era5_s*) has no prediction rows
+        # in this file.
         "ridge_own_era5":         dict(c=BATLOW["olive"],  m="<", label="KF-R1E"),
         "ridge_own_flat12":       dict(c=BATLOW["green"],  m="s", label="KF-R12"),
         "ridge_own_era5_flat12":  dict(c=BATLOW["gold"],   m="D", label="KF-R12E"),
@@ -1250,7 +1297,7 @@ def fig06_sequence_models():
     bars = axb.bar(L3, published, width=0.56, color=BATLOW["gold"],
                    edgecolor="none", zorder=4)
     for h, v, pv in zip(L3, published, dmp):
-        # same convention as the tables: anything below 0.001 is written < 0.001
+        # as in the tables, p below 0.001 is written < 0.001
         lab = f"+{v:.2f} %\n$p$ = {pv:.3f}" if pv >= 1e-3 else f"+{v:.2f} %\n$p$ < 0.001"
         axb.annotate(lab, xy=(h, v), xytext=(0, 3), textcoords="offset points",
                      ha="center", va="bottom", fontsize=7, color="0.15")
@@ -1290,6 +1337,8 @@ def fig06_sequence_models():
 # ===========================================================================
 
 def write_build_notes(f1, f3, f4, f5, f6x):
+    """Write figures/BUILD_NOTES.md from the figure return values and the
+    caption notes collected by note()."""
     lines = []
     A = lines.append
     A("# Figure build notes")

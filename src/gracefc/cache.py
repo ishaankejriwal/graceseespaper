@@ -1,21 +1,17 @@
-"""Fingerprinted cache for per-fold Kalman parameters.
+"""Cache of per-fold Kalman parameters, keyed by a fingerprint of everything they depend on.
 
-A fold-name-keyed pickle silently went stale once already (audit 2026-08-14:
-run_kalman_baseline's resume shortcut served target-date-era predictions into
-an issue-date pipeline). The fix is content addressing: the cache carries a
-hash of everything the stored params depend on, and loaders get an empty
-dict — forcing a refit — whenever any of it changed. The fingerprint covers
-(external audit 2026-08-17 widened it from the first three):
+The pickle stores a SHA-256 fingerprint of its inputs, and a loader whose current
+fingerprint differs gets an empty dict and refits. The fingerprint covers:
 
-- the basin table bytes (the series the filters were fit on)
-- basin_meta.csv bytes (the keep-cohort that decides WHICH basins get fit)
-- kalman.py source bytes (model semantics and fit hyperparameters)
-- numpy/scipy versions (the MLE optimizer the params came out of)
-- the fold specification and a manual protocol tag
+- the bytes of the basin table (the series the filters are fit on)
+- the bytes of basin_meta.csv (which basins are kept and therefore fit)
+- the source of kalman.py (the model and fit settings)
+- the numpy and scipy versions (the optimizer)
+- the fold specification and PROTOCOL_TAG
 
-Hashing source and library versions means comment edits or env updates force
-a ~20 min refit; that is the intended trade — a spurious refit reproduces the
-same params, a spurious cache hit reproduces a retracted result.
+Any edit to kalman.py, comments included, or a library upgrade therefore forces a refit
+of about 20 minutes. A needless refit reproduces the same parameters, whereas a stale
+cache hit could serve parameters from a different protocol.
 """
 import hashlib
 import pickle
@@ -31,11 +27,11 @@ _KEY = "__fingerprint__"
 
 
 def data_fingerprint(data_path: Path) -> str:
+    """SHA-256 hex digest of the cache inputs listed in the module docstring."""
     data_path = Path(data_path)
     h = hashlib.sha256()
     h.update(data_path.read_bytes())
-    # Cohort file is required, not optional: a fingerprint that silently skips
-    # a missing component defeats content addressing
+    # basin_meta.csv must exist; skipping a missing input would let a change pass unnoticed
     h.update((data_path.parent / "basin_meta.csv").read_bytes())
     h.update((Path(__file__).parent / "kalman.py").read_bytes())
     h.update(f"numpy={numpy.__version__} scipy={scipy.__version__}".encode())
@@ -45,7 +41,7 @@ def data_fingerprint(data_path: Path) -> str:
 
 
 def load_params_cache(cache_path: Path, data_path: Path) -> dict:
-    """Fold->params dict if the stored fingerprint matches current inputs, else {}."""
+    """{fold name: params} if the stored fingerprint matches the current inputs, else {}."""
     cache_path = Path(cache_path)
     if not cache_path.exists():
         return {}
@@ -57,6 +53,7 @@ def load_params_cache(cache_path: Path, data_path: Path) -> dict:
 
 
 def save_params_cache(cache_path: Path, cache: dict, data_path: Path) -> None:
+    """Pickle cache to cache_path, stamped with the current fingerprint."""
     out = {k: v for k, v in cache.items() if k != _KEY}
     out[_KEY] = data_fingerprint(data_path)
     Path(cache_path).write_bytes(pickle.dumps(out))

@@ -1,11 +1,14 @@
-"""How much of climatology's 1-month error is a per-basin, per-fold level shift.
+"""Share of climatology's 1-month error due to a per-basin, per-fold level shift (Sect. 3.1).
 
-The target is standardized by the training-window std, yet climatology's pooled RMSE
-is about 1.6. This splits its MSE into the mean residual of each basin and fold (drift
-of the test residual away from the frozen trend and seasonal fit) and the variance
-around that mean. Reads saved predictions only.
+The target is standardized by the training-window standard deviation, yet
+climatology's pooled RMSE is about 1.6. This splits its MSE into the mean test
+residual of each basin and fold (drift away from the frozen trend and seasonal fit)
+and the variance around that mean.
 
-Output: results/climatology_offset.csv
+Input: results/phase2_baseline_predictions.csv.
+Output: results/climatology_offset.csv. CSR only (fixed CSR paths).
+
+Usage: python scripts/climatology_offset.py
 """
 from pathlib import Path
 
