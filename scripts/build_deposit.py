@@ -8,8 +8,9 @@ Two archives:
                                      checksum manifest that pins them, the basin mask and the
                                      deposit README; it unpacks into the same folder as the code
   graceseespaper-71be5ec-jpl-run-code.zip
-                                     the repository at the commit that produced the JPL
-                                     tables in results/jpl/ (results/jpl/RUN_PROVENANCE.md)
+                                     the code (src, scripts, tests, environment lock) at the
+                                     commit that produced the JPL tables in results/jpl/
+                                     (results/jpl/RUN_PROVENANCE.md)
 
 Run from a clean checkout of the commit being cited, after
 `python scripts/make_manifest.py --check` passes for CSR and with GRACEFC_SOURCE=jpl.
@@ -25,6 +26,8 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "deposit"
 # The JPL results were produced on the JPL pipeline branch, which was not merged into this history
 JPL_RUN_COMMIT = "71be5ec6af30e9d8f3c72549ca114c3b47071380"
+# Code only; that commit's draft manuscript, figures and docs are superseded by the main archive
+JPL_RUN_PATHS = ["src", "scripts", "tests", "requirements-lock.txt"]
 
 
 def deposit_files():
@@ -70,7 +73,7 @@ def main():
     jpl_short = JPL_RUN_COMMIT[:7]
     subprocess.run(["git", "-c", "core.autocrlf=false", "archive", "--worktree-attributes", "--format=zip",
                     f"--prefix=graceseespaper-{jpl_short}/", "-o", str(OUT / f"graceseespaper-{jpl_short}-jpl-run-code.zip"),
-                    JPL_RUN_COMMIT], cwd=ROOT, check=True)
+                    JPL_RUN_COMMIT, "--", *JPL_RUN_PATHS], cwd=ROOT, check=True)
 
     with zipfile.ZipFile(f"{stem}-data.zip", "w", zipfile.ZIP_DEFLATED) as z:
         for p in files:

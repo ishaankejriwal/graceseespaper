@@ -21,7 +21,7 @@ default list.
 Steps that need network access or credentials are not part of the chain: downloading
 the CSR mascon and ancillary files, the basin mask, ERA5-Land
 (scripts/download_era5.py), the GRACE-FCast archive and the climate indices
-(scripts/download_indices.py). See README section 4, "Getting set up".
+(scripts/download_indices.py). See "Input data" in README.md.
 
 results/kalman_fold_params.pkl is a content-addressed cache of the fitted filter
 parameters (src/gracefc/cache.py). flat12_ridge and phase3b rewrite it only when it is

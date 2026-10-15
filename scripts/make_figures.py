@@ -460,11 +460,10 @@ def fig01_basins():
                  xy=(0.5, -0.105), xycoords="axes fraction", ha="center",
                  va="top", fontsize=7, color="0.35")
 
-    note(stem, "Panel (b) is not the JPL equivalent of panel (a). The JPL basin "
-               "metadata is on the collaborator's machine, so only the 67 strict "
-               "basins can be identified here; the remaining 167 basins are the "
-               "234 the study keeps on CSR, shaded neutral, and are NOT claimed "
-               "to be the 228 basins the JPL run kept.")
+    note(stem, "Panel (b) shades the 67 basins that pass the coverage rule on JPL. "
+               "The remaining 167 basins of the 234-basin CSR sample are shaded "
+               "neutral because the three-way split of panel (a) was not evaluated "
+               "on JPL; they are not the 228 basins kept on JPL.")
     note(stem, "The pale grey underlay is the Natural Earth 110 m land polygon, "
                "drawn only so land outside the basin sample reads as land rather "
                "than as a category of its own.")
@@ -1349,7 +1348,7 @@ def write_build_notes(f1, f3, f4, f5, f6x):
     A("the PDFs and PNGs meet the HESS 300 dpi floor. Text and mathematics use")
     A("one embedded Arial family. PDFs are limited to 2 MB and PNGs to 5 MB.")
     A("")
-    A("Conventions, per `paper/notes/FIGURE_PLAN.md`: cmcrameri `vik` for diverging")
+    A("Conventions: cmcrameri `vik` for diverging")
     A("maps, cmcrameri `batlow` samples for categorical series, BH-FDR significant")
     A("basins hatched rather than the insignificant ones stippled (Wilks 2016),")
     A("panel labels `(a)`/`(b)` lowercase in brackets, leads on integer ticks, a")
@@ -1447,8 +1446,7 @@ def write_build_notes(f1, f3, f4, f5, f6x):
            "src/gracefc/stats.py (per_basin_dm_fdr)",
            "src/gracefc/evaluate.py (deseasonalize_fold, DEFAULT_FOLDS)",
            "HydroShed+Mascon_Basins_L3.nc"],
-          [f"pooled lead-1 skill +{f4['pooled']:.3f} % (expected +7.646 %, the "
-           "+7.65 % quoted in docs/STUDY_CONTEXT.md)",
+          [f"pooled lead-1 skill +{f4['pooled']:.3f} % (expected +7.646 %)",
            f"BH-FDR q = 0.10: {f4['n_sig']} of 234 basins significant, "
            f"{f4['n_sig_better']} of them in our favour",
            f"Spearman rho = {f4['rho']:+.4f} (p = {f4['p']:.4f}), pinned to -0.1436",
@@ -1501,11 +1499,6 @@ def write_build_notes(f1, f3, f4, f5, f6x):
 
     A("## Things this build could not do as specified")
     A("")
-    A("- The JPL panel of Fig. 1 cannot show the 228 basins the JPL run kept: the")
-    A("  JPL `basin_meta.csv` is on the collaborator's machine and only the")
-    A("  compact headline, summary and per-basin CSVs are versioned here. The")
-    A("  panel therefore shades the 67 strict basins and leaves the other 167 of")
-    A("  the 234 CSR-kept basins neutral, and says so on the figure.")
     A("- Fig. 6 covers leads 1-3 only. The LSTM and MLP were never")
     A("  run past lead 3, so there is no lead 4-6 row to plot.")
     A("- `results/phase7_lstm_summary.csv` has no `skill_vs_kalman` column and no")

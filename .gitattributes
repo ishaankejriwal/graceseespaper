@@ -3,3 +3,20 @@
 
 # Local text of Li and Kusche (2026), kept for reference while writing; not ours to republish
 docs/reference/ export-ignore
+
+# Working notes, audits and journal-submission tooling stay in the repository but out of the archive
+docs/AUDIT_2026-08-13.md export-ignore
+docs/EXTERNAL_AUDIT_PROMPT.md export-ignore
+docs/STUDY_CONTEXT.md export-ignore
+docs/history/ export-ignore
+paper/HESS_REMAINING_REQUIREMENTS.md export-ignore
+paper/HESS_SUBMISSION_CHECKLIST.md export-ignore
+paper/notes/ export-ignore
+paper/submission/ export-ignore
+scripts/check_hess_submission.py export-ignore
+results/RUN_LOG.md export-ignore
+results/phase7_corrected_analysis.md export-ignore
+results/phase8_corrected_audit.md export-ignore
+results/phase8_related_benchmarks.md export-ignore
+results/post_rerun_audit.md export-ignore
+figures/BUILD_NOTES.md export-ignore

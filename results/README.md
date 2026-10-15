@@ -1,50 +1,39 @@
 # results/
 
-Every answer the pipeline has produced. Nothing in here is written by hand, it all comes out of
-the scripts.
+Result tables written by the pipeline scripts (`scripts/run_chain.py` and the scripts it calls).
+CSR results are in this directory and JPL results in `jpl/`. `docs/ARCHIVE_MANIFEST.md` gives
+the file and column behind each table, figure and quoted number in the paper.
 
-## Which file do I open?
+The files behind the main results:
 
-Start with the headline files behind the three claims (see `docs/STUDY_CONTEXT.md`):
-
-| File | What it holds |
+| File | Contents |
 |---|---|
-| `paper_baseline_ladder.csv` | Every baseline and both retained models, leads 1 to 6, on matched rows, with skill against the stronger damped-persistence variant at each lead. |
-| `paper_baseline_contrasts.csv` | The pairwise tests behind the ladder: skill, bootstrap CI, DM statistic and p for each named contrast. |
-| `flat12_ridge_summary.csv` | The flat-12 ridge arms scored against the Kalman reference and the own-basin ridge. |
-| `phase6_li_comparison_headline.csv` | Our models against Li and Kusche's GRACE-FCast, both orientations, on `all_matched`, `coverage_ge_0.5` and the strict `joint_full_cells` subset. |
-| `kalman_mission_summary.csv` | The tested-and-rejected mission-split filter, plus the fitting diagnostics for both variants. |
-| `r0_ablation_summary.csv` | Which half of the Kalman filter earns the win. |
-| `conventional_metrics_summary.csv` | The five retained systems restated in the literature's metrics: damped persistence, `kalman_ar1`, `kalman_own_ridge`, `ridge_own_flat12` and `ridge_own_era5_flat12`, as per-basin RMSE in cm, CC and NSE, anomaly and full signal. The stacked ensemble appears as a sixth model only when the extended phase-8 prediction files are on disk. |
-| `jpl/` | The same headline and summary tables from the collaborator's JPL run, most importantly `jpl/paper_baseline_ladder.csv`, `jpl/phase6_li_comparison_headline.csv` and `jpl/phase3b_summary.csv`. Row-level JPL files are not here; see `jpl/RUN_PROVENANCE.md`. |
+| `paper_baseline_ladder.csv` | The benchmark forecasts, KF, KF-R1, KF-R12 and KF-R12E at leads 1 to 6 on matched rows, with skill against the stronger damped-persistence variant at each lead (Table 2, Appendix B) |
+| `paper_baseline_contrasts.csv` | Pairwise contrasts behind the ladder: skill, bootstrap interval, DM statistic and p value |
+| `flat12_ridge_summary.csv` | KF-R1, KF-R12 and KF-R12E against KF and against the own-basin ridge (Table 3) |
+| `r0_ablation_summary.csv`, `kalman_mission_summary.csv` | The zero-r and two-variance variants of KF (Fig. 4); `kalman_mission_summary.csv` also holds the fitting diagnostics |
+| `phase6_li_comparison_headline.csv` | KF, KF-R1, KF-R12, KF-R12E, damped persistence and the per-basin lag ridge against GRACE-FCast full and non-seasonal, in both orientations, on the `all_matched`, `coverage_ge_0.5` and `joint_full_cells` subsets (Table 5) |
+| `conventional_metrics_summary.csv` | RMSE in cm, correlation and NSE for damped persistence, KF, KF-R1, KF-R12 and KF-R12E (Appendix C); `stacked_ens` is added when the extended stacked-model prediction files exist |
+| `phase7_lstm_summary.csv`, `phase7_resmlp_summary.csv` | Nonlinear models (Table 4, Fig. 6) |
+| `jpl/` | The same tables from the JPL run, mainly `jpl/paper_baseline_ladder.csv` and `jpl/phase6_li_comparison_headline.csv`; the run record is `jpl/RUN_PROVENANCE.md` |
 
-Then the general patterns:
+File names follow a pattern. `*_summary.csv` holds scores per model and lead,
+`*_headline.csv` the rows the paper quotes, `*_predictions.csv` one row per model, basin, issue
+month and lead, and `*_placebo_*.csv` the null draws of the neighbour and surrogate tests.
+`chain_<step>.log` is the console output of a chain step and is not archived.
 
-| Pattern | What it is |
-|---|---|
-| `*_headline.csv` | The one-line version of a summary: the number that ends up in the paper. |
-| `*_summary.csv` | The scores: how well each model did, at each lead. |
-| `*_predictions.csv` | Every individual forecast, one row each. Large, and not stored in git. |
-| `*_placebo_*.csv` | The same thing for the fake-neighbour control runs, from the extended steps. Also large, also not in git. |
-| `*_analysis.md`, `*_audit.md` | Written notes on what a phase found and whether it held up. |
-| `RUN_LOG.md` | The diary. Which command produced which file, when, and what we concluded. |
-| `chain_*.log` | Raw console output from each pipeline stage. Transient, regenerated every run. |
+Skill is 1 - MSE(model)/MSE(vs); a positive value means the model in the `model` column has the
+lower error. Errors are in standardized units unless the column name says cm.
 
-If you only read one file, read `RUN_LOG.md`.
+The large row-level files ship in the data archive of the Zenodo deposit instead of git:
+`*_predictions.csv`, `*_placebo_basin.csv` and `phase3b_placebo_monthly.csv` here, and in
+`jpl/` the predictions, all placebo tables and `kalman_fold_params.pkl`.
+`SHA256_MANIFEST_LIVE.csv` (here and in `jpl/`) records their sizes and SHA-256 checksums. Verify them with
 
-## Rules
+```bash
+python scripts/make_manifest.py --check
+GRACEFC_SOURCE=jpl python scripts/make_manifest.py --check
+```
 
-- **`RUN_LOG.md` is append-only.** It records what was true when each batch ran. Never edit an
-  old entry so it agrees with a newer result, add a new entry instead. The whole point is being
-  able to see what changed.
-- **If a document disagrees with a CSV in here, the CSV wins.** Everything in this folder was
-  produced by the current code. Superseded material is frozen under two directories, with their
-  own checksums: `archive/pre_audit_2026-08-13/` holds the frozen outputs as they stood before
-  the audit in `docs/AUDIT_2026-08-13.md`, and `archive/superseded_preaudit_docs/` holds the
-  frozen documents from the same point. Neither is ever overwritten. `paper/main.tex` has not
-  yet been rewritten for the 2026-09-10 reframe.
-- **Big files aren't in git.** Anything over about 5 MB regenerates from the code plus the raw
-  data. `scripts/make_manifest.py` writes their checksums to `SHA256_MANIFEST_LIVE.csv`, and
-  `make_manifest.py --check` verifies them later.
-- **Don't hand-edit a CSV.** If a number looks wrong, fix the code and rerun the stage. A
-  hand-patched result is invisible to everyone downstream.
+`kalman_fold_params.pkl` caches the fitted KF parameters per fold. The `flat12_ridge` and `phase3b`
+steps rewrite it when it is missing or out of date.
