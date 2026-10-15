@@ -2,8 +2,9 @@
 
 This record describes the JPL results in this directory. Compact result and
 diagnostic tables are versioned; row-level predictions, placebo draws, model
-state, and transient chain logs remain ignored because they are regenerable and
-account for nearly all of the output size. `SHA256_MANIFEST_LIVE.csv` identifies
+state, and transient chain logs are ignored by git because they are regenerable and
+account for nearly all of the output size; the predictions, placebo draws and model
+state are published in the data archive of the Zenodo deposit. `SHA256_MANIFEST_LIVE.csv` identifies
 the exact local generated artifacts used to produce the shared tables.
 
 ## Run identity
@@ -48,10 +49,23 @@ the exact local generated artifacts used to produce the shared tables.
 
 - Basin mask: `HydroShed+Mascon_Basins_L3.nc`.
 - Basin-mask SHA-256:
-  `b0434196b7615366626b4bd88ce1f450c63c79e1ebe0b866fea3a05aebaF4a24`
-  (hexadecimal is case-insensitive).
+  `b0434196b7615366626b4bd88ce1f450c63c79e1ebe0b866fea3a05aebaf4a24`.
 - The JPL table contains 284 mask basins: 228 retained for modeling, 46 ice
   sheets, 4 water bodies, and 6 without valid JPL observations.
+
+## Processed inputs
+
+SHA-256 of the processed JPL inputs in `data/processed/jpl/`, recorded on
+2026-10-14 from the files used for these runs:
+
+- `basin_meta.csv`: `e053deba3c3d928780d649b82709b0cbaf21672ebe80729c838fa92d892fc873`
+- `basin_month_twsa_global.csv`: `e243dcfd114beca90892f11771881947dfa923d9ccf7bf7bd3398cfde5e881af`
+- `li2026_basin_coverage.csv`: `c8eea0b3eb82ef5633a721acd2b5c1eda02b5b57e01ccc5f599519f98c753e04`
+- `li2026_jpl_basin_forecasts.csv`: `36645fea53b15f84ae36be93d74b92f0e11bf5a826bb2633e9d9105d97ea1e41`
+
+Rebuilt from these files, the JPL baseline ladder and the matched Li comparison
+populations reproduce `phase2_baseline_summary.csv` and
+`phase6_li_comparison_summary.csv` to rounding error.
 
 ## Li and Kusche comparison source
 
@@ -104,6 +118,8 @@ so readers can see how the spatial restriction changes the result.
 
 - `SHA256_MANIFEST_LIVE.csv` contains byte counts and SHA-256 digests for every
   generated CSV and serialized model-state file in this JPL result directory.
+  `make_manifest.py --check` verifies the files git does not store; git versions
+  the rest.
 - Positive `skill` means the table's first named model has lower MSE than its
   `vs` model: `skill = 1 - MSE(model) / MSE(vs)`. Always check the `model` and
   `vs` columns before translating a value into percent improvement.

@@ -1,2 +1,5 @@
 # Machine-local assistant configuration stays out of the code archive
 .claude/ export-ignore
+
+# Local text of Li and Kusche (2026), kept for reference while writing; not ours to republish
+docs/reference/ export-ignore

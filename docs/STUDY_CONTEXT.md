@@ -182,8 +182,9 @@ Default-tail wall times on the 2026-09-10 CSR rerun: `build_li` 5.9 min, `flat12
 
 - CSR is the machine of record: everything directly under `results/` is a live CSR run.
 - JPL: only the compact headline and summary CSVs are versioned, under `results/jpl/`.
-  Row-level predictions, the JPL mascon file and Li's JPL-FCast archive exist only on the
-  collaborator's machine. Provenance and checksums are in `results/jpl/RUN_PROVENANCE.md` and
+  Row-level predictions go in the Zenodo data archive; the processed JPL inputs
+  (`data/processed/jpl/`) are on both machines; the JPL mascon file and Li's JPL-FCast
+  archive are only on the collaborator's machine. Provenance and checksums are in `results/jpl/RUN_PROVENANCE.md` and
   `results/jpl/SHA256_MANIFEST_LIVE.csv`.
 - GSFC has not been run.
 

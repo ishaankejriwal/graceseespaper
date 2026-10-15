@@ -495,9 +495,10 @@ JPL hybrid comparison use this fully covered basin set, while both pooled sample
 and headline CSVs so the effect of the spatial restriction is visible.
 
 Compact JPL headline, summary, statistical, and basin-diagnostic tables are versioned under
-`results/jpl/` for cross-machine review. Large prediction-level tables, placebo draws, model
-state, and chain logs remain local; their checksums are recorded in
-`results/jpl/SHA256_MANIFEST_LIVE.csv`. The exact releases, scale-factor setting, run dates,
+`results/jpl/` for cross-machine review. Large prediction-level tables, placebo draws and model
+state are not in git; they are in the data archive of the Zenodo deposit
+(`docs/DEPOSIT_README.md`), and their checksums are recorded in
+`results/jpl/SHA256_MANIFEST_LIVE.csv`. Chain logs stay local. The exact releases, scale-factor setting, run dates,
 comparison populations, seeds, and input checksums are documented in
 `results/jpl/RUN_PROVENANCE.md`.
 

@@ -1,4 +1,4 @@
-\begin{thebibliography}{51}
+\begin{thebibliography}{52}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \providecommand{\urlprefix}{}
@@ -51,8 +51,8 @@ Byrd, R.~H., Lu, P., Nocedal, J., and Zhu, C.: A Limited Memory Algorithm for
 \bibitem[{{Center for Space Research}(2026)}]{csr2026documentation}
 {Center for Space Research}: {CSR GRACE/GRACE-FO RL06.3} Mascon Solutions,
   University of Texas at Austin,
-  \urlprefix\url{https://www2.csr.utexas.edu/grace/RL06_mascons.html}, accessed
-  18 September 2026, 2026.
+  \urlprefix\url{https://www2.csr.utexas.edu/grace/RL06_mascons.html}, last
+  access: 18 September 2026, 2026.
 
 \bibitem[{{Copernicus Climate Change Service}(2019)}]{c3s2019era5land}
 {Copernicus Climate Change Service}: {ERA5-Land} monthly averaged data from
@@ -225,6 +225,12 @@ Nie, W., Kumar, S.~V., Chen, J., Zhao, L., Skulovich, O., Yoo, J., Pflug, J.,
 Niraula, B. and Goessling, H.~F.: Spatial Damped Anomaly Persistence of the Sea
   Ice Edge as a Benchmark for Dynamical Forecast Systems, J. Geophys.
   Res.-Oceans, 126, e2021JC017\,784, \doi{10.1029/2021JC017784}, 2021.
+
+\bibitem[{{NOAA Physical Sciences Laboratory}(2026)}]{noaa2026indices}
+{NOAA Physical Sciences Laboratory}: Climate Indices: Monthly Atmospheric and
+  Ocean Time Series, NOAA Physical Sciences Laboratory [data set],
+  \urlprefix\url{https://psl.noaa.gov/data/climateindices/}, last access: 16
+  September 2026, 2026.
 
 \bibitem[{Reager et~al.(2014)Reager, Thomas, and Famiglietti}]{reager2014flood}
 Reager, J.~T., Thomas, B.~F., and Famiglietti, J.~S.: River basin flood

@@ -1,52 +1,37 @@
 # What remains before the HESS submission
 
-**Status: 11 October 2026, branch `hess-submission`.** The manuscript, figures,
+**Status: 14 October 2026, branch `hess-submission`.** The manuscript, figures,
 references and end matter meet the HESS rules checked by
-`scripts/check_hess_submission.py` (131 of 132 checks pass). The one failing check
-is the data/code DOI below. The earlier, longer version of this file (10 October)
-is in the git history.
-
-## What Ian needs to do
-
-1. **JPL row-level predictions.** Copy the JPL prediction files from your machine
-   (`results/jpl/*_predictions.csv`, `results/jpl/*_placebo_*.csv` that git ignores)
-   into the Zenodo deposit alongside the two zips from `scripts/build_deposit.py`, and
-   add one line to `docs/DEPOSIT_README.md` listing them. If they cannot be shared,
-   leave the README sentence that says they are excluded.
-2. **Confirm your title-page entries** in `paper/main.tex`: name, email
-   (ianwa09@gmail.com), affiliation 2 (Illinois Mathematics and Science Academy,
-   1500 Sullivan Road, Aurora, IL 60506, USA) and affiliation 3 (SEES High School
-   Summer Intern Program). Remove affiliation 3 from your `\Author` line if you were
-   not a SEES intern on this project.
-3. **Confirm the author-contribution text** (end of `paper/main.tex`). It was
-   reformatted to HESS style (IK, IW) without changing what you wrote.
-4. **Read the final PDF** (`paper/main.pdf`) once, in particular the JPL results
-   (Sects. 4.1 and 4.4, Table 5, Fig. 7, Appendix Table B2), and report anything
-   that does not match your JPL runs.
-5. **Agree on the licences** (MIT for code, CC BY 4.0 for data proposed) and on the
-   AI-use statement with Ishaan before the deposit is published.
+`scripts/check_hess_submission.py`. The failing check is the data/code DOI below; the
+"PDF newer than inputs" check clears on the final recompile. All deposit inputs,
+including the 33 JPL row-level files from Ian's machine, are now in the first
+author's checkout and pass both checksum checks. Earlier versions of this file are in
+the git history.
 
 ## Open items
 
 | Item | What to do | Who |
 |---|---|---|
+| Basin mask redistribution | `HydroShed+Mascon_Basins_L3.nc` (Teresa Howard and Benjamin Krichman) goes in the data archive under CC BY 4.0. Confirm they agree before publishing the deposit | Authors |
 | Zenodo deposit and DOI | See "Deposit" below. Then cite the DOI in `\codedataavailability` and `references.bib`; the checker fails until a `10.5281/zenodo.*` DOI is cited | Authors |
-| JPL row-level predictions | Not in the first author's checkout. Add them to the deposit, or keep the sentence in `docs/DEPOSIT_README.md` saying they are excluded | Ian Wang |
-| Licences | `docs/DEPOSIT_README.md` proposes MIT for code and CC BY 4.0 for data. Confirm, add a `LICENSE` file, and choose the same on Zenodo | Authors |
-| Basin mask redistribution | `HydroShed+Mascon_Basins_L3.nc` (Teresa Howard and Benjamin Krichman) goes in the data archive. Confirm they agree | Authors |
-| AI-use statement | Deferred by the authors. HESS asks for it in Methods or Acknowledgements and in the registration form | Authors |
+| AI-use statement | Deferred by the authors. HESS asks for it in Methods or Acknowledgements and in the registration form. The code archive includes `results/RUN_LOG.md`, `paper/notes/` and `docs/EXTERNAL_AUDIT_PROMPT.md`; review them against the statement before publishing the deposit | Authors |
 | Author confirmations | Order and equal contribution, contribution text, emails, school addresses, the SEES affiliation and acknowledgement, "no external funding" | Both authors |
 | Registration | Research article; subject areas and index terms; licence, terms and APC; upload | Authors |
 
+Licences are settled: MIT for code (`LICENSE`; the Copernicus LaTeX files under
+`paper/` keep Copernicus's terms) and CC BY 4.0 for data. Choose the same two on Zenodo.
+
 ## Deposit
 
-1. Commit everything, then run `.venv/Scripts/python.exe scripts/make_manifest.py --check`
-   and `.venv/Scripts/python.exe scripts/build_deposit.py`. This writes two zips to
-   `deposit/` (code at the commit, and large CSR files, processed inputs and the
-   basin mask).
-2. On zenodo.org choose New upload, then Reserve DOI. Upload both zips (plus the JPL
-   prediction files if available), paste `docs/DEPOSIT_README.md` as the
-   description, set the licences, and publish.
+1. Commit everything. Check the large files with
+   `.venv/Scripts/python.exe scripts/make_manifest.py --check` and again with the
+   environment variable `GRACEFC_SOURCE=jpl` (25 CSR and 33 JPL files). Then run
+   `.venv/Scripts/python.exe scripts/build_deposit.py`. This writes two zips to
+   `deposit/`: the code at the commit (`git archive HEAD`, without `.claude/` and
+   `docs/reference/`), and the large CSR and JPL result files, processed inputs and
+   the basin mask.
+2. On zenodo.org choose New upload, then Reserve DOI. Upload both zips, paste
+   `docs/DEPOSIT_README.md` as the description, set the licences, and publish.
 3. Add a `@misc` entry with `howpublished = {Zenodo [code and data set]}` and the DOI,
    cite it in `\codedataavailability`, and replace the sentence that says the
    archive is being prepared.
@@ -58,7 +43,6 @@ is in the git history.
 
 The code archive is `git archive HEAD`, so everything committed is published,
 including `results/RUN_LOG.md` and the notes under `docs/` and `paper/notes/`.
-Review that content against the AI-use statement before publishing the deposit.
 
 ## Done
 
@@ -71,3 +55,9 @@ Review that content against the AI-use statement before publishing the deposit.
   data sets and preprints tagged, data sets cited by DOI.
 - Number audit of about 800 numerals against the result files; referee-style,
   compliance, citation and reproducibility audits applied.
+- JPL deposit files (14 October): Ian's 33 row-level files checked against
+  `results/jpl/SHA256_MANIFEST_LIVE.csv`; his 4 processed inputs reproduce the JPL
+  baseline and GRACE-FCast comparison tables and are pinned in
+  `results/jpl/RUN_PROVENANCE.md`.
+- Code comments and docstrings rewritten for the archive (14 October), with every
+  file checked to compute exactly what it did before.

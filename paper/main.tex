@@ -73,7 +73,7 @@ of two damped-persistence references.
 Refitting with zero model-noise variance removes that 1-month gain.
 % source: results/jpl/paper_baseline_ladder.csv, kalman_ar1 rows, skill_vs_damped h2..h6 (0.0635, 0.0464,
 % 0.0155, 0.0236, 0.0474), all dm_p < 0.02; h1 skill 0.0056, dm_p 0.60
-On the Jet Propulsion Laboratory (JPL) product the filter improves on damped persistence at 2--6
+On the Jet Propulsion Laboratory (JPL) product the filter improves on damped persistence at 2 to 6
 months, but the 1-month difference is not significant. On CSR, a ridge
 regression on 12 months of filtered storage and ERA5-Land reanalysis variables lowers
 standardized error by a further
@@ -503,10 +503,11 @@ channels. It is trained with a time-ordered split that holds out the last
 15\,\% of training months for early stopping, and its two seeds are
 reported as a seed ensemble. The MLP is a multilayer perceptron (hidden layers of 64 and
 32 units, early stopping) on the KF-R12E feature vector, with two seeds.
-The residual MLP is a two-stage model, KF-R1E followed by an MLP of the
-same size trained on the first stage's training residual, with three
+The residual MLP is a two-stage model with the inputs of KF-R1E: KF-R1,
+followed by an MLP of the same size that predicts the training residual of
+KF-R1 from the ERA5-Land anomalies at lags of 0 to 2 months, with three
 seeds.
-% source: src/gracefc/experiment_lstm.py (12-month window, 85/15 split, seeds 0-1); experiment_nonlinear.py mlp head (64,32, early stopping); experiment_resmlp.py (3 seeds)
+% source: src/gracefc/experiment_lstm.py (12-month window, 85/15 split, seeds 0-1); experiment_nonlinear.py mlp head (64,32, early stopping); experiment_resmlp.py (stage 1 Ridge(alpha=1) on own_state, stage 2 mlp on era5 lags 0-2, 3 seeds)
 Finally, two neighbor models, not adopted
 (Sect.~\ref{sec:results-dropped}), add to KF-R1 the filtered state of one
 other basin propagated to the target month, with that basin chosen by
@@ -540,7 +541,7 @@ KF-R12E & KF-R12 with the 12-month history of the 11 ERA5-Land anomalies added (
 KF-R1E & KF plus a ridge correction on the current filtered state and ERA5-Land anomalies at lags of 0 to 2 months (Sect.~\ref{sec:methods-corrections}). \\
 LSTM & Shared-encoder LSTM over the 12-month history of filtered state and ERA5-Land channels; two-seed ensemble (Sect.~\ref{sec:methods-corrections}). \\
 MLP & Multilayer perceptron on the KF-R12E features; two seeds (Sect.~\ref{sec:methods-corrections}). \\
-Residual MLP & KF-R1E followed by an MLP on its training residual; three seeds (Sect.~\ref{sec:methods-corrections}). \\
+Residual MLP & KF-R1 followed by an MLP that predicts its training residual from the ERA5-Land anomalies at lags of 0 to 2 months; three seeds (Sect.~\ref{sec:methods-corrections}). \\
 Neighbor ridge & KF-R1 plus one other basin's propagated filtered state, selected by correlation or by distance (Sect.~\ref{sec:methods-corrections}; not adopted, Sect.~\ref{sec:results-dropped}). \\
 GRACE-FCast, full and non-seasonal & The published forecast of \citet{li2026fcast}, with and without its extrapolated seasonal and trend terms (Sects.~\ref{sec:data-li} and \ref{sec:methods-li}). \\
 \bottomhline
@@ -1241,7 +1242,7 @@ correlation above 0.8 over about 72\,\% of global land at a 1-month lead
 time for the full signal but over only 20\,\% once the seasonal cycle and
 trend are removed. They attribute the difference to the extrapolated
 components.
-% source: docs/reference/li_kusche_2026_core.md sects. 5.1 and 6.1 (CC > 0.8 land fraction 72% full, 20% non-seasonal at lead 1; three-product mean)
+% source: Li and Kusche (2026), sects. 5.1 and 6.1 (CC > 0.8 land fraction 72% full, 20% non-seasonal at lead 1; three-product mean)
 Appendix~\ref{app:conventional} likewise shows higher correlations after
 the extrapolated seasonal cycle and trend are restored to our forecasts.
 Reporting full-signal metrics alongside deseasonalized skill makes clear
@@ -1603,8 +1604,7 @@ KF-R12E & 1 & 5.231 & 2.56 & 0.69 & 0.88 & 0.42 & 0.76 \\
 solutions from the NASA Physical Oceanography Distributed Active Archive
 Center \citep{wiese2023jpl}. ERA5-Land monthly data are available from the
 Copernicus Climate Data Store \citep{c3s2019era5land}. Climate indices are
-available from the NOAA Physical Sciences Laboratory
-(\url{https://psl.noaa.gov/data/climateindices/}). The GRACE-FCast hindcast
+available from \citet{noaa2026indices}. The GRACE-FCast hindcast
 is available from PANGAEA \citep{li2025pangaea}. The analysis code is at
 \url{https://github.com/ishaankejriwal/graceseespaper}. The benchmark
 forecasts, the per-prediction files, the basin partition and every

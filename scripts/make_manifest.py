@@ -1,8 +1,9 @@
-"""Checksum the result files that are too large to keep in git.
+"""Write or verify SHA-256 checksums for the result files that git excludes for size.
 
-Anything in results/ that .gitignore excludes for size still needs an integrity
-record, otherwise a regenerated file could differ from the one the manuscript was
-written against and nothing would notice. This writes that record.
+Every .csv and .pkl file in the results directory that git does not track is
+listed with its size and checksum in SHA256_MANIFEST_LIVE.csv, so a regenerated
+file that differs from the one behind the manuscript is detected. The results
+directory follows GRACEFC_SOURCE (results/ for CSR, results/jpl/ for JPL).
 
 Usage:
   python scripts/make_manifest.py            # write results/SHA256_MANIFEST_LIVE.csv
@@ -25,15 +26,16 @@ MANIFEST = RESULTS / "SHA256_MANIFEST_LIVE.csv"
 
 
 def tracked_files() -> set[str]:
-    """Names git already versions — those need no separate checksum."""
-    if source() != "csr":
-        return set()
-    out = subprocess.run(["git", "ls-files", "results"], cwd=ROOT,
+    """Names of the files in the results directory that git tracks; they need no checksum
+    here."""
+    rel = RESULTS.relative_to(ROOT).as_posix()
+    out = subprocess.run(["git", "ls-files", rel], cwd=ROOT,
                          capture_output=True, text=True).stdout
-    return {Path(line).name for line in out.splitlines() if line.strip()}
+    return {Path(line).name for line in out.splitlines() if Path(line).parent.as_posix() == rel}
 
 
 def untracked_results() -> list[Path]:
+    """Untracked .csv and .pkl files in the results directory, excluding the manifest."""
     tracked = tracked_files()
     return sorted(p for p in RESULTS.iterdir()
                   if p.is_file() and p.name not in tracked and p != MANIFEST
@@ -73,7 +75,7 @@ def main() -> None:
                 print(f"{label}: {n}")
         if bad or gone:
             raise SystemExit(f"manifest check FAILED ({len(bad)} changed, {len(gone)} missing)")
-        print(f"manifest check OK — {len(files)} files, {len(missing)} new")
+        print(f"manifest check OK: {len(files)} files, {len(missing)} new")
         return
 
     with open(MANIFEST, "w", newline="", encoding="utf-8") as fh:

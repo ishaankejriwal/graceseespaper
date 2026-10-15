@@ -123,8 +123,8 @@ residual autocorrelation) for the Sect. 4.1 paragraph.
 rules and writes the local packet in `paper/submission/`.
 `centimeter_contrasts.py` runs the DM tests and bootstrap intervals on squared errors in cm for Sect. 4.5.
 `climatology_offset.py` splits climatology's 1-month error into the basin-fold mean residual and the rest (Sect. 3.1).
-`build_deposit.py` stages the two Zenodo archives (code at HEAD; large CSR files and processed
-inputs) into `deposit/`, uploading nothing.
+`build_deposit.py` stages the two Zenodo archives (code at HEAD; large CSR and JPL result files,
+processed inputs and the basin mask) into `deposit/`, uploading nothing.
 
 ### The experiments, in order
 
@@ -170,7 +170,7 @@ The extended list, which is every remaining experiment.
 | `paper/` | `main.tex` is the manuscript (Kalman-benchmark structure, readability rewrite 2026-09-11). `paper/notes/` holds the drafting record; `REWRITE_LEDGER.md` there predates the reframe and is historical. `docs/ARCHIVE_MANIFEST.md` is the authoritative list of the paper's numbers. The ledger is pre-reframe: it still lists the earlier three-finding numbers and will be regenerated after the manuscript rewrite, the same status `docs/STUDY_CONTEXT.md` and `docs/ARCHIVE_MANIFEST.md` record. |
 | `archive/` | A frozen snapshot of results from before the 2026-08-13 audit, checksummed. Never overwrite it — it's how we prove what changed. |
 | `notebooks/` | Two notebooks for interactive poking. They only read results; running them can't change anything. Outputs are cleared on purpose. |
-| `docs/reference/` | The Li & Kusche paper, compressed, for the head-to-head comparison. |
+| `docs/reference/` | The Li & Kusche paper, compressed, for the head-to-head comparison (left out of the Zenodo code archive). |
 | `docs/history/` | The older Africa-only pilot study that preceded this global one. |
 
 The two `.nc` files at the repository root are the raw satellite measurements and the basin
