@@ -25,7 +25,6 @@ copy of this readme:
 | `results/SHA256_MANIFEST_LIVE.csv` | SHA-256 checksums of the 25 CSR files above |
 | `results/jpl/*_predictions.csv`, `results/jpl/*_placebo_basin.csv`, `results/jpl/*_placebo_monthly.csv`, `results/jpl/kalman_fold_params.pkl` | The same row-level files for the JPL mascon product (33 files), including the fitted Kalman parameters as a Python pickle; load it only in the pinned environment |
 | `results/jpl/SHA256_MANIFEST_LIVE.csv`, `results/jpl/RUN_PROVENANCE.md` | SHA-256 checksums of all 92 generated JPL result files (the 33 above and the tables in the code archive), and the JPL run record: product release, run dates, seeds, input checksums |
-| `HydroShed+Mascon_Basins_L3.nc` | The 0.25° basin partition combining HydroSHEDS Level-3 basins with mascon boundaries (see the manuscript acknowledgements) |
 | `data/processed/basin_month_twsa_global.csv` | Monthly basin-average CSR TWSA (cm of equivalent water height) |
 | `data/processed/basin_meta.csv` | Basin names, areas, centroids and the exclusion flags of Sect. 2.2 |
 | `data/processed/era5_basin_month.csv`, `era5_basin_coverage.csv` | Monthly basin-average ERA5-Land variables and their land-cell coverage |
@@ -69,8 +68,20 @@ python scripts/make_figures.py
 ```
 
 The figure script checks each plotted headline value against its source table. It needs
-the Arial font, and Cartopy downloads the Natural Earth base map on first use. Rerunning
-the experiments from raw data follows `README.md` and needs the third-party inputs below.
+the Arial font, and Cartopy downloads the Natural Earth base map on first use. Map figures
+also require the basin mask described below. Rerunning
+the experiments from raw data follows `README.md` and needs the third-party inputs below,
+including a compatible basin mask.
+
+## Basin mask
+
+The basin mask used in this study (`HydroShed+Mascon_Basins_L3.nc`) combines
+HydroSHEDS basins with the CSR mascon land/ocean mask. It is not available for
+public redistribution and is not included in this deposit.
+
+The processed basin series and result tables are included. Reproducing the
+original basin aggregation and map figures also requires the mask, so those
+steps cannot be reproduced from this deposit alone.
 
 ## Third-party data
 
@@ -85,6 +96,7 @@ Cite the original products when reusing these files.
 ## Licence
 
 Code: MIT (see `LICENSE`), except the Copernicus LaTeX class, style and template files
-under `paper/`, which keep Copernicus's terms. Data and result files: CC BY 4.0. Files
-derived from the third-party products above remain subject to those products' attribution
-terms.
+under `paper/`, which keep Copernicus's terms. The authors' original data and result
+files are licensed under CC BY 4.0. Third-party materials retain their original
+licences and attribution requirements. The basin mask is not included and is not
+covered by these licences.

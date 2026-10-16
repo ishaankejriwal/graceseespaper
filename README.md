@@ -32,17 +32,18 @@ the first time it runs.
 
 ## Input data
 
-Raw inputs are not in git. The processed basin tables built from them, the basin mask and the
-row-level result files are in the data archive of the Zenodo deposit (`docs/DEPOSIT_README.md`),
-so the figures and tables can be rebuilt without downloading anything. The raw files are needed
-only to rerun the pipeline from the start.
+Raw inputs are not in git. The processed basin tables and row-level result files are
+listed for the Zenodo data archive (`docs/DEPOSIT_README.md`). The supplied basin mask
+cannot be redistributed publicly. A compatible mask is needed to rebuild the map figures
+or rerun the pipeline from raw data. Release of the basin names in the public tables
+also remains under review; see the deposit README.
 
 | Input | Path | Source |
 |---|---|---|
 | CSR RL0603M mascons | `CSR_GRACE_GRACE-FO_RL0603_Mascons_all-corrections.nc` (repository root) | [CSR mascon page](http://www2.csr.utexas.edu/grace/RL0603_mascons.html) |
 | CSR mapping file and land mask | `data/raw/csr_ancillary/CSR_GRACE_GRACE-FO_RL0603_mascons_mapping_file.nc`, `data/raw/csr_ancillary/CSR_GRACE_GRACE-FO_RL06_Mascons_v02_LandMask.nc` | CSR mascon page, ancillary files |
 | JPL RL06.3Mv04 CRI mascons (JPL runs only) | passed with `--mascon-file` | PO.DAAC, doi:10.5067/TEMSC-3JC634 |
-| Basin mask | `HydroShed+Mascon_Basins_L3.nc` (repository root) | data archive of the Zenodo deposit |
+| Basin mask | `HydroShed+Mascon_Basins_L3.nc` (repository root, local use only) | Supplied study input; excluded from the public archive. A public replacement must be independently generated from HydroSHEDS basins intersected with the CSR land/ocean mask and validated |
 | ERA5-Land monthly means | `data/raw/era5/` | `python scripts/download_era5.py` |
 | Climate indices | `data/processed/indices.csv` | `python scripts/download_indices.py` |
 | GRACE-FCast hindcast (Li and Kusche) | `data/raw/li2026/CSR-FCast/global_gridded/`, `data/raw/li2026/JPL-FCast/global_gridded/` | [PANGAEA, doi:10.1594/PANGAEA.973113](https://doi.pangaea.de/10.1594/PANGAEA.973113) |
@@ -57,7 +58,7 @@ inputs without changing them.
 ## Reproducing the figures and tables from the archive
 
 Unpack the code and data archives into the same folder, check the large result files against
-their checksums, and build the figures:
+their checksums, and, if a compatible basin mask is available locally, build the figures:
 
 ```bash
 python scripts/make_manifest.py --check

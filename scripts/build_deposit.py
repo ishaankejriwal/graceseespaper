@@ -5,7 +5,7 @@ Two archives:
                                      tables, figures, manuscript source)
   graceseespaper-<commit>-data.zip   the row-level CSR and JPL files and processed
                                      basin inputs that git excludes for size, with the
-                                     checksum manifest that pins them, the basin mask and the
+                                     checksum manifest that pins them and the
                                      deposit README; it unpacks into the same folder as the code
   graceseespaper-71be5ec-jpl-run-code.zip
                                      the code (src, scripts, tests, environment lock) at the
@@ -36,7 +36,9 @@ def deposit_files():
     # so a second copy here would not match the one in the code zip byte for byte.
     tracked = set(subprocess.run(["git", "ls-files", "results"], cwd=ROOT,
                                  capture_output=True, text=True, check=True).stdout.splitlines())
-    files = [ROOT / "docs" / "DEPOSIT_README.md", ROOT / "HydroShed+Mascon_Basins_L3.nc"]
+    # The supplied mask is permitted for analysis but not for public redistribution.
+    # A separately generated, validated public mask would need its own release terms.
+    files = [ROOT / "docs" / "DEPOSIT_README.md"]
     for result_dir in (ROOT / "results", ROOT / "results" / "jpl"):
         manifest = result_dir / "SHA256_MANIFEST_LIVE.csv"
         with manifest.open(newline="", encoding="utf-8") as f:
